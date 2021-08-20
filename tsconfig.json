@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "moduleResolution": "Node",
+    "strict": true,
+    "sourceMap": true,
+    "declaration": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "outDir": "./dist",
+    "types": [
+      "@types/jest",
+      "jest-playwright-preset",
+      "expect-playwright",
+    ]
+  },
+  "include": ["./src"],
+  "exclude": ["./test", "**/*.test.*", "./docs/examples"]
+}
