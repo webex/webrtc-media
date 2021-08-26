@@ -1,7 +1,7 @@
 # Webstorm
 .idea
 
-.husky
+#.husky
 
 # Other
 .DS_Store

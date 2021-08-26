@@ -26,10 +26,13 @@
     "prebuild": "rimraf dist",
     "build": "tsc",
     "test": "jest",
-    "lint": " eslint 'src/**/*.ts' --fix"
+    "lint": " eslint 'src/**/*.ts' --fix",
+    "prepare": "husky install"
   },
   "dependencies": {},
   "devDependencies": {
+    "@commitlint/cli": "^13.1.0",
+    "@commitlint/config-conventional": "^13.1.0",
     "@types/chai": "^4.2.21",
     "@types/jest": "^27.0.1",
     "@types/node": "15.14.7",
@@ -42,6 +45,7 @@
     "eslint-plugin-import": "^2.24.1",
     "eslint-plugin-jest": "^24.4.0",
     "eslint-plugin-tsdoc": "^0.2.14",
+    "husky": "^7.0.0",
     "jest": "^27.0.6",
     "jest-circus": "^27.0.6",
     "jest-environment-jsdom": "^27.0.6",
@@ -85,5 +89,20 @@
       "default",
       "jest-junit"
     ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "scope-case": [
+        2,
+        "always",
+        [
+          "lower-case",
+          "pascal-case"
+        ]
+      ]
+    }
   }
 }
