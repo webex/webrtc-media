@@ -27,12 +27,16 @@
     "build": "tsc",
     "test": "jest",
     "lint": " eslint 'src/**/*.ts' --fix",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "release": "semantic-release"
   },
   "dependencies": {},
   "devDependencies": {
     "@commitlint/cli": "^13.1.0",
     "@commitlint/config-conventional": "^13.1.0",
+    "@semantic-release/changelog": "^5.0.1",
+    "@semantic-release/git": "^9.0.0",
+    "@semantic-release/release-notes-generator": "^9.0.3",
     "@types/chai": "^4.2.21",
     "@types/jest": "^27.0.1",
     "@types/node": "15.14.7",
@@ -55,6 +59,7 @@
     "jest-runner": "^27.0.6",
     "rimraf": "^3.0.2",
     "rollup-plugin-copy": "^3.4.0",
+    "semantic-release": "^17.4.7",
     "ts-jest": "^27.0.5",
     "typescript": "^4.3.5"
   },
@@ -104,5 +109,23 @@
         ]
       ]
     }
+  },
+  "release": {
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "CHANGELOG.md",
+            "docs/",
+            "package.json",
+            "yarn.lock"
+          ]
+        }
+      ]
+    ]
   }
 }
