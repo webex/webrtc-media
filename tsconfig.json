@@ -12,12 +12,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "outDir": "./dist",
-    "types": [
-      "@types/jest",
-      "jest-playwright-preset",
-      "expect-playwright",
-    ]
+    "outDir": "./dist"
   },
   "include": ["./src"],
   "exclude": ["./test", "**/*.test.*", "./docs/examples"]

@@ -8,4 +8,4 @@ yarn lint
 
 echo "--------------------------------------------------"
 echo "Running unit tests..."
-yarn test
+yarn test:sauce

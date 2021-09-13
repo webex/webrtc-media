@@ -28,3 +28,4 @@ export class ExampleModule {
     return (x + y) / 2.0;
   }
 }
+export default ExampleModule;

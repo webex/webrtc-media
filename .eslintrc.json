@@ -9,13 +9,12 @@
   "parserOptions": {
     "sourceType": "module"
   },
-  "plugins": ["@typescript-eslint", "import", "eslint-plugin-tsdoc", "jest"],
+  "plugins": ["@typescript-eslint", "import", "eslint-plugin-tsdoc"],
   "extends": [
     "airbnb-base",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:import/typescript",
-    "plugin:jest/recommended",
     "plugin:@typescript-eslint/recommended"
   ],
   "ignorePatterns": ["build/**/*.*", "dist/**/*.*", "docs/^(?!examples)/*.*"],
@@ -108,12 +107,6 @@
     "no-useless-call": "error"
   },
   "overrides": [
-    {
-      "files": ["*.test.js"],
-      "rules": {
-        "jest/no-done-callback": "off"
-      }
-    },
     {
       "files": ["**/__mocks__/**"],
       "rules": {

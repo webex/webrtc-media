@@ -25,7 +25,8 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "tsc",
-    "test": "jest",
+    "test": "wtr --coverage --playwright --browsers chromium firefox webkit",
+    "test:sauce": "wtr",
     "lint": " eslint 'src/**/*.ts' --fix",
     "prepare": "husky install",
     "release": "semantic-release"
@@ -34,66 +35,30 @@
   "devDependencies": {
     "@commitlint/cli": "^13.1.0",
     "@commitlint/config-conventional": "^13.1.0",
+    "@esm-bundle/chai": "*",
     "@semantic-release/changelog": "^5.0.1",
     "@semantic-release/git": "^9.0.0",
     "@semantic-release/release-notes-generator": "^9.0.3",
     "@types/chai": "^4.2.21",
-    "@types/jest": "^27.0.1",
     "@types/node": "15.14.7",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",
+    "@web/dev-server-esbuild": "^0.2.14",
+    "@web/test-runner": "^0.13.17",
+    "@web/test-runner-junit-reporter": "^0.4.7",
+    "@web/test-runner-playwright": "^0.8.8",
+    "@web/test-runner-saucelabs": "^0.6.2",
     "chai": "^4.3.4",
     "eslint": "^7.32.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-import-resolver-typescript": "^2.4.0",
     "eslint-plugin-import": "^2.24.1",
-    "eslint-plugin-jest": "^24.4.0",
     "eslint-plugin-tsdoc": "^0.2.14",
     "husky": "^7.0.0",
-    "jest": "^27.0.6",
-    "jest-circus": "^27.0.6",
-    "jest-environment-jsdom": "^27.0.6",
-    "jest-environment-node": "^27.0.6",
-    "jest-junit": "^12.2.0",
-    "jest-playwright-preset": "^1.7.0",
-    "jest-runner": "^27.0.6",
     "rimraf": "^3.0.2",
     "rollup-plugin-copy": "^3.4.0",
     "semantic-release": "^17.4.7",
-    "ts-jest": "^27.0.5",
     "typescript": "^4.3.5"
-  },
-  "jest": {
-    "collectCoverage": true,
-    "coverageDirectory": "coverage",
-    "coverageProvider": "v8",
-    "coverageThreshold": {
-      "global": {
-        "branches": 50,
-        "functions": 100,
-        "lines": 80,
-        "statements": 80
-      }
-    },
-    "preset": "ts-jest/presets/default-esm",
-    "globals": {
-      "ts-jest": {
-        "useESM": true
-      }
-    },
-    "moduleFileExtensions": [
-      "js",
-      "ts",
-      "tsx",
-      "json"
-    ],
-    "roots": [
-      "<rootDir>/src"
-    ],
-    "reporters": [
-      "default",
-      "jest-junit"
-    ]
   },
   "commitlint": {
     "extends": [
