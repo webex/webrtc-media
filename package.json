@@ -25,8 +25,8 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "tsc",
-    "test": "wtr --coverage --playwright --browsers chromium firefox webkit",
-    "test:sauce": "wtr",
+    "test": "wtr --coverage",
+    "test:integration": "SAUCE=true wtr --group integration",
     "lint": " eslint 'src/**/*.ts' --fix",
     "prepare": "husky install",
     "release": "semantic-release"
@@ -47,6 +47,7 @@
     "@web/test-runner": "^0.13.17",
     "@web/test-runner-junit-reporter": "^0.4.7",
     "@web/test-runner-playwright": "^0.8.8",
+    "@web/test-runner-puppeteer": "^0.10.2",
     "@web/test-runner-saucelabs": "^0.6.2",
     "chai": "^4.3.4",
     "eslint": "^7.32.0",
