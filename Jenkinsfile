@@ -12,15 +12,18 @@ sparkPipeline {
   build = { services ->
     this.sh './pipeline/setup.sh'
     this.sh './pipeline/unit-test.sh'
-    
+
     this.withCredentials([this.string(credentialsId: 'SAUCE_TOKEN', variable: 'SAUCE_ACCESS_KEY')]) {
       this.sh './pipeline/integration-test.sh'
     }
-    
+
     if(this.isMasterBranch()) {
       this.sh './pipeline/build.sh'
       
-      this.withCredentials([this.string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN')]) {
+      this.withCredentials([
+        this.string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN'),
+        this.string(credentialsId: 'ARTIFACTORY_TOKEN', variable: 'NPM_TOKEN')
+      ]) {
         this.sh './pipeline/release.sh'
       }
       
