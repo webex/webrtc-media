@@ -5,7 +5,7 @@ import {createSauceLabsLauncher} from '@web/test-runner-saucelabs';
 
 const useSauceConnect = process.env.SAUCE === 'true';
 const timeout = process.env.TEST_TIMEOUT || 60000;
-let browsers = [chromeLauncher({launchOptions: {args: ['--no-sandbox']}})];
+let browsers = null;
 
 const appName = 'webrtc-media-core';
 const environment = process.env.environment || 'dev';
@@ -16,7 +16,7 @@ if (useSauceConnect) {
   const sauceLabsOptions = {
     name: buildName,
     build: buildNumber,
-    recordVideo: false,
+    recordVideo: true,
     recordScreenshots: false,
     logLevel: 'debug',
     browserStartTimeout: 60000,
@@ -41,14 +41,23 @@ if (useSauceConnect) {
       '--disable-features=WebRtcHideLocalIpsWithMdns',
       '--use-fake-device-for-media-stream',
       '--use-fake-ui-for-media-stream',
+      '--enable-experimental-web-platform-features',
     ],
   };
 
   const chromeOptions = {
     args: [
+      'start-maximized',
+      'disable-infobars',
+      'ignore-gpu-blacklist',
+      'test-type',
+      'disable-gpu',
       '--disable-features=WebRtcHideLocalIpsWithMdns',
       '--use-fake-device-for-media-stream',
       '--use-fake-ui-for-media-stream',
+      '--enable-experimental-web-platform-features',
+      '--allow-insecure-localhost',
+      '--unsafely-treat-insecure-origin-as-secure',
     ],
   };
 
@@ -122,8 +131,17 @@ if (useSauceConnect) {
         DisableInsecureMediaCapture: true,
       },
     }),
-
   ];
+} else {
+  browsers = [chromeLauncher({
+    launchOptions: {
+      args: [
+        '--no-sandbox',
+        '--use-fake-device-for-media-stream',
+        '--use-fake-ui-for-media-stream',
+      ],
+    },
+  })];
 }
 
 export default {
@@ -142,7 +160,8 @@ export default {
   plugins: [
     esbuildPlugin({
       ts: true,
-    })],
+    }),
+  ],
   reporters: [
     defaultReporter({reportTestResults: true, reportTestProgress: true}),
     junitReporter({
@@ -158,4 +177,11 @@ export default {
       timeout,
     },
   },
+  testRunnerHtml: (testFramework) => `<html>
+      <body>
+        <script>window.process = { env: { NODE_ENV: "development" } }</script>
+        <script type="module" src="${testFramework}"></script>
+      </body>
+    </html>`,
+
 };
