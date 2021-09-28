@@ -13,8 +13,8 @@
     "type": "git",
     "url": "https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core"
   },
-  "publishConfig":{
-    "registry":"https://engci-maven.cisco.com/artifactory/api/npm/webex-npm-group/",
+  "publishConfig": {
+    "registry": "https://engci-maven.cisco.com/artifactory/api/npm/webex-npm-group/",
     "tag": "latest"
   },
   "engines": {
@@ -37,6 +37,8 @@
     "@commitlint/config-conventional": "^13.1.0",
     "@esm-bundle/chai": "*",
     "@esm-bundle/chai-as-promised": "^7.1.1",
+    "@microsoft/api-documenter": "^7.13.54",
+    "@microsoft/api-extractor": "^7.18.11",
     "@semantic-release/changelog": "^5.0.1",
     "@semantic-release/git": "^9.0.0",
     "@semantic-release/release-notes-generator": "^9.0.3",
@@ -84,9 +86,12 @@
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
       "@semantic-release/changelog",
-      ["@semantic-release/npm", {
-        "npmPublish": true
-      }],
+      [
+        "@semantic-release/npm",
+        {
+          "npmPublish": true
+        }
+      ],
       [
         "@semantic-release/git",
         {
