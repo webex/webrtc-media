@@ -1,5 +1,5 @@
 {
-  "name": "@webex/webrtc-media-core",
+  "name": "@webex/webrtc-media",
   "version": "0.0.0-alpha",
   "files": [
     "dist"
