@@ -1,13 +1,11 @@
-import {expect} from '@esm-bundle/chai';
-import {ExampleModule} from './index';
+import {expect} from 'chai';
+import ExampleModule from './index';
 
 describe('ExampleModule', () => {
   it('say - outputs Hello World', () => {
-    expect(ExampleModule.sayHello('World'))
-      .equal('Hello World');
+    expect(ExampleModule.sayHello('World')).to.eq('Hello World');
   });
   it('getAverage - returns average', () => {
-    expect(ExampleModule.getAverage(5, 10))
-      .equal(7.5);
+    expect(ExampleModule.getAverage(5, 10)).to.eq(7.5);
   });
 });

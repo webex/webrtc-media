@@ -1,1 +1,1 @@
-export * from './ExampleModule';
+export {default} from './ExampleModule';

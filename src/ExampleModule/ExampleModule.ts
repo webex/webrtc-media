@@ -1,4 +1,4 @@
-export class ExampleModule {
+export default class ExampleModule {
   /**
    *
    * @public
@@ -8,7 +8,7 @@ export class ExampleModule {
    * @param val - a variable.
    * @returns - a string.
    */
-  public static sayHello(val: string) {
+  public static sayHello(val: string):string {
     return `Hello ${val}`;
   }
 
@@ -28,4 +28,3 @@ export class ExampleModule {
     return (x + y) / 2.0;
   }
 }
-export default ExampleModule;

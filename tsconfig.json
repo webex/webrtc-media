@@ -13,8 +13,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "outDir": "./dist"
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "outDir": "dist"
   },
-  "include": ["./src"],
-  "exclude": ["./test", "**/*.test.*", "./docs/examples"]
+  "include": ["src"],
+  "exclude": ["test", "docs/examples", "*test.ts"]
 }
