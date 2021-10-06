@@ -1,3 +1,10 @@
+# [1.1.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.0.0...v1.1.0) (2021-10-06)
+
+
+### Features
+
+* **Devices:** add Device methods ([683bc1a](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/683bc1ac7abffabe5aa8b16f1c66012f853c1ed8))
+
 # 1.0.0 (2021-09-29)
 
 
