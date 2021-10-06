@@ -21,7 +21,7 @@ module.exports = (config) => {
   const buildNumber = BUILD_NUMBER || new Date().toUTCString();
   const buildName = `${appName}-tests-${environment}#${buildNumber}`;
   const useSauceConnect = SAUCE === 'true';
-  const timeout = TEST_TIMEOUT || 30000;
+  const timeout = TEST_TIMEOUT || 60000;
 
   const sharedSauceOptions = {
     screenResolution: '1600x1200',
@@ -178,7 +178,7 @@ module.exports = (config) => {
     captureTimeout: 120000,
     client: {
       mocha: {
-        timeout,
+        // timeout: 10000,
       },
     },
     karmaTypescriptConfig: {

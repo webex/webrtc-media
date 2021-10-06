@@ -1,1 +1,1 @@
-export {default} from './ExampleModule';
+export {default} from './Media';
