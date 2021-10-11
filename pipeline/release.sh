@@ -2,6 +2,9 @@
 source ~/.nvm/nvm.sh
 nvm use
 
+NPM_USERNAME='webex-jenkins.gen'
+NPM_EMAIL='webex-jenkins.gen@cisco.com'
+
 echo "--------------------------------------------------"
 echo "Releasing code..."
 yarn release

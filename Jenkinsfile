@@ -22,7 +22,7 @@ sparkPipeline {
       
       this.withCredentials([
         this.string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN'),
-        this.string(credentialsId: 'ARTIFACTORY_TOKEN', variable: 'NPM_TOKEN')
+        this.string(credentialsId: 'NPM_PASSWORD', variable: 'NPM_PASSWORD')
       ]) {
         this.sh './pipeline/release.sh'
       }
