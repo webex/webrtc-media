@@ -2,6 +2,7 @@
 source ~/.nvm/nvm.sh
 nvm use
 
+HUSKY=0 # Skip Husky in CI
 NPM_USERNAME='webex-jenkins.gen'
 NPM_EMAIL='webex-jenkins.gen@cisco.com'
 
