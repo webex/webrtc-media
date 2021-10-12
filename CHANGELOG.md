@@ -1,3 +1,38 @@
+## [1.1.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.1.0...v1.1.1) (2021-10-12)
+
+
+### Bug Fixes
+
+* **release:** update credentials for release script ([dd9b3ff](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/dd9b3ffd6e321ccf68bf69747e7a25d6d90d34fd))
+
+## [1.1.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.1.0...v1.1.1) (2021-10-12)
+
+
+### Bug Fixes
+
+* **release:** update credentials for release script ([dd9b3ff](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/dd9b3ffd6e321ccf68bf69747e7a25d6d90d34fd))
+
+## [1.1.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.1.0...v1.1.1) (2021-10-12)
+
+
+### Bug Fixes
+
+* **release:** update credentials for release script ([dd9b3ff](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/dd9b3ffd6e321ccf68bf69747e7a25d6d90d34fd))
+
+## [1.1.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.1.0...v1.1.1) (2021-10-12)
+
+
+### Bug Fixes
+
+* **release:** update credentials for release script ([dd9b3ff](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/dd9b3ffd6e321ccf68bf69747e7a25d6d90d34fd))
+
+## [1.1.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.1.0...v1.1.1) (2021-10-12)
+
+
+### Bug Fixes
+
+* **release:** update credentials for release script ([dd9b3ff](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/dd9b3ffd6e321ccf68bf69747e7a25d6d90d34fd))
+
 # [1.1.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.0.0...v1.1.0) (2021-10-06)
 
 
