@@ -1,3 +1,10 @@
+## [1.1.2](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.1.1...v1.1.2) (2021-10-13)
+
+
+### Bug Fixes
+
+* **release:** readded npm token for release script ([149c27a](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/149c27aea53961ed8d08045f4293a2300752277b))
+
 ## [1.1.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.1.0...v1.1.1) (2021-10-12)
 
 
