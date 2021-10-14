@@ -46,7 +46,7 @@ export const fakeDevices = [
 // eslint-disable-next-line max-len
 const originalEnumerateDevices = navigator.mediaDevices ? navigator.mediaDevices.enumerateDevices : null;
 
-export const setupMediaDeviceMocks = () => {
+export const setupMediaDeviceMocks = (): void => {
   Object.defineProperty(navigator, 'mediaDevices', {
     writable: true,
     value: {
@@ -56,7 +56,7 @@ export const setupMediaDeviceMocks = () => {
   console.warn('Setting up Mocks on navigator.mediaDevices');
 };
 
-export const resetMediaDeviceMocks = () => {
+export const resetMediaDeviceMocks = (): void => {
   Object.defineProperty(navigator, 'mediaDevices', {
     writable: true,
     value: originalEnumerateDevices,
