@@ -1,14 +1,13 @@
-import {DeviceKinds} from './Devices/Devices';
+import {Device, DeviceKinds} from './Device';
 
 /**
    * Requests a list of the available media input and output devices, such as microphones and cameras.
    *
    * @returns Promise Array of MediaDeviceInfo objects
-   * @public
    */
-export const getDevices = async (): Promise<MediaDeviceInfo[]> => {
+const getDevices = async (): Promise<MediaDeviceInfo[]> => {
   if (!navigator.mediaDevices?.enumerateDevices) {
-    console.warn('nativator.mediaDevices.enumerateDevices() is not supported.');
+    console.warn('navigator.mediaDevices.enumerateDevices() is not supported.');
 
     return [];
   }
@@ -22,22 +21,12 @@ export const getDevices = async (): Promise<MediaDeviceInfo[]> => {
  * @returns Promise Array of MediaDeviceInfo objects
  * @public
  */
-export const getCameras = async (): Promise<MediaDeviceInfo[]> => {
+export const getCameras = async (): Promise<Device[]> => {
   const devices = await getDevices();
 
-  return devices.filter(({kind}) => kind === DeviceKinds.VideoInput);
-};
-
-/**
- * Handles getting a list of audio output devices
- *
- * @returns Promise Array of MediaDeviceInfo objects
- * @public
- */
-export const getSpeakers = async (): Promise<MediaDeviceInfo[]> => {
-  const devices = await getDevices();
-
-  return devices.filter(({kind}) => kind === DeviceKinds.AudioOutput);
+  return devices
+    .filter(({kind}) => kind === DeviceKinds.VIDEO_INPUT)
+    .map((device) => new Device(device));
 };
 
 /**
@@ -46,11 +35,27 @@ export const getSpeakers = async (): Promise<MediaDeviceInfo[]> => {
  * @returns Promise Array of MediaDeviceInfo objects
  * @public
  */
-export const getMicrophones = async (): Promise<MediaDeviceInfo[]> => {
+export const getMicrophones = async (): Promise<Device[]> => {
   const devices = await getDevices();
 
-  return devices.filter(({kind}) => kind === DeviceKinds.AudioInput);
+  return devices
+    .filter(({kind}) => kind === DeviceKinds.AUDIO_INPUT)
+    .map((device) => new Device(device));
 };
 
-export {default} from './Devices';
+/**
+ * Handles getting a list of audio output devices
+ *
+ * @returns Promise Array of MediaDeviceInfo objects
+ * @public
+ */
+export const getSpeakers = async (): Promise<Device[]> => {
+  const devices = await getDevices();
+
+  return devices
+    .filter(({kind}) => kind === DeviceKinds.AUDIO_OUTPUT)
+    .map((device) => new Device(device));
+};
+
+export * from './Device';
 export * from './Track';
