@@ -1,7 +1,7 @@
+/* eslint no-underscore-dangle: ["error", { "allow": ["_streams"] }] */
 import {Device, DeviceKinds, DeviceInterface} from './Device';
 import {Track, TrackInterface} from './Track';
 
-/* eslint no-underscore-dangle: 0 */
 const _streams : WeakMap<MediaStream, string> = new WeakMap();
 
 /**
@@ -86,6 +86,34 @@ export async function createAudioTrack(device?: DeviceInterface) : Promise<Track
     }
 
     return reject(Error('Could not obtain an audio track'));
+  });
+}
+
+/**
+ * Handles getting a track from either a provided device or a default device
+ *
+ * @param device - device object where the track will be retrieved from (optional)
+ * @returns Promise of Track object
+ */
+export async function createVideoTrack(device?: DeviceInterface) : Promise<TrackInterface> {
+  if (device && device.kind !== DeviceKinds.VIDEO_INPUT) {
+    throw new Error(`Device ${device.ID} is not of kind VIDEO_INPUT`);
+  }
+
+  const deviceConfig = device
+    ? {video: {deviceId: {exact: device.ID}}}
+    : {audio: false, video: true};
+  const stream : MediaStream = await navigator.mediaDevices.getUserMedia(deviceConfig);
+  const track: MediaStreamTrack = stream.getVideoTracks()[0];
+
+  return new Promise((resolve, reject) => {
+    if (track) {
+      _streams.set(stream, stream.id);
+
+      return resolve(new Track(track));
+    }
+
+    return reject(Error('Could not obtain a video track'));
   });
 }
 
