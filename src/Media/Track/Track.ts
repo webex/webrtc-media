@@ -10,7 +10,7 @@ export enum TrackKind {
   VIDEO = 'video',
 }
 
-interface TrackInterface {
+export interface TrackInterface {
   ID: string;
   kind: TrackKind;
   status: TrackStatus;
