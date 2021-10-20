@@ -1,3 +1,11 @@
+# [1.2.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.1.2...v1.2.0) (2021-10-20)
+
+
+### Features
+
+* **Device:** define device object ([cc6d77f](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/cc6d77f7d3fbd3bea31c6d05fb38d2048b6c2b8d))
+* **Track:** defined Track class ([ce363e7](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/ce363e7fe0822586c37d503caaf99d5490752237))
+
 ## [1.1.2](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.1.1...v1.1.2) (2021-10-13)
 
 
