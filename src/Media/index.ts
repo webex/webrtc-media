@@ -117,5 +117,30 @@ export async function createVideoTrack(device?: DeviceInterface) : Promise<Track
   });
 }
 
+/**
+ * Handles getting a content track a default device
+ *
+ * @returns Promise of Track object
+ */
+export async function createContentTrack() : Promise<TrackInterface> {
+  const deviceConfig = {audio: false, video: true};
+  // Typescript Compiler is not able find Definition of getDisplayMedia in mediaDevices interface.
+  // That is the reason we are using ts-ignore here for ignoring this open issue in mediaDevices
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const stream : MediaStream = await navigator.mediaDevices.getDisplayMedia(deviceConfig);
+  const track: MediaStreamTrack = stream.getVideoTracks()[0];
+
+  return new Promise((resolve, reject) => {
+    if (track) {
+      _streams.set(stream, stream.id);
+
+      return resolve(new Track(track));
+    }
+
+    return reject(Error('Could not obtain a content track'));
+  });
+}
+
 export * from './Device';
 export * from './Track';

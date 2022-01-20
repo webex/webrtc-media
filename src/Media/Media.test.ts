@@ -12,6 +12,7 @@ import {
   getMicrophones,
   createAudioTrack,
   createVideoTrack,
+  createContentTrack,
 } from './index';
 
 describe('Media', () => {
@@ -174,6 +175,27 @@ describe('Media', () => {
       expect(createVideoTrack((mockDevice as unknown) as DeviceInterface)
         .catch((error: Error) => expect(error).to.be.an('error')
           .with.property('message', `Device ${mockDevice.ID} is not of kind VIDEO_INPUT`)));
+    });
+  });
+
+  describe('createContentTrack()', () => {
+    before(() => {
+      setupMediaTrackMocks();
+    });
+
+    after(() => {
+      resetMediaTrackMocks();
+    });
+
+    it('should resolve to default video track on success', async () => {
+      const track = await createContentTrack();
+
+      expect(track.ID).to.eq('default');
+      expect(track.kind).to.eq(TrackKind.VIDEO);
+      expect(track.status).to.eq(TrackStatus.LIVE);
+      expect(track.muted).to.eq(true);
+      expect(track.label).to.eq('Fake Default Video Input');
+      expect(track.stop).to.be.a('function');
     });
   });
 });

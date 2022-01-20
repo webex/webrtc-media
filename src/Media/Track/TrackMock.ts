@@ -54,6 +54,11 @@ export const fakeVideoTracks = [
 
 const originalGetUserMedia = navigator.mediaDevices ? navigator.mediaDevices.getUserMedia : null;
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+// eslint-disable-next-line
+const originalGetDisplayMedia = navigator.mediaDevices ? navigator.mediaDevices.getDisplayMedia : null;
+
 interface ConstraintsInterface {
   audio: {
     deviceId: {
@@ -81,6 +86,9 @@ export const setupMediaTrackMocks = (): void => {
           ? fakeVideoTracks.filter((mediaStreamTrack) => mediaStreamTrack.id === constraints.video?.deviceId.exact)
           : fakeVideoTracks),
       }),
+      getDisplayMedia: async () => ({
+        getVideoTracks: () => fakeVideoTracks,
+      }),
     },
   });
   console.warn('Setting up Mocks on navigator.mediaDevices');
@@ -91,6 +99,7 @@ export const resetMediaTrackMocks = (): void => {
     writable: true,
     value: {
       originalGetUserMedia,
+      originalGetDisplayMedia,
     },
   });
 };
