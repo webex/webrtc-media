@@ -91,7 +91,7 @@ export const setupMediaTrackMocks = (): void => {
     writable: true,
     value: async () => ({
       getVideoTracks: () => fakeVideoTracks,
-    })
+    }),
   });
   console.warn('Setting up Mocks on navigator.mediaDevices');
 };
@@ -99,10 +99,10 @@ export const setupMediaTrackMocks = (): void => {
 export const setupEmptyMediaTrackMocks = (): void => {
   Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', {
     writable: true,
-    value: async () => Promise.reject(Error)
+    value: async () => Promise.reject(Error),
   });
   console.warn('Setting up Mocks on navigator.mediaDevices');
-}
+};
 
 export const resetMediaTrackMocks = (): void => {
   Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
@@ -112,6 +112,6 @@ export const resetMediaTrackMocks = (): void => {
 
   Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', {
     writable: true,
-    value: originalGetDisplayMedia
+    value: originalGetDisplayMedia,
   });
 };

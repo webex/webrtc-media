@@ -1,6 +1,13 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["_streams"] }] */
+import {v4 as uuidv4} from 'uuid';
 import {Device, DeviceKinds, DeviceInterface} from './Device';
 import {Track, TrackInterface} from './Track';
+import {
+  subscriptions,
+  deviceChangePublisher,
+  deviceList,
+} from '../Events';
+import {subscription} from '../Events/Subscription';
 
 const _streams: WeakMap<MediaStream, string> = new WeakMap();
 
@@ -25,7 +32,7 @@ const getDevices = async (): Promise<MediaDeviceInfo[]> => {
  * @returns Promise Array of MediaDeviceInfo objects
  * @public
  */
-export const getCameras = async (): Promise<Device[]> => {
+const getCameras = async (): Promise<Device[]> => {
   const devices = await getDevices();
 
   return devices
@@ -39,7 +46,7 @@ export const getCameras = async (): Promise<Device[]> => {
  * @returns Promise Array of MediaDeviceInfo objects
  * @public
  */
-export const getMicrophones = async (): Promise<Device[]> => {
+const getMicrophones = async (): Promise<Device[]> => {
   const devices = await getDevices();
 
   return devices
@@ -53,7 +60,7 @@ export const getMicrophones = async (): Promise<Device[]> => {
  * @returns Promise Array of MediaDeviceInfo objects
  * @public
  */
-export const getSpeakers = async (): Promise<Device[]> => {
+const getSpeakers = async (): Promise<Device[]> => {
   const devices = await getDevices();
 
   return devices
@@ -67,7 +74,7 @@ export const getSpeakers = async (): Promise<Device[]> => {
  * @param device - device object where the track will be retrieved from (optional)
  * @returns Promise of Track object
  */
-export async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterface> {
+async function createAudioTrack(device?: DeviceInterface) : Promise<TrackInterface> {
   if (device && device.kind !== DeviceKinds.AUDIO_INPUT) {
     throw new Error(`Device ${device.ID} is not of kind AUDIO_INPUT`);
   }
@@ -95,7 +102,7 @@ export async function createAudioTrack(device?: DeviceInterface): Promise<TrackI
  * @param device - device object where the track will be retrieved from (optional)
  * @returns Promise of Track object
  */
-export async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterface> {
+async function createVideoTrack(device?: DeviceInterface) : Promise<TrackInterface> {
   if (device && device.kind !== DeviceKinds.VIDEO_INPUT) {
     throw new Error(`Device ${device.ID} is not of kind VIDEO_INPUT`);
   }
@@ -122,7 +129,7 @@ export async function createVideoTrack(device?: DeviceInterface): Promise<TrackI
  *
  * @returns Promise of Track object
  */
-export async function createContentTrack(): Promise<TrackInterface> {
+async function createContentTrack(): Promise<TrackInterface> {
   const deviceConfig = {audio: false, video: true};
 
   try {
@@ -147,5 +154,54 @@ export async function createContentTrack(): Promise<TrackInterface> {
   }
 }
 
+/**
+ * Obtains multiple subscriptions for various media events and stores listeners
+ * Also sets appropriate browser event listeners
+ *
+ * @param eventName - event name to subscribe to (device:changed | track:muted)
+ * @param listener - callback method to call when an event occurs
+ * @returns promise that resolves with subscription object that can be used to unsubscribe
+*/
+async function subscribe(eventName: string, listener: () => void) : Promise<subscription> {
+  const subscriptionListener = {
+    id: uuidv4(),
+    method: listener,
+  };
+
+  subscriptions.events[eventName].set(subscriptionListener.id, subscriptionListener.method);
+
+  switch (eventName) {
+    case 'device:changed': {
+      const thisEventListeners = subscriptions.events[eventName];
+
+      if (thisEventListeners.size === 1) {
+        const thisDeviceList = await getDevices();
+
+        deviceList.push(...thisDeviceList);
+        navigator.mediaDevices.addEventListener('devicechange', deviceChangePublisher);
+      }
+      break;
+    }
+    default:
+      break;
+  }
+
+  return new Promise((resolve) => {
+    resolve({
+      type: eventName,
+      listener: subscriptionListener,
+    });
+  });
+}
+
 export * from './Device';
 export * from './Track';
+export {
+  getCameras,
+  getMicrophones,
+  getSpeakers,
+  createAudioTrack,
+  createVideoTrack,
+  createContentTrack,
+  subscribe,
+};

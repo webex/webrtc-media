@@ -27,7 +27,7 @@ export const fakeDevices = [
     deviceId: 'default',
     kind: 'audiooutput',
     label: 'Fake Default Audio Output',
-    groupId: 'e0d70595a03e14932924c77b7ef27906323e4276c89f87148aea392c5e297f1b',
+    groupId: 'a6b4fb6a105c92a16a6e2f3fb4efe289a783304764be026d4f973febf805c0c1',
   },
   {
     deviceId: 'd9feb221c64d6bf7c3ba735c0e70afc2bcd4598053ec3a3f11101d28f6b76945',

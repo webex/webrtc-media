@@ -1,10 +1,11 @@
 import {expect} from 'chai';
+import Sinon, {SinonSpy} from 'sinon';
 
 import {TrackKind, TrackStatus} from './Track';
 import {DeviceInterface, DeviceKinds} from './Device';
 
 import {setupMediaTrackMocks, setupEmptyMediaTrackMocks, resetMediaTrackMocks} from './Track/TrackMock';
-import {setupMediaDeviceMocks, resetMediaDeviceMocks} from './Device/DeviceMocks';
+import {setupMediaDeviceMocks, resetMediaDeviceMocks, fakeDevices} from './Device/DeviceMocks';
 
 import {
   getCameras,
@@ -13,7 +14,12 @@ import {
   createAudioTrack,
   createVideoTrack,
   createContentTrack,
+  subscribe,
 } from './index';
+
+import {subscriptions, deviceList} from '../Events';
+
+import {subscription as subscriptionType} from '../Events/Subscription';
 
 describe('Media', () => {
   before(() => {
@@ -212,6 +218,75 @@ describe('Media', () => {
       expect(await createContentTrack()
         .catch((error: Error) => expect(error).to.be.an('error')
           .with.property('message', 'Could not obtain a content track')));
+    });
+  });
+
+  describe('subscribe()', () => {
+    let subscription: subscriptionType;
+    let subscription2: subscriptionType;
+    let eventCallbackSpy: SinonSpy = Sinon.spy();
+    let eventCallbackSpy2: SinonSpy = Sinon.spy();
+
+    before(async () => {
+      setupMediaDeviceMocks();
+      subscription = await subscribe('device:changed', eventCallbackSpy);
+      subscription2 = await subscribe('device:changed', eventCallbackSpy2);
+    });
+
+    after(() => {
+      resetMediaDeviceMocks();
+    });
+
+    it('should have subscribe, return subscription, have it available in subscriptions', () => {
+      expect(subscription.listener.method).to.be.equal(eventCallbackSpy);
+      expect(subscriptions.events['device:changed'].get(subscription.listener.id)).to.be.equal(eventCallbackSpy);
+    });
+
+    it('should get device list when the first subscription happens', () => {
+      expect(deviceList).to.have.lengthOf.above(0);
+    });
+
+    describe('deviceChange event & publisher', () => {
+      it('should trigger multiple device:changed events on device removal', () => {
+        expect(navigator.mediaDevices).to.have.property('ondevicechange');
+        if (navigator.mediaDevices.ondevicechange) {
+          eventCallbackSpy = Sinon.spy();
+          eventCallbackSpy2 = Sinon.spy();
+          subscriptions.events['device:changed'].set(subscription.listener.id, eventCallbackSpy);
+          subscriptions.events['device:changed'].set(subscription2.listener.id, eventCallbackSpy2);
+          fakeDevices.splice(0, 1);
+          fakeDevices.splice(3, 1);
+          navigator.mediaDevices.dispatchEvent(new Event('devicechange'));
+          Sinon.assert.called(eventCallbackSpy);
+          Sinon.assert.called(eventCallbackSpy2);
+          expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('removed');
+        }
+      });
+
+      it('should trigger multiple device:changed events on device addition', () => {
+        expect(navigator.mediaDevices).to.have.property('ondevicechange');
+        if (navigator.mediaDevices.ondevicechange) {
+          eventCallbackSpy = Sinon.spy();
+          eventCallbackSpy2 = Sinon.spy();
+          subscriptions.events['device:changed'].set(subscription.listener.id, eventCallbackSpy);
+          subscriptions.events['device:changed'].set(subscription2.listener.id, eventCallbackSpy2);
+          fakeDevices.push(...[{
+            deviceId: '47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a3',
+            kind: 'audioinput',
+            label: 'Fake Default Audio Input 2',
+            groupId: 'a6b4fb6a105c92a16a6e2f3fb4efe289a783304764be026d4f973febf805c0c2',
+          }, {
+            deviceId: '47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a5',
+            kind: 'audiooutput',
+            label: 'Fake Default Audio Output',
+            groupId: 'a6b4fb6a105c92a16a6e2f3fb4efe289a783304764be026d4f973febf805c0c2',
+          }]);
+          navigator.mediaDevices.dispatchEvent(new Event('devicechange'));
+          Sinon.assert.called(eventCallbackSpy);
+          Sinon.assert.called(eventCallbackSpy2);
+          expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('added');
+        }
+      });
     });
   });
 });
