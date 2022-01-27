@@ -3,7 +3,7 @@ import {expect} from 'chai';
 import {TrackKind, TrackStatus} from './Track';
 import {DeviceInterface, DeviceKinds} from './Device';
 
-import {setupMediaTrackMocks, resetMediaTrackMocks} from './Track/TrackMock';
+import {setupMediaTrackMocks, setupEmptyMediaTrackMocks, resetMediaTrackMocks} from './Track/TrackMock';
 import {setupMediaDeviceMocks, resetMediaDeviceMocks} from './Device/DeviceMocks';
 
 import {
@@ -196,6 +196,22 @@ describe('Media', () => {
       expect(track.muted).to.eq(true);
       expect(track.label).to.eq('Fake Default Video Input');
       expect(track.stop).to.be.a('function');
+    });
+  });
+
+  describe('createContentTrack() if stream is empty', () => {
+    before(() => {
+      setupEmptyMediaTrackMocks();
+    });
+
+    after(() => {
+      resetMediaTrackMocks();
+    });
+
+    it('should throw error if content track is empty', async () => {
+      expect(await createContentTrack()
+        .catch((error: Error) => expect(error).to.be.an('error')
+          .with.property('message', 'Could not obtain a content track')));
     });
   });
 });

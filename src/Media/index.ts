@@ -2,7 +2,7 @@
 import {Device, DeviceKinds, DeviceInterface} from './Device';
 import {Track, TrackInterface} from './Track';
 
-const _streams : WeakMap<MediaStream, string> = new WeakMap();
+const _streams: WeakMap<MediaStream, string> = new WeakMap();
 
 /**
    * Requests a list of the available media input and output devices, such as microphones and cameras.
@@ -67,7 +67,7 @@ export const getSpeakers = async (): Promise<Device[]> => {
  * @param device - device object where the track will be retrieved from (optional)
  * @returns Promise of Track object
  */
-export async function createAudioTrack(device?: DeviceInterface) : Promise<TrackInterface> {
+export async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterface> {
   if (device && device.kind !== DeviceKinds.AUDIO_INPUT) {
     throw new Error(`Device ${device.ID} is not of kind AUDIO_INPUT`);
   }
@@ -75,7 +75,7 @@ export async function createAudioTrack(device?: DeviceInterface) : Promise<Track
   const deviceConfig = device
     ? {audio: {deviceId: {exact: device.ID}}}
     : {audio: true, video: false};
-  const stream : MediaStream = await navigator.mediaDevices.getUserMedia(deviceConfig);
+  const stream: MediaStream = await navigator.mediaDevices.getUserMedia(deviceConfig);
   const track: MediaStreamTrack = stream.getAudioTracks()[0];
 
   return new Promise((resolve, reject) => {
@@ -95,7 +95,7 @@ export async function createAudioTrack(device?: DeviceInterface) : Promise<Track
  * @param device - device object where the track will be retrieved from (optional)
  * @returns Promise of Track object
  */
-export async function createVideoTrack(device?: DeviceInterface) : Promise<TrackInterface> {
+export async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterface> {
   if (device && device.kind !== DeviceKinds.VIDEO_INPUT) {
     throw new Error(`Device ${device.ID} is not of kind VIDEO_INPUT`);
   }
@@ -103,7 +103,7 @@ export async function createVideoTrack(device?: DeviceInterface) : Promise<Track
   const deviceConfig = device
     ? {video: {deviceId: {exact: device.ID}}}
     : {audio: false, video: true};
-  const stream : MediaStream = await navigator.mediaDevices.getUserMedia(deviceConfig);
+  const stream: MediaStream = await navigator.mediaDevices.getUserMedia(deviceConfig);
   const track: MediaStreamTrack = stream.getVideoTracks()[0];
 
   return new Promise((resolve, reject) => {
@@ -122,24 +122,29 @@ export async function createVideoTrack(device?: DeviceInterface) : Promise<Track
  *
  * @returns Promise of Track object
  */
-export async function createContentTrack() : Promise<TrackInterface> {
+export async function createContentTrack(): Promise<TrackInterface> {
   const deviceConfig = {audio: false, video: true};
-  // Typescript Compiler is not able find Definition of getDisplayMedia in mediaDevices interface.
-  // That is the reason we are using ts-ignore here for ignoring this open issue in mediaDevices
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  const stream : MediaStream = await navigator.mediaDevices.getDisplayMedia(deviceConfig);
-  const track: MediaStreamTrack = stream.getVideoTracks()[0];
 
-  return new Promise((resolve, reject) => {
-    if (track) {
-      _streams.set(stream, stream.id);
+  try {
+    // Typescript Compiler is not able find Definition of getDisplayMedia in mediaDevices interface.
+    // That is the reason we are using ts-ignore here for ignoring this open issue in mediaDevices
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const stream: MediaStream = await navigator.mediaDevices.getDisplayMedia(deviceConfig);
+    const track: MediaStreamTrack = stream.getVideoTracks()[0];
 
-      return resolve(new Track(track));
-    }
+    return new Promise((resolve, reject) => {
+      if (track) {
+        _streams.set(stream, stream.id);
 
-    return reject(Error('Could not obtain a content track'));
-  });
+        return resolve(new Track(track));
+      }
+
+      return reject(Error('Could not obtain a content track'));
+    });
+  } catch {
+    return Promise.reject(new Error('Could not obtain a content track'));
+  }
 }
 
 export * from './Device';
