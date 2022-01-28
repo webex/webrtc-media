@@ -29,6 +29,15 @@ yarn build
 yarn test
 ```
 
+### Testing in debug mode
+
+```shell
+yarn test:debug
+```
+
+1.	After the above command, open up http://localhost:9876/debug.html in browser and do inspect element. (Note - HTTP & not HTTPS)
+1.	Here, the test files would be available in sources tab, where debuggers can be set and refresh the page to run tests again.
+1.	It also looks out for changes. So, whenever the test file changes, the test cases re-run in terminal and latest changes reflect in debug.html upon page refresh.
 
 ### Deploying / Publishing
 
