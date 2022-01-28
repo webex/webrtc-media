@@ -25,6 +25,7 @@
     "build": "tsc",
     "test": "karma start --browsers chrome",
     "test:integration": "karma start --integration",
+    "test:debug": "karma start --browsers=chrome --single-run=false --debug --auto-watch",
     "lint": " eslint 'src/**/*.ts' --fix",
     "prepare": "husky install",
     "release": "semantic-release",
