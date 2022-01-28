@@ -190,7 +190,7 @@ module.exports = (config) => {
       },
       bundlerOptions: {
         debug: true,
-        addNodeGlobals: false,
+        addNodeGlobals: true,
         entrypoints: config.integration ? /\.integration-test\.ts/i : /\.test\.ts$/i,
         transforms: [
           typescriptTransform(),
