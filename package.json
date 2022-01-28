@@ -31,7 +31,9 @@
     "docs": "rimraf ./docs && api-extractor run -c ./api-extractor.json && api-documenter markdown -i ./docs/temp -o ./docs",
     "docs:publish": "gh-pages-deploy"
   },
-  "dependencies": {},
+  "dependencies": {
+    "uuid": "^8.3.2"
+  },
   "devDependencies": {
     "@commitlint/cli": "^13.1.0",
     "@commitlint/config-conventional": "^13.1.0",
