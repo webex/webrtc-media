@@ -73,43 +73,45 @@ interface ConstraintsInterface {
 }
 
 export const setupMediaTrackMocks = (): void => {
-  Object.defineProperty(navigator, 'mediaDevices', {
+  Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
     writable: true,
-    value: {
-      getUserMedia: async (constraints: ConstraintsInterface) => ({
-        getAudioTracks: () => (constraints.audio?.deviceId?.exact
+    value: async (constraints: ConstraintsInterface) => ({
+      getAudioTracks: () => (constraints.audio?.deviceId?.exact
         // eslint-disable-next-line max-len
-          ? fakeAudioTracks.filter((mediaStreamTrack) => mediaStreamTrack.id === constraints.audio?.deviceId.exact)
-          : fakeAudioTracks),
-        getVideoTracks: () => (constraints.video?.deviceId?.exact
-          // eslint-disable-next-line max-len
-          ? fakeVideoTracks.filter((mediaStreamTrack) => mediaStreamTrack.id === constraints.video?.deviceId.exact)
-          : fakeVideoTracks),
-      }),
-      getDisplayMedia: async () => ({
-        getVideoTracks: () => fakeVideoTracks,
-      }),
-    },
+        ? fakeAudioTracks.filter((mediaStreamTrack) => mediaStreamTrack.id === constraints.audio?.deviceId.exact)
+        : fakeAudioTracks),
+      getVideoTracks: () => (constraints.video?.deviceId?.exact
+      // eslint-disable-next-line max-len
+        ? fakeVideoTracks.filter((mediaStreamTrack) => mediaStreamTrack.id === constraints.video?.deviceId.exact)
+        : fakeVideoTracks),
+    }),
+  });
+
+  Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', {
+    writable: true,
+    value: async () => ({
+      getVideoTracks: () => fakeVideoTracks,
+    })
   });
   console.warn('Setting up Mocks on navigator.mediaDevices');
 };
 
 export const setupEmptyMediaTrackMocks = (): void => {
-  Object.defineProperty(navigator, 'mediaDevices', {
+  Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', {
     writable: true,
-    value: {
-      getDisplayMedia: async () => Promise.reject(Error),
-    },
+    value: async () => Promise.reject(Error)
   });
   console.warn('Setting up Mocks on navigator.mediaDevices');
-};
+}
 
 export const resetMediaTrackMocks = (): void => {
-  Object.defineProperty(navigator, 'mediaDevices', {
+  Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
     writable: true,
-    value: {
-      originalGetUserMedia,
-      originalGetDisplayMedia,
-    },
+    value: originalGetUserMedia,
+  });
+
+  Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', {
+    writable: true,
+    value: originalGetDisplayMedia
   });
 };

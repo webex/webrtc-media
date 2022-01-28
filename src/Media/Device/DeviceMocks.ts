@@ -47,17 +47,15 @@ export const fakeDevices = [
 const originalEnumerateDevices = navigator.mediaDevices ? navigator.mediaDevices.enumerateDevices : null;
 
 export const setupMediaDeviceMocks = (): void => {
-  Object.defineProperty(navigator, 'mediaDevices', {
+  Object.defineProperty(navigator.mediaDevices, 'enumerateDevices', {
     writable: true,
-    value: {
-      enumerateDevices: async () => fakeDevices,
-    },
+    value: async () => fakeDevices,
   });
   console.warn('Setting up Mocks on navigator.mediaDevices');
 };
 
 export const resetMediaDeviceMocks = (): void => {
-  Object.defineProperty(navigator, 'mediaDevices', {
+  Object.defineProperty(navigator.mediaDevices, 'enumerateDevices', {
     writable: true,
     value: originalEnumerateDevices,
   });
