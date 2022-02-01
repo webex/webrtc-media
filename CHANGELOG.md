@@ -1,3 +1,13 @@
+# [1.3.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.2.0...v1.3.0) (2022-02-01)
+
+
+### Features
+
+* **Media:** implemented createAudioTrack ([7946ccc](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/7946cccdd6b5638d275ae37e832c815853ba5cba))
+* **Media:** implemented createContentTrack ([a163657](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/a16365702efefb2e3ba12dd6f8c265cee76e4ab3))
+* **Media:** implemented createContentTrack ([a75987b](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/a75987b50471fdfa87ef46dc0e49649437e766e1))
+* **Media:** implemented createVideoTrack ([93d57dd](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/93d57dd7a71d369c36a3c7a010f14db41f7655eb))
+
 # [1.2.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.1.2...v1.2.0) (2021-10-20)
 
 
