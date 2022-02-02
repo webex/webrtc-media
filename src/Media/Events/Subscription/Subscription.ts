@@ -1,6 +1,9 @@
+import type {Track} from '../../Track';
+
 interface subscriptionEvent{
   'action': string,
-  'devices': Array<MediaDeviceInfo>
+  'devices'?: Array<MediaDeviceInfo>,
+  'track'?: Track
 }
 
 interface activeSubscriptions{

@@ -1,3 +1,9 @@
+interface FakeMediaTrackEvent {
+  target: {
+    [key: string]: unknown
+  }
+}
+
 export const fakeAudioTracks = [
   {
     id: 'default',
@@ -6,6 +12,8 @@ export const fakeAudioTracks = [
     muted: true,
     label: 'Fake Default Audio Input',
     groupId: 'a6b4fb6a105c92a16a6e2f3fb4efe289a783304764be026d4f973febf805c0c1',
+    onmute: (event: FakeMediaTrackEvent) => event,
+    enabled: false,
   },
   {
     id: '47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a4',
@@ -14,6 +22,8 @@ export const fakeAudioTracks = [
     muted: true,
     label: 'Fake Audio Input 1',
     groupId: '99782d7b13f331947c1a9865b27cf7eabffbfd48cfe21ab99867d101c6d7b4d0',
+    onmute: (event: FakeMediaTrackEvent) => event,
+    enabled: false,
   },
   {
     id: '3786a0243c13d1bc4f39b8091b468f43b14ace215ecd4e878268f095a9d3ba94',
@@ -22,6 +32,8 @@ export const fakeAudioTracks = [
     muted: true,
     label: 'Fake Audio Input 2',
     groupId: 'cb709a56a05b4683a1ef0e8f52144a2afcdc80137a87b8f398c00d1e07d46c48',
+    onmute: (event: FakeMediaTrackEvent) => event,
+    enabled: false,
   },
 ];
 
@@ -33,6 +45,8 @@ export const fakeVideoTracks = [
     muted: true,
     label: 'Fake Default Video Input',
     groupId: 'a6b4fb6a105c92a16a6e2f3fb4efe289a783304764be026d4f973febf805c0c1',
+    onmute: (event: FakeMediaTrackEvent) => event,
+    enabled: false,
   },
   {
     id: '47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a4',
@@ -41,6 +55,8 @@ export const fakeVideoTracks = [
     muted: true,
     label: 'Fake Video Input 1',
     groupId: '99782d7b13f331947c1a9865b27cf7eabffbfd48cfe21ab99867d101c6d7b4d0',
+    onmute: (event: FakeMediaTrackEvent) => event,
+    enabled: false,
   },
   {
     id: '3786a0243c13d1bc4f39b8091b468f43b14ace215ecd4e878268f095a9d3ba94',
@@ -49,6 +65,8 @@ export const fakeVideoTracks = [
     muted: true,
     label: 'Fake Video Input 2',
     groupId: 'cb709a56a05b4683a1ef0e8f52144a2afcdc80137a87b8f398c00d1e07d46c48',
+    onmute: (event: FakeMediaTrackEvent) => event,
+    enabled: false,
   },
 ];
 

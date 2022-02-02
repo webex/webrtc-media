@@ -205,7 +205,7 @@ async function createContentTrack(
  * Obtains multiple subscriptions for various media events and stores listeners
  * Also sets appropriate browser event listeners
  *
- * @param eventName - event name to subscribe to (device:changed | track:muted)
+ * @param eventName - event name to subscribe to (device:changed | track:mute)
  * @param listener - callback method to call when an event occurs
  * @returns promise that resolves with subscription object that can be used to unsubscribe
 */
@@ -216,11 +216,10 @@ async function subscribe(eventName: string, listener: () => void): Promise<subsc
   };
 
   subscriptions.events[eventName].set(subscriptionListener.id, subscriptionListener.method);
+  const thisEventListeners = subscriptions.events[eventName];
 
   switch (eventName) {
     case 'device:changed': {
-      const thisEventListeners = subscriptions.events[eventName];
-
       if (thisEventListeners.size === 1) {
         const thisDeviceList = await getDevices();
 
@@ -229,6 +228,7 @@ async function subscribe(eventName: string, listener: () => void): Promise<subsc
       }
       break;
     }
+
     default:
       break;
   }

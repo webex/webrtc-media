@@ -1,9 +1,11 @@
+import type {Track} from '../Track';
 import {activeSubscriptions} from './Subscription';
 
 const deviceList: Array<MediaDeviceInfo> = [];
 const subscriptions: activeSubscriptions = {
   events: {
     'device:changed': new Map(),
+    'track:mute': new Map(),
   },
 };
 
@@ -68,8 +70,27 @@ async function deviceChangePublisher() : Promise<void> {
   }
 }
 
+function trackMutePublisher(event: Event, track: Track): void {
+  const onmuteListeners = subscriptions.events['track:mute'];
+  const currentTrack = <MediaStreamTrack>event.target;
+
+  for (const entry of onmuteListeners) {
+    const listener = entry[1];
+
+    const action = currentTrack.enabled ? 'muted' : 'unmuted';
+
+    if (listener) {
+      listener({
+        action,
+        track: <Track>track,
+      });
+    }
+  }
+}
+
 export {
   subscriptions,
   deviceList,
   deviceChangePublisher,
+  trackMutePublisher,
 };

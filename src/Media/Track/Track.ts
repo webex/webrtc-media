@@ -1,3 +1,4 @@
+import { trackMutePublisher } from '../Events/index';
 // eslint-disable-next-line no-shadow
 export enum TrackStatus {
   ENDED = 'ended',
@@ -41,6 +42,10 @@ export class Track implements TrackInterface {
     this.muted = mediaStreamTrack.muted;
     this.label = mediaStreamTrack.label;
     this.#mediaStreamTrack = mediaStreamTrack;
+    this.#mediaStreamTrack.onmute = (event) => {
+      // using arrow function which should bind to this from outer scope track
+      trackMutePublisher(event, this);
+    };
   }
 
   /**

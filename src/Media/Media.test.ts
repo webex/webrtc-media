@@ -1,10 +1,16 @@
 import {expect} from 'chai';
 import Sinon, {SinonSpy} from 'sinon';
 
-import {TrackKind, TrackStatus} from './Track';
+import {Track, TrackKind, TrackStatus} from './Track';
 import {DeviceInterface, DeviceKinds} from './Device';
 
-import {setupMediaTrackMocks, setupEmptyMediaTrackMocks, resetMediaTrackMocks} from './Track/TrackMock';
+import {
+  setupMediaTrackMocks,
+  setupEmptyMediaTrackMocks,
+  resetMediaTrackMocks,
+  fakeAudioTracks,
+  fakeVideoTracks,
+} from './Track/TrackMock';
 import {setupMediaDeviceMocks, resetMediaDeviceMocks, fakeDevices} from './Device/DeviceMocks';
 
 import {
@@ -346,6 +352,110 @@ describe('Media', () => {
           Sinon.assert.called(eventCallbackSpy2);
           expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('added');
         }
+      });
+    });
+
+    describe('track mute event & publisher', () => {
+      const mockDeviceAudio = {
+        ID: '47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a4',
+        groupId: '99782d7b13f331947c1a9865b27cf7eabffbfd48cfe21ab99867d101c6d7b4d0',
+        kind: DeviceKinds.AUDIO_INPUT,
+        label: 'Fake Audio Input 1',
+        mediaDeviceInfo: null,
+      };
+
+      const mockDeviceVideo = {
+        ID: '47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a4',
+        groupId: '99782d7b13f331947c1a9865b27cf7eabffbfd48cfe21ab99867d101c6d7b4d0',
+        kind: DeviceKinds.VIDEO_INPUT,
+        label: 'Fake Video Input 1',
+        mediaDeviceInfo: null,
+      };
+
+      before(async () => {
+        setupMediaTrackMocks();
+        subscription = await subscribe('track:mute', eventCallbackSpy);
+      });
+
+      after(() => {
+        resetMediaTrackMocks();
+      });
+
+      it('should have subscribe, track mute event available', () => {
+        expect(subscription.listener.method).to.be.equal(eventCallbackSpy);
+        expect(subscriptions.events['track:mute'].get(subscription.listener.id)).to.be.equal(eventCallbackSpy);
+      });
+
+      it('should have onmute event on audio tracks for unmuted', async () => {
+        eventCallbackSpy = Sinon.spy();
+        subscriptions.events['track:mute'].set(subscription.listener.id, eventCallbackSpy);
+
+        await createAudioTrack((mockDeviceAudio as unknown) as DeviceInterface);
+        const filteredTrackByID = fakeAudioTracks.filter((val) => val.id === mockDeviceAudio.ID);
+
+        filteredTrackByID[0].enabled = false;
+        const fakeObjForTrack = { target: filteredTrackByID[0] };
+
+        filteredTrackByID[0].onmute(fakeObjForTrack);
+
+        Sinon.assert.called(eventCallbackSpy);
+        expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('unmuted');
+        // making sure track object from the library(instanceof Track)
+        expect(eventCallbackSpy.getCall(0).args[0].track).to.be.an.instanceof(Track);
+      });
+
+      it('should have onmute event on audio tracks for muted', async () => {
+        eventCallbackSpy = Sinon.spy();
+        subscriptions.events['track:mute'].set(subscription.listener.id, eventCallbackSpy);
+
+        await createAudioTrack((mockDeviceAudio as unknown) as DeviceInterface);
+        const filteredTrackByID = fakeAudioTracks.filter((val) => val.id === mockDeviceAudio.ID);
+
+        filteredTrackByID[0].enabled = true;
+        const fakeObjForTrack = { target: filteredTrackByID[0] };
+
+        filteredTrackByID[0].onmute(fakeObjForTrack);
+
+        Sinon.assert.called(eventCallbackSpy);
+        expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('muted');
+        // making sure track object from the library(instanceof Track)
+        expect(eventCallbackSpy.getCall(0).args[0].track).to.be.an.instanceof(Track);
+      });
+
+      it('should have onmute event on video tracks for unmuted', async () => {
+        eventCallbackSpy = Sinon.spy();
+        subscriptions.events['track:mute'].set(subscription.listener.id, eventCallbackSpy);
+
+        await createVideoTrack((mockDeviceVideo as unknown) as DeviceInterface);
+        const filteredTrackByID = fakeVideoTracks.filter((val) => val.id === mockDeviceVideo.ID);
+
+        filteredTrackByID[0].enabled = false;
+        const fakeObjForTrack = { target: filteredTrackByID[0] };
+
+        filteredTrackByID[0].onmute(fakeObjForTrack);
+
+        Sinon.assert.called(eventCallbackSpy);
+        expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('unmuted');
+        // making sure track object from the library(instanceof Track)
+        expect(eventCallbackSpy.getCall(0).args[0].track).to.be.an.instanceof(Track);
+      });
+
+      it('should have onmute event on vedio tracks for muted', async () => {
+        eventCallbackSpy = Sinon.spy();
+        subscriptions.events['track:mute'].set(subscription.listener.id, eventCallbackSpy);
+
+        await createVideoTrack((mockDeviceVideo as unknown) as DeviceInterface);
+        const filteredTrackByID = fakeVideoTracks.filter((val) => val.id === mockDeviceVideo.ID);
+
+        filteredTrackByID[0].enabled = true;
+        const fakeObjForTrack = { target: filteredTrackByID[0] };
+
+        filteredTrackByID[0].onmute(fakeObjForTrack);
+
+        Sinon.assert.called(eventCallbackSpy);
+        expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('muted');
+        // making sure track object from the library(instanceof Track)
+        expect(eventCallbackSpy.getCall(0).args[0].track).to.be.an.instanceof(Track);
       });
     });
   });
