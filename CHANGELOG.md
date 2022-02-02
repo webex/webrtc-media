@@ -1,3 +1,15 @@
+# [1.4.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.3.0...v1.4.0) (2022-02-02)
+
+
+### Bug Fixes
+
+* **media:** add uuid package to manage subsriptions ([e801935](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/e801935e13501fef87571a0caad8b3cce17a8bd3))
+
+
+### Features
+
+* **media:** subscribe method and device change listener ([660996c](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/660996c1b57441af116d173200dc7fe04be42f93))
+
 # [1.3.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.2.0...v1.3.0) (2022-02-01)
 
 
