@@ -18,9 +18,9 @@ import {
   unsubscribe,
 } from './index';
 
-import {subscriptions, deviceList} from '../Events';
+import {subscriptions, deviceList} from './Events';
 
-import {subscription as subscriptionType} from '../Events/Subscription';
+import {subscription as subscriptionType} from './Events/Subscription';
 import {isBrowserSupported} from '../index';
 
 // Could not make ES6 import as the library's typescript definition file is corrupt #108 issue raised

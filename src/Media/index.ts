@@ -6,8 +6,8 @@ import {
   subscriptions,
   deviceChangePublisher,
   deviceList,
-} from '../Events';
-import {subscription} from '../Events/Subscription';
+} from './Events';
+import {subscription} from './Events/Subscription';
 
 const _streams: WeakMap<MediaStream, string> = new WeakMap();
 
