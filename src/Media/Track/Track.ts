@@ -51,4 +51,33 @@ export class Track implements TrackInterface {
     this.#mediaStreamTrack.stop();
     this.status = TrackStatus.ENDED;
   }
+
+  /**
+   * Handles applying constraints for MediaStreamTrack objects
+   *
+   * @param constraints - Object to apply constraints
+   * @returns boolean that is `true` if constraints are successfully applied, `false` otherwise
+  */
+  async applyConstraints(constraints: MediaTrackConstraints): Promise<boolean> {
+    const supportedConstraints: MediaTrackSupportedConstraints = (
+      navigator.mediaDevices.getSupportedConstraints()
+    );
+    const notSupportedConstraints = [];
+
+    for (const thisConstraint of Object.keys(constraints)) {
+      if (!supportedConstraints[thisConstraint as keyof MediaTrackSupportedConstraints]) {
+        notSupportedConstraints.push(thisConstraint);
+      }
+    }
+
+    if (notSupportedConstraints.length > 0) {
+      console.warn(`#TrackObject Unsupported constraints - ${notSupportedConstraints.join(', ')}`);
+
+      return false;
+    }
+
+    await this.#mediaStreamTrack.applyConstraints(constraints);
+
+    return true;
+  }
 }
