@@ -1,4 +1,7 @@
 // eslint-disable-next-line
+const dotenv = require('dotenv')
+dotenv.config();
+// eslint-disable-next-line
 const typescriptTransform = require('karma-typescript-es6-transform');
 // eslint-disable-next-line
 process.env.CHROME_BIN = require('puppeteer')
