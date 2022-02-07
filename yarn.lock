@@ -3622,6 +3622,10 @@ dot-prop@^5.1.0:
   dependencies:
     is-obj "^2.0.0"
 
+dotenv@^16.0.0:
+  version "16.0.0"
+  resolved "https://engci-maven.cisco.com/artifactory/api/npm/apic-em-npm-group/dotenv/-/dotenv-16.0.0.tgz#c619001253be89ebb638d027b609c75c26e47411"
+
 download@^7.1.0:
   version "7.1.0"
   resolved "https://registry.yarnpkg.com/download/-/download-7.1.0.tgz#9059aa9d70b503ee76a132897be6dec8e5587233"
