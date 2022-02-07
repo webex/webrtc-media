@@ -194,6 +194,31 @@ async function subscribe(eventName: string, listener: () => void) : Promise<subs
   });
 }
 
+/**
+ * Returns true when unsubscriptions happened successfully, `false` otherwise
+ * When a `Subscription` object is pass only that subscription will be removed
+ * If no subscriptions are given, all current subscription will be unsubscribed
+
+ * @param subscriptionInstance -optional subscription object that has property type and has a method that needs to be deleted from subscriptions state
+ * @returns `true` when subscription is found and unsubscribed, `false` otherwise
+ */
+const unsubscribe = (subscriptionInstance?:subscription) => {
+  let isUnsubscribed = false;
+
+  if (subscriptionInstance) {
+    isUnsubscribed = subscriptions.events[subscriptionInstance.type]
+      .delete(subscriptionInstance.listener.id);
+  } else {
+    subscriptions.events['device:changed'].clear();
+  }
+
+  if (subscriptions.events['device:changed'].size === 0) {
+    navigator.mediaDevices.removeEventListener('devicechange', deviceChangePublisher);
+  }
+
+  return isUnsubscribed;
+};
+
 export * from './Device';
 export * from './Track';
 export {
@@ -204,4 +229,5 @@ export {
   createVideoTrack,
   createContentTrack,
   subscribe,
+  unsubscribe,
 };

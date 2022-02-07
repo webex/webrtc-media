@@ -15,6 +15,7 @@ import {
   createVideoTrack,
   createContentTrack,
   subscribe,
+  unsubscribe,
 } from './index';
 
 import {subscriptions, deviceList} from '../Events';
@@ -287,6 +288,45 @@ describe('Media', () => {
           expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('added');
         }
       });
+    });
+  });
+  describe('unsubscribe()', () => {
+    const eventCallbackSpy: SinonSpy = Sinon.spy();
+    let mockSubscription :subscriptionType;
+
+    before(async () => {
+      setupMediaDeviceMocks();
+      mockSubscription = await subscribe('device:changed', eventCallbackSpy);
+    });
+
+    it('should unsubscribe event if subscription event is passed', () => {
+      const initialSize = subscriptions.events[mockSubscription.type].size;
+
+      if (initialSize > 0) {
+        const isUnsubscribed = unsubscribe(mockSubscription);
+
+        expect(initialSize).not.to.eq(subscriptions.events[mockSubscription.type].size);
+        expect(isUnsubscribed).to.be.eq(true);
+      }
+    });
+
+    it('will return false  if passed event subscription is not found ', () => {
+      const initialSize = subscriptions.events[mockSubscription.type].size;
+
+      mockSubscription.listener.id = 'somerandomnumber';
+      if (initialSize > 0) {
+        const isUnsubscribed = unsubscribe(mockSubscription);
+
+        expect(initialSize).to.eq(subscriptions.events[mockSubscription.type].size);
+        expect(isUnsubscribed).to.eq(false);
+      }
+    });
+
+    it('should unsubscribe  all event if no subscription event is passed', () => {
+      const isUnsubscribed = unsubscribe();
+
+      expect(0).to.eq(subscriptions.events[mockSubscription.type].size);
+      expect(isUnsubscribed).to.eq(false);
     });
   });
 });
