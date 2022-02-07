@@ -4,6 +4,7 @@ import {
   getMicrophones,
   getSpeakers,
 } from './index';
+import {isBrowserSupported} from '../index';
 
 describe('Media Integration Test - use-fake-ui-for-media-stream', () => {
   describe('getCameras', () => {
@@ -19,6 +20,14 @@ describe('Media Integration Test - use-fake-ui-for-media-stream', () => {
       const [mics] = await getMicrophones();
 
       expect(mics.kind).to.eq('audioinput');
+    });
+  });
+
+  describe('isBrowserSupported()', () => {
+    it('should check is Browser Supported', () => {
+      const isSupported = isBrowserSupported();
+
+      expect(isSupported).to.eq(true);
     });
   });
 

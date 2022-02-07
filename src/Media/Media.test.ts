@@ -21,6 +21,12 @@ import {
 import {subscriptions, deviceList} from '../Events';
 
 import {subscription as subscriptionType} from '../Events/Subscription';
+import {isBrowserSupported} from '../index';
+
+// Could not make ES6 import as the library's typescript definition file is corrupt #108 issue raised
+// Todo: Convert to ES6 import once this issue gets resolved -> https://github.com/muaz-khan/DetectRTC/issues/108
+// eslint-disable-next-line
+const DetectRTC = require('detectrtc');
 
 describe('Media', () => {
   before(() => {
@@ -52,6 +58,32 @@ describe('Media', () => {
       const [device] = await getSpeakers();
 
       expect(device.kind).to.eq('audiooutput');
+    });
+  });
+
+  describe('isBrowserSupported()', () => {
+    it('should check if the current Browser Supported', () => {
+      const isSupported = isBrowserSupported();
+
+      expect(isSupported).to.eq(true);
+    });
+
+    it('should check if current Browser is not supported', () => {
+      DetectRTC.browser.isChrome = false;
+      DetectRTC.browser.isFirefox = false;
+      DetectRTC.browser.isEdge = false;
+      DetectRTC.browser.isSafari = false;
+      DetectRTC.browser.isIE = true;
+      const isSupported = isBrowserSupported();
+
+      expect(isSupported).to.eq(false);
+    });
+
+    it('should check if current Browser is supported but WebRTC not Supported', () => {
+      DetectRTC.isWebRTCSupported = false;
+      const isSupported = isBrowserSupported();
+
+      expect(isSupported).to.eq(false);
     });
   });
 
