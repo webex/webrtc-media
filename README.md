@@ -39,6 +39,28 @@ yarn test:debug
 1.	Here, the test files would be available in sources tab, where debuggers can be set and refresh the page to run tests again.
 1.	It also looks out for changes. So, whenever the test file changes, the test cases re-run in terminal and latest changes reflect in debug.html upon page refresh.
 
+### Integration Testing
+
+```shell
+yarn run test:integration
+```
+
+### Integration Testing with Sauce Labs
+
+1. Add ```.env``` file in your project.
+```shell
+#.env
+# Update your SAUCE_USERNAME and SAUCE_ACCESS_KEY environment variables below
+SAUCE_USERNAME="YOUR_SAUCE_USERNAME"
+SAUCE_ACCESS_KEY="YOUR_SAUCE_ACCESS_KEY"
+```
+2. Make sure your SAUCE_USERNAME and SAUCE_ACCESS_KEY environment variables are set in ```.env``` file.
+3. Run the below command in the terminal.
+```shell
+SAUCE=true yarn run test:integration
+```
+4. Sauce labs link in the results or Open your Sauce labs and filter test with your name and see the test case.
+
 ### Deploying / Publishing
 
 In case there's some step you have to take that publishes this project to a
