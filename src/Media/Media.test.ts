@@ -217,24 +217,51 @@ describe('Media', () => {
     });
   });
 
-  describe('createContentTrack()', () => {
+  describe('createContentTrack() Without Constraints', () => {
     before(() => {
       setupMediaTrackMocks();
     });
-
     after(() => {
       resetMediaTrackMocks();
     });
+    describe('success', () => {
+      it('should resolve to default content track on success', async () => {
+        const contentTrack = await createContentTrack();
 
-    it('should resolve to default video track on success', async () => {
-      const track = await createContentTrack();
+        expect(contentTrack.ID).to.eq('default');
+        expect(contentTrack.kind).to.eq(TrackKind.VIDEO);
+        expect(contentTrack.status).to.eq(TrackStatus.LIVE);
+        expect(contentTrack.muted).to.eq(true);
+        expect(contentTrack.label).to.eq('Fake Default Video Input');
+        expect(contentTrack.stop).to.be.a('function');
+      });
+    });
+  });
 
-      expect(track.ID).to.eq('default');
-      expect(track.kind).to.eq(TrackKind.VIDEO);
-      expect(track.status).to.eq(TrackStatus.LIVE);
-      expect(track.muted).to.eq(true);
-      expect(track.label).to.eq('Fake Default Video Input');
-      expect(track.stop).to.be.a('function');
+  describe('createContentTrack() With Constraints', () => {
+    describe('success', () => {
+      it('should resolve to passed constraints content track on success', async () => {
+        const contentTrack = await createContentTrack({
+          frameRate: 10,
+          width: 320,
+          height: 180,
+        });
+
+        expect(contentTrack.getSettings().frameRate).to.eq(10);
+        expect(contentTrack.getSettings().width).to.eq(320);
+        expect(contentTrack.getSettings().height).to.eq(180);
+      });
+    });
+
+    describe('failure', () => {
+      it('should throw error for unsupported constraints', async () => createContentTrack({
+        // @ts-expect-error apply unsupported constraints in order to expect error
+        unsupported: 'test',
+        unsupported2: 'testagain',
+        width: 1024,
+      }).catch((error) => {
+        expect(error.toString()).to.eq('Error: unsupported, unsupported2 constraint is not supported by browser');
+      }));
     });
   });
 

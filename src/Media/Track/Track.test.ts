@@ -74,4 +74,4 @@ describe('Track', () => {
       }).then((isApplied) => expect(isApplied).to.be.false));
     });
   });
-}); 
+});

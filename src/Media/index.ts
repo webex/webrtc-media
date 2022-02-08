@@ -69,12 +69,36 @@ const getSpeakers = async (): Promise<Device[]> => {
 };
 
 /**
+ * Match passed constraints with supported constraints
+ * and return all unsupported constraints
+ *
+ * @param mediaConstraints - Contraints passed by caller
+ * @returns
+ */
+function getUnsupportedConstraints(mediaConstraints: MediaTrackConstraints): Array<string> {
+  // eslint-disable-next-line max-len
+  const supportedConstraints: MediaTrackSupportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+  const unsupportedConstraints: Array<string> = [];
+
+  Object.keys(mediaConstraints).forEach((constraint: string) => {
+    if (!(
+      Object.prototype.hasOwnProperty.call(supportedConstraints, constraint)
+      && supportedConstraints[constraint as keyof MediaTrackSupportedConstraints]
+    )) {
+      unsupportedConstraints.push(constraint);
+    }
+  });
+
+  return unsupportedConstraints;
+}
+
+/**
  * Handles getting a track from either a provided device or a default device
  *
  * @param device - device object where the track will be retrieved from (optional)
  * @returns Promise of Track object
  */
-async function createAudioTrack(device?: DeviceInterface) : Promise<TrackInterface> {
+async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterface> {
   if (device && device.kind !== DeviceKinds.AUDIO_INPUT) {
     throw new Error(`Device ${device.ID} is not of kind AUDIO_INPUT`);
   }
@@ -102,7 +126,7 @@ async function createAudioTrack(device?: DeviceInterface) : Promise<TrackInterfa
  * @param device - device object where the track will be retrieved from (optional)
  * @returns Promise of Track object
  */
-async function createVideoTrack(device?: DeviceInterface) : Promise<TrackInterface> {
+async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterface> {
   if (device && device.kind !== DeviceKinds.VIDEO_INPUT) {
     throw new Error(`Device ${device.ID} is not of kind VIDEO_INPUT`);
   }
@@ -125,33 +149,56 @@ async function createVideoTrack(device?: DeviceInterface) : Promise<TrackInterfa
 }
 
 /**
- * Handles getting a content track a default device
+ * Handles getting a content track with passed constraints
+ *
+ * @param mediaConstraints - passed constraints for content track
  *
  * @returns Promise of Track object
+ *
+ * @throws - Could not obtain a content track
+ * Thrown if stream is empty or track is null
+ *
+ * @throws - Constraint is not supported by browser
+ * Thrown if unsupported constraint is being passed to the function
  */
-async function createContentTrack(): Promise<TrackInterface> {
+async function createContentTrack(
+  mediaConstraints?: MediaTrackConstraints,
+): Promise<TrackInterface> {
   const deviceConfig = {audio: false, video: true};
+
+  let track: MediaStreamTrack;
+  let stream: MediaStream;
 
   try {
     // Typescript Compiler is not able find Definition of getDisplayMedia in mediaDevices interface.
     // That is the reason we are using ts-ignore here for ignoring this open issue in mediaDevices
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    const stream: MediaStream = await navigator.mediaDevices.getDisplayMedia(deviceConfig);
-    const track: MediaStreamTrack = stream.getVideoTracks()[0];
-
-    return new Promise((resolve, reject) => {
-      if (track) {
-        _streams.set(stream, stream.id);
-
-        return resolve(new Track(track));
-      }
-
-      return reject(Error('Could not obtain a content track'));
-    });
+    stream = await navigator.mediaDevices.getDisplayMedia(deviceConfig);
+    [track] = stream.getVideoTracks();
   } catch {
-    return Promise.reject(new Error('Could not obtain a content track'));
+    throw new Error('Could not obtain a content track');
   }
+
+  if (mediaConstraints) {
+    const unsupportedConstraints: Array<string> = getUnsupportedConstraints(mediaConstraints);
+
+    if (unsupportedConstraints.length <= 0) {
+      track.applyConstraints(mediaConstraints);
+    } else {
+      throw new Error(`${unsupportedConstraints.join(', ')} constraint is not supported by browser`);
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    if (track) {
+      _streams.set(stream, stream.id);
+
+      return resolve(new Track(track));
+    }
+
+    return reject(Error('Could not obtain a content track'));
+  });
 }
 
 /**
@@ -162,7 +209,7 @@ async function createContentTrack(): Promise<TrackInterface> {
  * @param listener - callback method to call when an event occurs
  * @returns promise that resolves with subscription object that can be used to unsubscribe
 */
-async function subscribe(eventName: string, listener: () => void) : Promise<subscription> {
+async function subscribe(eventName: string, listener: () => void): Promise<subscription> {
   const subscriptionListener = {
     id: uuidv4(),
     method: listener,

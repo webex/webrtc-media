@@ -17,6 +17,7 @@ export interface TrackInterface {
   muted: boolean;
   label: string;
   stop(): void;
+  getSettings(): MediaTrackSettings;
 }
 
 /** @public */
@@ -79,5 +80,14 @@ export class Track implements TrackInterface {
     await this.#mediaStreamTrack.applyConstraints(constraints);
 
     return true;
+  }
+
+  /**
+   * This function gets the constraint applied on the track
+   *
+   * @returns MediaTrackSettings - settings of media track
+   */
+  getSettings(): MediaTrackSettings {
+    return this.#mediaStreamTrack.getSettings();
   }
 }
