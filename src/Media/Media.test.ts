@@ -394,7 +394,7 @@ describe('Media', () => {
         const filteredTrackByID = fakeAudioTracks.filter((val) => val.id === mockDeviceAudio.ID);
 
         filteredTrackByID[0].enabled = false;
-        const fakeObjForTrack = { target: filteredTrackByID[0] };
+        const fakeObjForTrack = {target: filteredTrackByID[0]};
 
         filteredTrackByID[0].onmute(fakeObjForTrack);
 
@@ -412,7 +412,7 @@ describe('Media', () => {
         const filteredTrackByID = fakeAudioTracks.filter((val) => val.id === mockDeviceAudio.ID);
 
         filteredTrackByID[0].enabled = true;
-        const fakeObjForTrack = { target: filteredTrackByID[0] };
+        const fakeObjForTrack = {target: filteredTrackByID[0]};
 
         filteredTrackByID[0].onmute(fakeObjForTrack);
 
@@ -430,7 +430,7 @@ describe('Media', () => {
         const filteredTrackByID = fakeVideoTracks.filter((val) => val.id === mockDeviceVideo.ID);
 
         filteredTrackByID[0].enabled = false;
-        const fakeObjForTrack = { target: filteredTrackByID[0] };
+        const fakeObjForTrack = {target: filteredTrackByID[0]};
 
         filteredTrackByID[0].onmute(fakeObjForTrack);
 
@@ -448,7 +448,7 @@ describe('Media', () => {
         const filteredTrackByID = fakeVideoTracks.filter((val) => val.id === mockDeviceVideo.ID);
 
         filteredTrackByID[0].enabled = true;
-        const fakeObjForTrack = { target: filteredTrackByID[0] };
+        const fakeObjForTrack = {target: filteredTrackByID[0]};
 
         filteredTrackByID[0].onmute(fakeObjForTrack);
 

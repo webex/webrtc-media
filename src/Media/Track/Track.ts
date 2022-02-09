@@ -1,4 +1,4 @@
-import { trackMutePublisher } from '../Events/index';
+import {trackMutePublisher} from '../Events/index';
 // eslint-disable-next-line no-shadow
 export enum TrackStatus {
   ENDED = 'ended',

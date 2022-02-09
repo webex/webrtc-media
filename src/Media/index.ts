@@ -109,15 +109,13 @@ async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterfac
   const stream: MediaStream = await navigator.mediaDevices.getUserMedia(deviceConfig);
   const track: MediaStreamTrack = stream.getAudioTracks()[0];
 
-  return new Promise((resolve, reject) => {
-    if (track) {
-      _streams.set(stream, stream.id);
+  if (track) {
+    _streams.set(stream, stream.id);
 
-      return resolve(new Track(track));
-    }
+    return new Track(track);
+  }
 
-    return reject(Error('Could not obtain an audio track'));
-  });
+  throw new Error('Could not obtain an audio track');
 }
 
 /**
@@ -137,15 +135,13 @@ async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterfac
   const stream: MediaStream = await navigator.mediaDevices.getUserMedia(deviceConfig);
   const track: MediaStreamTrack = stream.getVideoTracks()[0];
 
-  return new Promise((resolve, reject) => {
-    if (track) {
-      _streams.set(stream, stream.id);
+  if (track) {
+    _streams.set(stream, stream.id);
 
-      return resolve(new Track(track));
-    }
+    return new Track(track);
+  }
 
-    return reject(Error('Could not obtain a video track'));
-  });
+  throw new Error('Could not obtain a video track');
 }
 
 /**
@@ -190,15 +186,13 @@ async function createContentTrack(
     }
   }
 
-  return new Promise((resolve, reject) => {
-    if (track) {
-      _streams.set(stream, stream.id);
+  if (track) {
+    _streams.set(stream, stream.id);
 
-      return resolve(new Track(track));
-    }
+    return new Track(track);
+  }
 
-    return reject(Error('Could not obtain a content track'));
-  });
+  throw new Error('Could not obtain a content track');
 }
 
 /**
