@@ -1,0 +1,102 @@
+import sdpTransform from 'sdp-transform';
+import {error} from './logger';
+
+import {SdpMungingConfig} from './config';
+
+export type TrackKind = 'audio' | 'video';
+
+export function getLocalTrackInfo(
+  kind: TrackKind,
+  receive: boolean,
+  localTrack?: MediaStreamTrack | null,
+): {trackOrKind: MediaStreamTrack | TrackKind; direction: RTCRtpTransceiverDirection} {
+  const direction = (() => {
+    const send = !!localTrack;
+
+    if (send && receive) return 'sendrecv';
+    if (send && !receive) return 'sendonly';
+    if (!send && receive) return 'recvonly';
+
+    return 'inactive';
+  })();
+
+  return {trackOrKind: localTrack || kind, direction};
+}
+
+// TODO: this function has been copied from the SDK (see isSdpInvalid() in peer-connection-manager), it needs refactoring
+export function isSdpInvalid(
+  options: {
+    allowPort0: boolean;
+  },
+  sdp?: string,
+): string {
+  if (!sdp) {
+    return 'iceCandidate: SDP missing';
+  }
+
+  const parsedSdp = sdpTransform.parse(sdp);
+
+  for (const mediaLine of parsedSdp.media) {
+    if (!mediaLine.candidates || mediaLine.candidates?.length === 0) {
+      error('isSdpInvalid: ice candidates missing');
+
+      return 'isSdpInvalid: ice candidates missing';
+    }
+
+    if (!options.allowPort0 && mediaLine.port === 0) {
+      error('isSdpInvalid: Found invalid port number 0');
+
+      return 'isSdpInvalid: Found invalid port number 0';
+    }
+    if (!mediaLine.icePwd || !mediaLine.iceUfrag) {
+      error('isSdpInvalid: ice ufrag and password not found');
+
+      return 'isSdpInvalid: ice ufrag and password not found';
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Convert C line in the SDP to IPv4
+ *
+ * @param sdp - sdp as a string
+ */
+function convertCLineToIpv4(sdp: string): string {
+  // TODO: update this comment below... is there a Linus Jira for this?
+
+  // TODO: remove this once linus supports Ipv6 c-line. Currently linus rejects SDPs with c-line having ipv6 candidates.
+  // https://jira-eng-gpk2.cisco.com/jira/browse/SPARK-299232
+  return sdp.replace(/c=IN IP6 .*/gi, 'c=IN IP4 0.0.0.0');
+}
+
+function convertPort9to0(sdp: string): string {
+  return sdp.replace(/^m=(audio|video) 9 /gim, 'm=$1 0 ');
+}
+/**
+ * Modifies the local SDP so that the backend is happy with it
+ *
+ * @param sdp - sdp as a string
+ */
+export function mungeLocalSdp(config: SdpMungingConfig, sdp: string): string {
+  /* TODO: SDK meetings plugin is doing:
+    - limitBandwidth()
+    - setMaxFs()
+    - checkH264Support()
+    - enableExtmap
+    - enableRtx - done before calling setLocalDescription()
+    - setContentSlides
+    - setStartBitrateOnRemoteSdp
+
+    check if we still need this and if calling project needs any of this
+  */
+
+  let mungedSdp = convertCLineToIpv4(sdp);
+
+  if (config.convertPort9to0) {
+    mungedSdp = convertPort9to0(mungedSdp);
+  }
+
+  return mungedSdp;
+}

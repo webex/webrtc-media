@@ -181,7 +181,7 @@ module.exports = (config) => {
     captureTimeout: 120000,
     client: {
       mocha: {
-        // timeout: 10000,
+        timeout: 20000,
       },
     },
     karmaTypescriptConfig: {
