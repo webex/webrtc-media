@@ -3,8 +3,12 @@ source ~/.nvm/nvm.sh
 nvm use
 
 HUSKY=0 # Skip Husky in CI
-NPM_USERNAME='webex-jenkins.gen'
-NPM_EMAIL='webex-jenkins.gen@cisco.com'
+
+echo '_auth = ${ARTIFACTORY_TOKEN}
+email = webex-jenkins.gen@cisco.com
+always-auth = true' >> .npmrc
+
+source ./pipeline/set-npmrc-path.sh
 
 echo "--------------------------------------------------"
 echo "Releasing code..."

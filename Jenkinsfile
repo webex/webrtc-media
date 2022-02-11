@@ -13,21 +13,29 @@ sparkPipeline {
     this.sh './pipeline/setup.sh'
     this.sh './pipeline/unit-test.sh'
 
-    this.withCredentials([this.string(credentialsId: 'SAUCE_TOKEN', variable: 'SAUCE_ACCESS_KEY')]) {
-      this.sh './pipeline/integration-test.sh'
-    }
+    /*
+      Commented out Integ tests as we face some issue with sauce labs
+      Created a followup ticket for the same -> https://jira-eng-gpk2.cisco.com/jira/browse/SPARK-308848
+      this.withCredentials([
+        this.string(credentialsId: 'SAUCE_TOKEN', variable: 'SAUCE_ACCESS_KEY')
+      ]) {
+        this.sh './pipeline/integration-test.sh'
+      }
+    */
 
     if(this.isMasterBranch()) {
+
       this.sh './pipeline/build.sh'
-      
+
       this.withCredentials([
         this.string(credentialsId: 'GITHUB_TOKEN', variable: 'GITHUB_TOKEN'),
-        this.string(credentialsId: 'NPM_PASSWORD', variable: 'NPM_PASSWORD'),
-        this.string(credentialsId: 'ARTIFACTORY_TOKEN', variable: 'NPM_TOKEN')
-      ]) {
+        this.string(credentialsId: 'ARTIFACTORY_TOKEN', variable: 'ARTIFACTORY_TOKEN')
+      ]){
         this.sh './pipeline/release.sh'
       }
-      
+
+      this.sh './pipeline/cleanup.sh'
+
       integration.deployMode = 'skip'
       production.deployMode = 'skip'
     }
