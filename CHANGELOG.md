@@ -1,3 +1,10 @@
+# [1.5.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.4.0...v1.5.0) (2022-02-11)
+
+
+### Features
+
+* **media:** unsubscribe events ([0dabc13](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/0dabc1361f38bc92166b1419c0fa7c04a5001d18))
+
 # [1.4.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.3.0...v1.4.0) (2022-02-02)
 
 
