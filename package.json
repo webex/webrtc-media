@@ -33,6 +33,7 @@
     "docs:publish": "gh-pages-deploy"
   },
   "dependencies": {
+    "detectrtc": "^1.4.1",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
