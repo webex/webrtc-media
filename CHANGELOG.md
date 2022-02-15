@@ -1,3 +1,15 @@
+# [1.6.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.5.0...v1.6.0) (2022-02-15)
+
+
+### Bug Fixes
+
+* **media:** added dependency for detectrtc ([806800f](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/806800f9c055a8b2a67178ff81460054f28e6d3a))
+
+
+### Features
+
+* **media:** implement is browser supported ([2e19a49](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/2e19a4999d9b6646f160351a0ad70fb9ec271b9f))
+
 # [1.5.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.4.0...v1.5.0) (2022-02-11)
 
 
