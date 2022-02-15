@@ -34,7 +34,9 @@
   },
   "dependencies": {
     "detectrtc": "^1.4.1",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "setimmediate": "^1.0.5",
+    "winston": "^3.5.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^13.1.0",
