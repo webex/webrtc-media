@@ -1,3 +1,10 @@
+# [1.7.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.6.0...v1.7.0) (2022-02-16)
+
+
+### Features
+
+* **track:** apply constraints for track from given input ([8a9363a](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/8a9363a15159f472a0a5e6da04a30fac91b6dc7b))
+
 # [1.6.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.5.0...v1.6.0) (2022-02-15)
 
 
