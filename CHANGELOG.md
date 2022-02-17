@@ -1,3 +1,10 @@
+# [1.9.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.8.0...v1.9.0) (2022-02-17)
+
+
+### Features
+
+* **media:** track mute event ([728231a](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/728231ac6e8e9960427dfe2251000d131223a268))
+
 # [1.8.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.7.0...v1.8.0) (2022-02-17)
 
 
