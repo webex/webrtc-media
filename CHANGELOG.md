@@ -1,3 +1,10 @@
+# [1.8.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.7.0...v1.8.0) (2022-02-17)
+
+
+### Features
+
+* **media:** allow for custom constraints on content tracks ([9178d26](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/9178d262d032a5d8f135e04f1628931bf39e3857))
+
 # [1.7.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.6.0...v1.7.0) (2022-02-16)
 
 
