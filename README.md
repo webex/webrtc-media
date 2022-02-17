@@ -54,7 +54,10 @@ yarn run test:integration
 SAUCE_USERNAME="YOUR_SAUCE_USERNAME"
 SAUCE_ACCESS_KEY="YOUR_SAUCE_ACCESS_KEY"
 ```
-2. Make sure your SAUCE_USERNAME and SAUCE_ACCESS_KEY environment variables are set in ```.env``` file.
+2. Make sure your `SAUCE_USERNAME` and `SAUCE_ACCESS_KEY` environment variables are set in ```.env``` file.
+
+`SAUCE_USERNAME` and `SAUCE_ACCESS_KEY` are credentials from your [SauceLabs account](https://docs.saucelabs.com/basics/environment-variables/)
+
 3. Run the below command in the terminal.
 ```shell
 SAUCE=true yarn run test:integration
@@ -69,3 +72,9 @@ server, this is the right time to state it.
 ```shell
 yarn release
 ```
+
+### Contribute
+
+Thank you for considering contributing to this repository!
+Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for more details about testing, building the packages
+and submitting pull requests for suggested changes. Pull requests welcome. 
