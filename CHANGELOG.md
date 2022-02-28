@@ -1,3 +1,15 @@
+# [1.10.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.9.0...v1.10.0) (2022-02-28)
+
+
+### Bug Fixes
+
+* **media:** added winston and set immediate ([91fb627](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/91fb627b315effabe14032872ce2157035858e2c))
+
+
+### Features
+
+* **media:** configure winston logger ([e96e639](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/e96e63919b38e8680ab805ef42f5d0c0a11724fb))
+
 # [1.9.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.8.0...v1.9.0) (2022-02-17)
 
 
