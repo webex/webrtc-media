@@ -195,14 +195,12 @@ module.exports = (config) => {
         debug: true,
         addNodeGlobals: true,
         entrypoints: config.integration ? /\.integration-test\.ts/i : /\.test\.ts$/i,
-        transforms: [
-          typescriptTransform(),
-        ],
+        sourceMap: true,
+        transforms: [typescriptTransform()],
       },
       coverageOptions: {
-        exclude: [
-          /\.(d|spec|test)\.ts$/i,
-        ],
+        exclude: [/\.(d|spec|test)\.ts$/i],
+        instrumentation: false,
       },
     },
     sauceLabs: {
