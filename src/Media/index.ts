@@ -8,6 +8,7 @@ import {
   deviceList,
 } from './Events';
 import {subscription} from './Events/Subscription';
+import logger from '../Logger';
 
 const _streams: WeakMap<MediaStream, string> = new WeakMap();
 
@@ -100,7 +101,17 @@ function getUnsupportedConstraints(mediaConstraints: MediaTrackConstraints): Arr
  */
 async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterface> {
   if (device && device.kind !== DeviceKinds.AUDIO_INPUT) {
-    throw new Error(`Device ${device.ID} is not of kind AUDIO_INPUT`);
+    const error = new Error('Given device is not an audio type');
+
+    logger.error({
+      ID: device.ID,
+      mediaType: 'DEVICE',
+      action: 'createAudioTrack()',
+      description: error.message,
+      error,
+    });
+
+    throw error;
   }
 
   const deviceConfig = device
@@ -115,7 +126,17 @@ async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterfac
     return new Track(track);
   }
 
-  throw new Error('Could not obtain an audio track');
+  const error = new Error(`Device could not obtain an audio track of kind ${device?.kind}`);
+
+  logger.error({
+    ID: device?.ID,
+    mediaType: 'DEVICE',
+    action: 'createAudioTrack()',
+    description: error.message,
+    error,
+  });
+
+  throw error;
 }
 
 /**
@@ -126,7 +147,17 @@ async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterfac
  */
 async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterface> {
   if (device && device.kind !== DeviceKinds.VIDEO_INPUT) {
-    throw new Error(`Device ${device.ID} is not of kind VIDEO_INPUT`);
+    const error = new Error('Given device is not a video type');
+
+    logger.error({
+      ID: device.ID,
+      mediaType: 'DEVICE',
+      action: 'createVideoTrack()',
+      description: error.message,
+      error,
+    });
+
+    throw error;
   }
 
   const deviceConfig = device
@@ -141,7 +172,17 @@ async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterfac
     return new Track(track);
   }
 
-  throw new Error('Could not obtain a video track');
+  const error = new Error(`Device could not obtain a video track of kind ${device?.kind}`);
+
+  logger.error({
+    ID: device?.ID,
+    mediaType: 'DEVICE',
+    action: 'createVideoTrack()',
+    description: error.message,
+    error,
+  });
+
+  throw error;
 }
 
 /**
@@ -172,8 +213,18 @@ async function createContentTrack(
     // @ts-ignore
     stream = await navigator.mediaDevices.getDisplayMedia(deviceConfig);
     [track] = stream.getVideoTracks();
-  } catch {
-    throw new Error('Could not obtain a content track');
+  } catch (error) {
+    if (error instanceof Error) {
+      logger.error({
+        ID: mediaConstraints?.deviceId?.toString(),
+        mediaType: 'DEVICE',
+        action: 'createContentTrack()',
+        description: error.message,
+        error,
+      });
+    }
+
+    throw error;
   }
 
   if (mediaConstraints) {
@@ -182,7 +233,17 @@ async function createContentTrack(
     if (unsupportedConstraints.length <= 0) {
       track.applyConstraints(mediaConstraints);
     } else {
-      throw new Error(`${unsupportedConstraints.join(', ')} constraint is not supported by browser`);
+      const error = new Error(`${unsupportedConstraints.join(', ')} constraint is not supported by browser`);
+
+      logger.error({
+        ID: mediaConstraints?.deviceId?.toString(),
+        mediaType: 'DEVICE',
+        action: 'createContentTrack()',
+        description: error.message,
+        error,
+      });
+
+      throw error;
     }
   }
 
@@ -192,7 +253,17 @@ async function createContentTrack(
     return new Track(track);
   }
 
-  throw new Error('Could not obtain a content track');
+  const error = new Error('Could not obtain a content track');
+
+  logger.error({
+    ID: mediaConstraints?.deviceId?.toString(),
+    mediaType: 'DEVICE',
+    action: 'createContentTrack()',
+    description: error.message,
+    error,
+  });
+
+  throw error;
 }
 
 /**

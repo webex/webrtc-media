@@ -147,7 +147,7 @@ describe('Media', () => {
 
       expect(await createAudioTrack((mockDevice as unknown) as DeviceInterface)
         .catch((error: Error) => expect(error).to.be.an('error')
-          .with.property('message', 'Could not obtain an audio track')));
+          .with.property('message', `Device could not obtain an audio track of kind ${mockDevice?.kind}`)));
     });
 
     it('should throw error as given device.kind is VIDEO_INPUT', () => {
@@ -212,7 +212,7 @@ describe('Media', () => {
 
       expect(await createVideoTrack((mockDevice as unknown) as DeviceInterface)
         .catch((error: Error) => expect(error).to.be.an('error')
-          .with.property('message', 'Could not obtain a video track')));
+          .with.property('message', `Device could not obtain a video track of kind ${mockDevice?.kind}`)));
     });
 
     it('should throw error as given device.kind is AUDIO_INPUT', () => {
@@ -251,6 +251,7 @@ describe('Media', () => {
           frameRate: 10,
           width: 320,
           height: 180,
+          deviceId: '3786a0243c13d1bc4f39b8091b468f43b14a35315ecd4e878268f095a9d3ba94',
         });
 
         expect(contentTrack.getSettings().frameRate).to.eq(10);
@@ -265,6 +266,7 @@ describe('Media', () => {
         unsupported: 'test',
         unsupported2: 'testagain',
         width: 1024,
+        deviceId: '3786a0243c13d1bc4f39b8091b468f43b14a35315ecd4e878268f076979d3ba94',
       }).catch((error) => {
         expect(error.toString()).to.eq('Error: unsupported, unsupported2 constraint is not supported by browser');
       }));
@@ -283,7 +285,7 @@ describe('Media', () => {
     it('should throw error if content track is empty', async () => {
       expect(await createContentTrack()
         .catch((error: Error) => expect(error).to.be.an('error')
-          .with.property('message', 'Could not obtain a content track')));
+          .with.property('message', error.message)));
     });
   });
 

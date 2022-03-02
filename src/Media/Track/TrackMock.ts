@@ -117,7 +117,7 @@ export const setupMediaTrackMocks = (): void => {
 export const setupEmptyMediaTrackMocks = (): void => {
   Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', {
     writable: true,
-    value: async () => Promise.reject(Error),
+    value: async () => new Error('Could not obtain a content track'),
   });
   console.warn('Setting up Mocks on navigator.mediaDevices');
 };
