@@ -1,5 +1,7 @@
-import "setimmediate";
-import { createLogger, format, Logger, transports } from "winston";
+import 'setimmediate';
+import {
+  createLogger, format, Logger, transports,
+} from 'winston';
 
 interface CustomLogFormat {
   ID?: string;
@@ -24,34 +26,36 @@ const logFormat = format.printf((logDetails: TransformableInfo) => {
   const {
     timestamp,
     level,
-    message: { ID, mediaType, action, description, error },
+    message: {
+      ID, mediaType, action, description, error,
+    },
   } = logDetails;
 
   return `${timestamp} ${level} ${
-    ID ?? ""
+    ID ?? ''
   } ${mediaType} ${action} ${description} ${
-    error ? `${error.stack || error}` : ""
+    error ? `${error.stack || error}` : ''
   }`
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, ' ')
     .trim();
 });
 
 const activeTransports = [];
 
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== 'production') {
   activeTransports.push(
     new transports.Console({
       format: format.combine(
-        format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+        format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
         format.simple(),
-        logFormat
+        logFormat,
       ),
-    })
+    }),
   );
 }
 
 const winstonLogger: Logger = createLogger({
-  level: "error",
+  level: 'error',
   transports: activeTransports,
 });
 
@@ -63,11 +67,13 @@ const logger: LoggerInterface = {
   debug: () => winstonLogger.debug({}),
 };
 
-for (const level of ["info", "warn", "error", "debug"]) {
+for (const level of ['info', 'warn', 'error', 'debug']) {
   logger[level as keyof LoggerInterface] = (
-    logInfo: CustomLogFormat
+    logInfo: CustomLogFormat,
   ): Logger => {
-    const { ID, mediaType, action, description, error } = logInfo;
+    const {
+      ID, mediaType, action, description, error,
+    } = logInfo;
 
     winstonLogger.level = level; // dynamically changing log level
 
