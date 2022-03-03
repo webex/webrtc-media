@@ -91,8 +91,17 @@ export class Track implements TrackInterface {
    * This function gets the constraint applied on the track
    *
    * @returns MediaTrackSettings - settings of media track
-   */
+  */
   getSettings(): MediaTrackSettings {
     return this.#mediaStreamTrack.getSettings();
+  }
+
+  /**
+   * This method returns the underlying MediaStreamTrack
+   *
+   * @returns #mediaStreamTrack of type MediaStreamTrack
+  */
+  getMediaStreamTrack(): MediaStreamTrack {
+    return this.#mediaStreamTrack;
   }
 }

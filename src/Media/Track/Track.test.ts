@@ -74,4 +74,24 @@ describe('Track', () => {
       }).then((isApplied) => expect(isApplied).to.be.false));
     });
   });
+
+  describe('getMediaStreamTrack()', () => {
+    let videoTrack: MediaStreamTrack;
+    let track: Track;
+
+    before(async () => {
+      [videoTrack] = (await navigator.mediaDevices.getUserMedia({video: true})).getVideoTracks();
+      track = new Track(videoTrack as MediaStreamTrack);
+    });
+
+    it('should have getMediaStream method', () => {
+      expect(typeof track.getMediaStreamTrack).to.eq('function');
+    });
+
+    it('should return underlying mediaStream', () => {
+      const receivedTrack = track.getMediaStreamTrack();
+
+      expect(receivedTrack).to.eq(videoTrack);
+    });
+  });
 });
