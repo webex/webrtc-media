@@ -22,7 +22,9 @@ import {
   createContentTrack,
   subscribe,
   unsubscribe,
+  isCodecAvailable,
 } from './index';
+import * as pcMock from '../common/peerConnectionMock';
 
 import {subscriptions, deviceList} from './Events';
 
@@ -565,6 +567,49 @@ describe('Media', () => {
 
       expect(0).to.eq(subscriptions.events[mockSubscription.type].size);
       expect(isUnsubscribed).to.eq(false);
+    });
+  });
+});
+describe('isCodecAvailable()', () => {
+  describe('media codec is  loaded in browser but returns valid offer', async () => {
+    before(() => {
+      pcMock.setupRTCPeerConnectionMockOne();
+    });
+
+    after(() => {
+      pcMock.resetRTCPeerConnection();
+    });
+
+    it('isCodecAvailable returns true', async () => {
+      expect(await isCodecAvailable()).to.eq(true);
+    });
+  });
+
+  describe('media codec is loaded in browser but returns invalid offer', async () => {
+    before(() => {
+      pcMock.setupRTCPeerConnectionMockTwo();
+    });
+
+    after(() => {
+      pcMock.resetRTCPeerConnection();
+    });
+
+    it('isCodecAvailable returns false', async () => {
+      expect(await isCodecAvailable()).to.eq(false);
+    });
+  });
+
+  describe('media codec is delayed while loading browser', async () => {
+    before(() => {
+      pcMock.setupRTCPeerConnectionMockThree();
+    });
+
+    after(() => {
+      pcMock.resetRTCPeerConnection();
+    });
+
+    it('isCodecAvailable returns true', async () => {
+      expect(await isCodecAvailable()).to.eq(true);
     });
   });
 });
