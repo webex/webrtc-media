@@ -243,7 +243,7 @@ async function subscribe(eventName: string, listener: () => void): Promise<subsc
  * @param subscriptionInstance -optional subscription object that has property type and has a method that needs to be deleted from subscriptions state
  * @returns `true` when subscription is found and unsubscribed, `false` otherwise
  */
-const unsubscribe = (subscriptionInstance?:subscription) => {
+const unsubscribe = (subscriptionInstance?:subscription): boolean => {
   let isUnsubscribed = false;
 
   if (subscriptionInstance) {

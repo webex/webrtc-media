@@ -12,7 +12,7 @@ export const fakeAudioTracks = [
     muted: true,
     label: 'Fake Default Audio Input',
     groupId: 'a6b4fb6a105c92a16a6e2f3fb4efe289a783304764be026d4f973febf805c0c1',
-    onmute: (event: FakeMediaTrackEvent) => event,
+    onmute: (event: FakeMediaTrackEvent): FakeMediaTrackEvent => event,
     enabled: false,
   },
   {
@@ -22,7 +22,7 @@ export const fakeAudioTracks = [
     muted: true,
     label: 'Fake Audio Input 1',
     groupId: '99782d7b13f331947c1a9865b27cf7eabffbfd48cfe21ab99867d101c6d7b4d0',
-    onmute: (event: FakeMediaTrackEvent) => event,
+    onmute: (event: FakeMediaTrackEvent): FakeMediaTrackEvent => event,
     enabled: false,
   },
   {
@@ -32,7 +32,7 @@ export const fakeAudioTracks = [
     muted: true,
     label: 'Fake Audio Input 2',
     groupId: 'cb709a56a05b4683a1ef0e8f52144a2afcdc80137a87b8f398c00d1e07d46c48',
-    onmute: (event: FakeMediaTrackEvent) => event,
+    onmute: (event: FakeMediaTrackEvent): FakeMediaTrackEvent => event,
     enabled: false,
   },
 ];
@@ -45,7 +45,7 @@ export const fakeVideoTracks = [
     muted: true,
     label: 'Fake Default Video Input',
     groupId: 'a6b4fb6a105c92a16a6e2f3fb4efe289a783304764be026d4f973febf805c0c1',
-    onmute: (event: FakeMediaTrackEvent) => event,
+    onmute: (event: FakeMediaTrackEvent): FakeMediaTrackEvent => event,
     enabled: false,
   },
   {
@@ -55,7 +55,7 @@ export const fakeVideoTracks = [
     muted: true,
     label: 'Fake Video Input 1',
     groupId: '99782d7b13f331947c1a9865b27cf7eabffbfd48cfe21ab99867d101c6d7b4d0',
-    onmute: (event: FakeMediaTrackEvent) => event,
+    onmute: (event: FakeMediaTrackEvent): FakeMediaTrackEvent => event,
     enabled: false,
   },
   {
@@ -65,7 +65,7 @@ export const fakeVideoTracks = [
     muted: true,
     label: 'Fake Video Input 2',
     groupId: 'cb709a56a05b4683a1ef0e8f52144a2afcdc80137a87b8f398c00d1e07d46c48',
-    onmute: (event: FakeMediaTrackEvent) => event,
+    onmute: (event: FakeMediaTrackEvent): FakeMediaTrackEvent => event,
     enabled: false,
   },
 ];
