@@ -1,3 +1,5 @@
+import {DEVICE, MEDIA} from '../../constants';
+import logger from '../../Logger';
 import {trackMutePublisher} from '../Events/index';
 // eslint-disable-next-line no-shadow
 export enum TrackStatus {
@@ -65,6 +67,13 @@ export class Track implements TrackInterface {
    * @returns boolean that is `true` if constraints are successfully applied, `false` otherwise
   */
   async applyConstraints(constraints: MediaTrackConstraints): Promise<boolean> {
+    logger.info({
+      ID: constraints?.deviceId?.toString(),
+      mediaType: DEVICE,
+      action: 'applyConstraints()',
+      description: 'Applying constraints to track objects',
+    });
+
     const supportedConstraints: MediaTrackSupportedConstraints = (
       navigator.mediaDevices.getSupportedConstraints()
     );
@@ -93,6 +102,13 @@ export class Track implements TrackInterface {
    * @returns MediaTrackSettings - settings of media track
   */
   getSettings(): MediaTrackSettings {
+    logger.info({
+      mediaType: MEDIA,
+      action: 'getSettings()',
+      description:
+        'Fetching constraints properties for the current media stream track',
+    });
+
     return this.#mediaStreamTrack.getSettings();
   }
 

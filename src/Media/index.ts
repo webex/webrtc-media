@@ -9,6 +9,7 @@ import {
 } from './Events';
 import {subscription} from './Events/Subscription';
 import logger from '../Logger';
+import {DEVICE, MEDIA} from '../constants';
 
 const _streams: WeakMap<MediaStream, string> = new WeakMap();
 
@@ -23,6 +24,11 @@ const getDevices = async (): Promise<MediaDeviceInfo[]> => {
 
     return [];
   }
+  logger.info({
+    mediaType: DEVICE,
+    action: 'getDevices()',
+    description: 'Requesting list of available media input and output devices',
+  });
 
   return navigator.mediaDevices.enumerateDevices();
 };
@@ -35,6 +41,12 @@ const getDevices = async (): Promise<MediaDeviceInfo[]> => {
  */
 const getCameras = async (): Promise<Device[]> => {
   const devices = await getDevices();
+
+  logger.info({
+    mediaType: DEVICE,
+    action: 'getCameras()',
+    description: 'Filtering camera devices from all available media devices',
+  });
 
   return devices
     .filter(({kind}) => kind === DeviceKinds.VIDEO_INPUT)
@@ -50,6 +62,13 @@ const getCameras = async (): Promise<Device[]> => {
 const getMicrophones = async (): Promise<Device[]> => {
   const devices = await getDevices();
 
+  logger.info({
+    mediaType: DEVICE,
+    action: 'getMicrophones()',
+    description:
+      'Filtering microphones devices from all available media devices',
+  });
+
   return devices
     .filter(({kind}) => kind === DeviceKinds.AUDIO_INPUT)
     .map((device) => new Device(device));
@@ -64,6 +83,12 @@ const getMicrophones = async (): Promise<Device[]> => {
 const getSpeakers = async (): Promise<Device[]> => {
   const devices = await getDevices();
 
+  logger.info({
+    mediaType: DEVICE,
+    action: 'getSpeakers()',
+    description: 'Filtering speaker devices from all available media devices',
+  });
+
   return devices
     .filter(({kind}) => kind === DeviceKinds.AUDIO_OUTPUT)
     .map((device) => new Device(device));
@@ -77,6 +102,11 @@ const getSpeakers = async (): Promise<Device[]> => {
  * @returns
  */
 function getUnsupportedConstraints(mediaConstraints: MediaTrackConstraints): Array<string> {
+  logger.info({
+    mediaType: MEDIA,
+    action: 'getUnsupportedConstraints()',
+    description: 'Filtering list of media track unsupported constraints',
+  });
   // eslint-disable-next-line max-len
   const supportedConstraints: MediaTrackSupportedConstraints = navigator.mediaDevices.getSupportedConstraints();
   const unsupportedConstraints: Array<string> = [];
@@ -113,6 +143,12 @@ async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterfac
 
     throw error;
   }
+  logger.info({
+    ID: device?.ID,
+    mediaType: DEVICE,
+    action: 'createAudioTrack()',
+    description: 'Creating audio track',
+  });
 
   const deviceConfig = device
     ? {audio: {deviceId: {exact: device.ID}}}
@@ -159,6 +195,12 @@ async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterfac
 
     throw error;
   }
+  logger.info({
+    ID: device?.ID,
+    mediaType: DEVICE,
+    action: 'createVideoTrack()',
+    description: 'Creating video track',
+  });
 
   const deviceConfig = device
     ? {video: {deviceId: {exact: device.ID}}}
@@ -201,6 +243,13 @@ async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterfac
 async function createContentTrack(
   mediaConstraints?: MediaTrackConstraints,
 ): Promise<TrackInterface> {
+  logger.info({
+    ID: mediaConstraints?.deviceId?.toString(),
+    mediaType: MEDIA,
+    action: 'createContentTrack()',
+    description: 'Creating content track',
+  });
+
   const deviceConfig = {audio: false, video: true};
 
   let track: MediaStreamTrack;
@@ -275,6 +324,11 @@ async function createContentTrack(
  * @returns promise that resolves with subscription object that can be used to unsubscribe
 */
 async function subscribe(eventName: string, listener: () => void): Promise<subscription> {
+  logger.info({
+    mediaType: MEDIA,
+    action: 'subscribe()',
+    description: 'Subscribing to an event',
+  });
   const subscriptionListener = {
     id: uuidv4(),
     method: listener,
@@ -318,9 +372,20 @@ const unsubscribe = (subscriptionInstance?:subscription): boolean => {
   let isUnsubscribed = false;
 
   if (subscriptionInstance) {
-    isUnsubscribed = subscriptions.events[subscriptionInstance.type]
-      .delete(subscriptionInstance.listener.id);
+    logger.info({
+      mediaType: MEDIA,
+      action: 'unsubscribe()',
+      description: 'Unsubscribing to an event',
+    });
+    isUnsubscribed = subscriptions.events[subscriptionInstance.type].delete(
+      subscriptionInstance.listener.id,
+    );
   } else {
+    logger.info({
+      mediaType: MEDIA,
+      action: 'unsubscribe()',
+      description: 'Unsubscribing to all current subscription',
+    });
     subscriptions.events['device:changed'].clear();
   }
 

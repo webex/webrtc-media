@@ -1,3 +1,5 @@
+import {DEVICE, TRACK} from '../../constants';
+import logger from '../../Logger';
 import type {Track} from '../Track';
 import {activeSubscriptions} from './Subscription';
 
@@ -19,6 +21,13 @@ async function deviceChangePublisher() : Promise<void> {
 
     return;
   }
+
+  logger.info({
+    mediaType: DEVICE,
+    action: 'deviceChangePublisher()',
+    description:
+      'Calling individual subscription listener obtained by device change event',
+  });
   const newDeviceList: Array<MediaDeviceInfo> = await navigator.mediaDevices.enumerateDevices();
   const deviceChangedListeners = subscriptions.events['device:changed'];
   let filtered: Array<MediaDeviceInfo> = [];
@@ -71,6 +80,14 @@ async function deviceChangePublisher() : Promise<void> {
 }
 
 function trackMutePublisher(event: Event, track: Track): void {
+  logger.info({
+    ID: track.ID,
+    mediaType: TRACK,
+    action: 'trackMutePublisher()',
+    description:
+      'Calling track subscription listener obtained by track mute event',
+  });
+
   const onmuteListeners = subscriptions.events['track:mute'];
   const currentTrack = <MediaStreamTrack>event.target;
 
