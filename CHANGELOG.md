@@ -1,3 +1,10 @@
+# [1.11.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.10.0...v1.11.0) (2022-03-07)
+
+
+### Features
+
+* **track:** new method to return underlying mediaStreamTrack ([160b1a5](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/160b1a551e0efa84b818a48d4f59da57e3ac6864))
+
 # [1.10.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.9.0...v1.10.0) (2022-02-28)
 
 
