@@ -3,6 +3,8 @@ import {error} from './logger';
 
 import {SdpMungingConfig} from './config';
 
+const SDP_CARRIAGE_RETURN = '\r\n';
+
 export type TrackKind = 'audio' | 'video';
 
 export function getLocalTrackInfo(
@@ -74,6 +76,37 @@ function convertCLineToIpv4(sdp: string): string {
 function convertPort9to0(sdp: string): string {
   return sdp.replace(/^m=(audio|video) 9 /gim, 'm=$1 0 ');
 }
+
+function getNumOfOccurences(string: string, subString: string) {
+  let n = 0;
+  let pos = 0;
+
+  while (pos >= 0) {
+    pos = string.indexOf(subString, pos);
+    if (pos >= 0) {
+      n += 1;
+      pos += subString.length;
+    }
+  }
+
+  return n;
+}
+
+/**
+ * Adds to the SDP the indication which m-line contains the screen share
+ *
+ * @param sdp - SDP to modify
+ * @returns modified SDP
+ */
+function setContentSlides(sdp: string): string {
+  // we only do this if SDP has 2 video m-lines and in that case the 2nd video m-line is always the screen share
+  if (getNumOfOccurences(sdp, 'm=video ') === 2) {
+    return `${sdp}a=content:slides${SDP_CARRIAGE_RETURN}`;
+  }
+
+  return sdp;
+}
+
 /**
  * Modifies the local SDP so that the backend is happy with it
  *
@@ -96,6 +129,10 @@ export function mungeLocalSdp(config: SdpMungingConfig, sdp: string): string {
 
   if (config.convertPort9to0) {
     mungedSdp = convertPort9to0(mungedSdp);
+  }
+
+  if (config.addContentSlides) {
+    mungedSdp = setContentSlides(mungedSdp);
   }
 
   return mungedSdp;

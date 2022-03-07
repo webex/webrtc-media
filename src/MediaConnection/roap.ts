@@ -215,7 +215,7 @@ export class Roap extends EventEmitter {
 
           const invalidSdpPresent = isSdpInvalid(
             {
-              allowPort0: this.config.sdpMunging.convertPort9to0,
+              allowPort0: !!this.config.sdpMunging.convertPort9to0,
             },
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             this.pc.localDescription!.sdp,
