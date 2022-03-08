@@ -1,3 +1,17 @@
+# [1.14.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.13.0...v1.14.0) (2022-03-08)
+
+
+### Bug Fixes
+
+* added setContentSlides() ([0d9c3cf](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/0d9c3cfe5b78328de2d1ba7912e67b4ac4d46ee3))
+* allow easier typescript debugging in karma tests ([bf2f17a](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/bf2f17a8614d0ff71e9f1a76dfe72ee806dd0173))
+* using logging module ([a6d2d20](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/a6d2d20207512e356b793b237261edc11c3001bc))
+
+
+### Features
+
+* **MediaConnection:** initial version created ([e126c2a](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/e126c2a7575fba3da7f69b4b5aa7618614edae49))
+
 # [1.13.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.12.0...v1.13.0) (2022-03-08)
 
 
