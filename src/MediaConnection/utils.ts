@@ -1,5 +1,4 @@
 import sdpTransform from 'sdp-transform';
-import {error} from './logger';
 
 import {SdpMungingConfig} from './config';
 
@@ -30,6 +29,7 @@ export function isSdpInvalid(
   options: {
     allowPort0: boolean;
   },
+  errorLog: (action: string, description: string) => void,
   sdp?: string,
 ): string {
   if (!sdp) {
@@ -40,18 +40,18 @@ export function isSdpInvalid(
 
   for (const mediaLine of parsedSdp.media) {
     if (!mediaLine.candidates || mediaLine.candidates?.length === 0) {
-      error('isSdpInvalid: ice candidates missing');
+      errorLog('isSdpInvalid', 'ice candidates missing');
 
       return 'isSdpInvalid: ice candidates missing';
     }
 
     if (!options.allowPort0 && mediaLine.port === 0) {
-      error('isSdpInvalid: Found invalid port number 0');
+      errorLog('isSdpInvalid', 'Found invalid port number 0');
 
       return 'isSdpInvalid: Found invalid port number 0';
     }
     if (!mediaLine.icePwd || !mediaLine.iceUfrag) {
-      error('isSdpInvalid: ice ufrag and password not found');
+      errorLog('isSdpInvalid', 'ice ufrag and password not found');
 
       return 'isSdpInvalid: ice ufrag and password not found';
     }

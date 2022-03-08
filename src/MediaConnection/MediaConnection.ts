@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
 
-import {log, error} from './logger';
+import logger from '../Logger';
+import {MEDIA_CONNECTION} from '../constants';
 import {Roap} from './roap';
 import {getLocalTrackInfo, TrackKind} from './utils';
 import {
@@ -99,11 +100,28 @@ export class MediaConnection extends EventEmitter {
     this.pc.oniceconnectionstatechange = this.onIceConnectionStateChange.bind(this);
     this.pc.onconnectionstatechange = this.onConnectionStateChange.bind(this);
 
-    log(
-      `[${this.id}] MediaConnection created with config: ${JSON.stringify(
-        mediaConnectionConfig,
-      )}, options: ${options}`,
+    this.log(
+      'constructor()',
+      `config: ${JSON.stringify(mediaConnectionConfig)}, options: ${JSON.stringify(options)}`,
     );
+  }
+
+  private log(action: string, description: string) {
+    logger.info({
+      ID: this.id,
+      mediaType: MEDIA_CONNECTION,
+      action,
+      description,
+    });
+  }
+
+  private error(action: string, description: string) {
+    logger.error({
+      ID: this.id,
+      mediaType: MEDIA_CONNECTION,
+      action,
+      description,
+    });
   }
 
   private createTransceivers() {
@@ -133,10 +151,10 @@ export class MediaConnection extends EventEmitter {
    * @returns Promise - promise that's resolved once the local offer has been created
    */
   public initiateOffer(): Promise<void> {
-    log(`[${this.id}] initiateOffer() called`);
+    this.log('initiateOffer()', 'called');
 
     if (this.localOfferInitiated || this.pc.getTransceivers().length > 0) {
-      error(`[${this.id}] SDP negotiation already started`);
+      this.error('initiateOffer()', 'SDP negotiation already started');
 
       return Promise.reject(new Error('SDP negotiation already started'));
     }
@@ -152,7 +170,7 @@ export class MediaConnection extends EventEmitter {
    */
   // eslint-disable-next-line class-methods-use-this
   public close(): void {
-    log(`[${this.id}] close() called`);
+    this.log('close()', 'called');
 
     this.pc.close();
     // todo
@@ -163,7 +181,8 @@ export class MediaConnection extends EventEmitter {
    */
   // eslint-disable-next-line class-methods-use-this
   public reconnect(): void {
-    log(`[${this.id}] reconnect() called`); // todo
+    this.log('reconnect()', 'called');
+    // todo
   }
 
   /**
@@ -180,7 +199,7 @@ export class MediaConnection extends EventEmitter {
    *                    or immediately if no new SDP exchange is needed
    */
   public updateSendOptions(tracks: LocalTracks): Promise<void> {
-    log(`[${this.id}] updateSendOptions() called with ${JSON.stringify(tracks)}`);
+    this.log('updateSendOptions()', `called with ${JSON.stringify(tracks)}`);
 
     let newOfferNeeded = false;
 
@@ -211,7 +230,7 @@ export class MediaConnection extends EventEmitter {
     });
 
     if (newOfferNeeded) {
-      log(`[${this.id}] updateLocalTracks() triggering offer...`);
+      this.log('updateSendOptions()', 'triggering offer...');
 
       return this.roap.initiateOffer();
     }
@@ -232,7 +251,7 @@ export class MediaConnection extends EventEmitter {
     video: boolean;
     screenShareVideo: boolean;
   }): Promise<void> {
-    log(`[${this.id}] updateReceiveOptions() called with ${JSON.stringify(options)}`);
+    this.log('updateReceiveOptions()', `called with ${JSON.stringify(options)}`);
 
     this.receiveOptions = options;
 
@@ -261,7 +280,7 @@ export class MediaConnection extends EventEmitter {
     });
 
     if (newOfferNeeded) {
-      log(`[${this.id}] updateReceiveOptions() triggering offer...`);
+      this.log('updateReceiveOptions()', 'triggering offer...');
 
       return this.roap.initiateOffer();
     }
@@ -275,7 +294,7 @@ export class MediaConnection extends EventEmitter {
    * @returns ConnectionState
    */
   public getConnectionState(): ConnectionState {
-    log(`[${this.id}] getConnectionState() called, returning ${this.mediaConnectionState}`);
+    this.log('getConnectionState()', `called, returning ${this.mediaConnectionState}`);
 
     return this.mediaConnectionState;
   }
@@ -286,8 +305,9 @@ export class MediaConnection extends EventEmitter {
    * @param roapMessage - ROAP message received
    */
   public roapMessageReceived(roapMessage: RoapMessage): Promise<void> {
-    log(
-      `[${this.id}] roapMessageReceived() called with messageType=${roapMessage.messageType}, seq=${roapMessage.seq}`,
+    this.log(
+      'roapMessageReceived()',
+      `called with messageType=${roapMessage.messageType}, seq=${roapMessage.seq}`,
     );
 
     // todo: fix this - currently we will call addLocalTracks each time we get new offer in incoming calls
@@ -300,8 +320,9 @@ export class MediaConnection extends EventEmitter {
   }
 
   private onRoapMessageToSend(event: RoapMessageEvent) {
-    log(
-      `[${this.id}] emitting Event.ROAP_MESSAGE_TO_SEND: messageType=${event.roapMessage.messageType}, seq=${event.roapMessage.seq}`,
+    this.log(
+      'onRoapMessageToSend()',
+      `emitting Event.ROAP_MESSAGE_TO_SEND: messageType=${event.roapMessage.messageType}, seq=${event.roapMessage.seq}`,
     );
     this.emit(Event.ROAP_MESSAGE_TO_SEND, event);
   }
@@ -315,9 +336,9 @@ export class MediaConnection extends EventEmitter {
     ) {
       const transceivers = this.pc.getTransceivers();
 
-      log(`[${this.id}] identifyTransceivers(): transceivers.length=${transceivers.length}`);
+      this.log('identifyTransceivers()', `transceivers.length=${transceivers.length}`);
       transceivers.forEach((transceiver, idx) => {
-        log(`[${this.id}] identifyTransceivers(): transceiver[${idx}].mid=${transceiver.mid}`);
+        this.log('identifyTransceivers()', `transceiver[${idx}].mid=${transceiver.mid}`);
       });
 
       // todo: check if transceivers order always matches the m-lines in remote SDP offer in all the browsers
@@ -327,7 +348,7 @@ export class MediaConnection extends EventEmitter {
   }
 
   private onTrack(event: RTCTrackEvent) {
-    log(`[${this.id}] onTrack() callback called: event=${JSON.stringify(event)}`);
+    this.log('onTrack()', `callback called: event=${JSON.stringify(event)}`);
 
     // TODO: this code is copied from the SDK, it relies on hardcoded MID values 0,1,2 later on we can look into improving this
     const MEDIA_ID = {
@@ -344,7 +365,7 @@ export class MediaConnection extends EventEmitter {
     // In case of safari on some os versions the transceiver is not present in the event,
     // so fall back to using the track id
     if (event.transceiver?.mid) {
-      log(`[${this.id}] onTrack() identifying track by event.transceiver.mid`);
+      this.log('onTrack()', 'identifying track by event.transceiver.mid');
       trackMediaID = event.transceiver.mid; // todo: this might not work for "calling" project incoming calls
     } else if (track.id === this.transceivers.audio?.receiver?.track?.id) {
       trackMediaID = MEDIA_ID.AUDIO_TRACK;
@@ -356,37 +377,37 @@ export class MediaConnection extends EventEmitter {
       trackMediaID = null;
     }
 
-    log(`[${this.id}] onTrack() trackMediaID=${trackMediaID}`);
+    this.log('onTrack()', `trackMediaID=${trackMediaID}`);
     switch (trackMediaID) {
       case MEDIA_ID.AUDIO_TRACK:
-        log(`[${this.id}] emitting Event.REMOTE_TRACK_ADDED with type=AUDIO`);
+        this.log('onTrack()', 'emitting Event.REMOTE_TRACK_ADDED with type=AUDIO');
         this.emit(Event.REMOTE_TRACK_ADDED, {
           type: RemoteTrackType.AUDIO,
           track,
         });
         break;
       case MEDIA_ID.VIDEO_TRACK:
-        log(`[${this.id}] emitting Event.REMOTE_TRACK_ADDED with type=VIDEO`);
+        this.log('onTrack()', 'emitting Event.REMOTE_TRACK_ADDED with type=VIDEO');
         this.emit(Event.REMOTE_TRACK_ADDED, {
           type: RemoteTrackType.VIDEO,
           track,
         });
         break;
       case MEDIA_ID.SHARE_TRACK:
-        log(`[${this.id}] emitting Event.REMOTE_TRACK_ADDED with type=SCREENSHARE_VIDEO`);
+        this.log('onTrack()', 'emitting Event.REMOTE_TRACK_ADDED with type=SCREENSHARE_VIDEO');
         this.emit(Event.REMOTE_TRACK_ADDED, {
           type: RemoteTrackType.SCREENSHARE_VIDEO,
           track,
         });
         break;
       default: {
-        error(`[${this.id}] failed to match remote track media id: ${trackMediaID}`);
+        this.error('onTrack()', `failed to match remote track media id: ${trackMediaID}`);
       }
     }
   }
 
   private addLocalTracks() {
-    log(`[${this.id}] addLocalTracks(): adding tracks ${JSON.stringify(this.localTracks)}`);
+    this.log('addLocalTracks()', `adding tracks ${JSON.stringify(this.localTracks)}`);
 
     if (this.localTracks.audio) {
       this.pc.addTrack(this.localTracks.audio);
@@ -402,16 +423,18 @@ export class MediaConnection extends EventEmitter {
   }
 
   private onConnectionStateChange() {
-    log(
-      `[${this.id}] onConnectionStateChange() callback called: connectionState=${this.pc.connectionState}`,
+    this.log(
+      'onConnectionStateChange()',
+      `callback called: connectionState=${this.pc.connectionState}`,
     );
 
     this.evaluateMediaConnectionState();
   }
 
   private onIceConnectionStateChange() {
-    log(
-      `[${this.id}] onIceConnectionStateChange() callback called: iceConnectionState=${this.pc.iceConnectionState}`,
+    this.log(
+      'onIceConnectionStateChange()',
+      `callback called: iceConnectionState=${this.pc.iceConnectionState}`,
     );
 
     this.evaluateMediaConnectionState();
@@ -435,8 +458,9 @@ export class MediaConnection extends EventEmitter {
       this.mediaConnectionState = ConnectionState.CONNECTING;
     }
 
-    log(
-      `[${this.id}] evaluateConnectionState: iceConnectionState=${iceState} rtcPcConnectionState=${rtcPcConnectionState} => mediaConnectionState=${this.mediaConnectionState}`,
+    this.log(
+      'evaluateConnectionState',
+      `iceConnectionState=${iceState} rtcPcConnectionState=${rtcPcConnectionState} => mediaConnectionState=${this.mediaConnectionState}`,
     );
     this.emit(Event.CONNECTION_STATE_CHANGED, {state: this.mediaConnectionState});
   }

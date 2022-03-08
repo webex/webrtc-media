@@ -1,7 +1,8 @@
 import 'webrtc-adapter';
 import EventEmitter from 'events';
 
-import {log, error} from './logger';
+import logger from '../Logger';
+import {ROAP} from '../constants';
 import {isSdpInvalid, mungeLocalSdp} from './utils';
 import {Event, RoapMessage} from './eventTypes';
 
@@ -40,6 +41,24 @@ export class Roap extends EventEmitter {
     this.negotiationState = NegotiationState.IDLE;
   }
 
+  private log(action: string, description: string) {
+    logger.info({
+      ID: this.id,
+      mediaType: ROAP,
+      action,
+      description,
+    });
+  }
+
+  private error(action: string, description: string) {
+    logger.error({
+      ID: this.id,
+      mediaType: ROAP,
+      action,
+      description,
+    });
+  }
+
   /**
    * Starts SDP negotiation by creating a local offer.
    *
@@ -58,14 +77,14 @@ export class Roap extends EventEmitter {
     return this.pc
       .createOffer()
       .then((description: RTCSessionDescriptionInit) => {
-        log(`[${this.id}] local SDP offer created`);
+        this.log('initiateOffer()', 'local SDP offer created');
         this.negotiationState = NegotiationState.SETTING_LOCAL_OFFER;
 
         return this.pc.setLocalDescription(description);
       })
       .then(() => this.checkIceCandidates())
       .then(() => {
-        log(`[${this.id}] local SDP offer set`);
+        this.log('initiateOffer()', 'local SDP offer set');
         this.negotiationState = NegotiationState.WAITING_FOR_REMOTE_ANSWER;
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
@@ -126,7 +145,7 @@ export class Roap extends EventEmitter {
         return Promise.resolve();
 
       default:
-        error(`[${this.id}] unsupported messageType: ${messageType}`);
+        this.error('roapMessageReceived()', `unsupported messageType: ${messageType}`);
 
         return Promise.reject(new Error('unhandled messageType'));
     }
@@ -139,7 +158,7 @@ export class Roap extends EventEmitter {
 
     this.negotiationState = NegotiationState.SETTING_REMOTE_OFFER;
     this.seq += 1;
-    log(`[${this.id}] handling ROAP offer`);
+    this.log('handleRoapOffer()', 'called');
 
     return this.pc
       .setRemoteDescription(
@@ -180,6 +199,7 @@ export class Roap extends EventEmitter {
       return Promise.reject(new Error('SDP missing'));
     }
     this.negotiationState = NegotiationState.SETTING_REMOTE_ANSWER;
+    this.log('handleRoapAnswer()', 'called');
 
     return this.pc
       .setRemoteDescription(
@@ -211,22 +231,26 @@ export class Roap extends EventEmitter {
         if (!done) {
           const miliseconds = performance.now() - startTime;
 
-          log(`[${this.id}] checking SDP...`);
+          this.log('checkIceCandidates()', 'checking SDP...');
 
           const invalidSdpPresent = isSdpInvalid(
             {
               allowPort0: !!this.config.sdpMunging.convertPort9to0,
             },
+            this.error,
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             this.pc.localDescription!.sdp,
           );
 
           if (invalidSdpPresent) {
-            error(`[${this.id}] SDP not valid after waiting.`);
+            this.error('checkIceCandidates()', 'SDP not valid after waiting.');
             reject(new Error('SDP not valid'));
           }
           // todo: show this log only the first time:
-          log(`[${this.id}] It took ${miliseconds} miliseconds to gather ice candidates`);
+          this.log(
+            'checkIceCandidates()',
+            `It took ${miliseconds} miliseconds to gather ice candidates`,
+          );
 
           done = true;
           resolve();
@@ -234,12 +258,15 @@ export class Roap extends EventEmitter {
       };
 
       if (this.pc.iceGatheringState === 'complete') {
-        log(`[${this.id}] iceGatheringState is already "complete"`);
+        this.log('checkIceCandidates()', 'iceGatheringState is already "complete"');
         doneGatheringIceCandidates();
       }
 
       this.pc.onicegatheringstatechange = () => {
-        log(`[${this.id}] iceGatheringState changed to ${this.pc.iceGatheringState}`);
+        this.log(
+          'checkIceCandidates()',
+          `iceGatheringState changed to ${this.pc.iceGatheringState}`,
+        );
         if (this.pc.iceGatheringState === 'complete') {
           doneGatheringIceCandidates();
         }
@@ -247,15 +274,15 @@ export class Roap extends EventEmitter {
 
       this.pc.onicecandidate = (evt) => {
         if (evt.candidate === null) {
-          log(`[${this.id}] evt.candidate === null received`);
+          this.log('checkIceCandidates()', 'evt.candidate === null received');
           doneGatheringIceCandidates();
         } else {
-          log(`[${this.id}] ICE Candidate: ${evt.candidate?.candidate}`);
+          this.log('checkIceCandidates()', `ICE Candidate: ${evt.candidate?.candidate}`);
         }
       };
 
       this.pc.onicecandidateerror = (event) => {
-        error(`[${this.id}] onicecandidateerror: ${event}`);
+        this.error('checkIceCandidates()', `onicecandidateerror: ${event}`);
         reject(new Error('Error gathering ICE candidates'));
       };
     });
