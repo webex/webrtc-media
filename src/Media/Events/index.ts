@@ -74,7 +74,7 @@ async function deviceChangePublisher(): Promise<void> {
   }
 }
 
-function trackMutePublisher(event: Event, track: Track, module?:string): void {
+function trackMutePublisher(event: Event, track: Track, module?: string): void {
   logger.debug({
     ID: track.ID,
     mediaType: TRACK,

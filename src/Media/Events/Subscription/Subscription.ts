@@ -1,4 +1,4 @@
-import type { Track } from '../../Track';
+import type {Track} from '../../Track';
 
 interface subscriptionEvent {
   action: string;
@@ -7,13 +7,13 @@ interface subscriptionEvent {
 }
 
 interface subscriptionListener {
-  module: string,
-  method: (event: subscriptionEvent) => void
+  module: string;
+  method: (event: subscriptionEvent) => void;
 }
 
 interface activeSubscriptions {
   events: {
-    [key: string]: Map<string, (event: subscriptionEvent) => void>;
+    [key: string]: Map<string, subscriptionListener>;
   };
 }
 
@@ -25,9 +25,4 @@ interface subscription {
   };
 }
 
-export {
-  subscriptionEvent,
-  activeSubscriptions,
-  subscription,
-  subscriptionListener,
-};
+export {subscriptionEvent, activeSubscriptions, subscription, subscriptionListener};
