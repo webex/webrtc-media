@@ -16,6 +16,9 @@ const subscriptions: activeSubscriptions = {
  * @returns promise that is resolved with void
 */
 async function deviceChangePublisher() : Promise<void> {
+  logger.debug({
+    mediaType: DEVICE, action: 'deviceChangePublisher()', description: 'Called',
+  });
   if (!navigator.mediaDevices?.enumerateDevices) {
     console.warn('navigator.mediaDevices.enumerateDevices() is not supported.');
 
@@ -80,6 +83,9 @@ async function deviceChangePublisher() : Promise<void> {
 }
 
 function trackMutePublisher(event: Event, track: Track): void {
+  logger.debug({
+    ID: track.ID, mediaType: TRACK, action: 'trackMutePublisher()', description: `Called with ${JSON.stringify(event)} ${JSON.stringify(track)}`,
+  });
   logger.info({
     ID: track.ID,
     mediaType: TRACK,

@@ -67,6 +67,9 @@ export class Track implements TrackInterface {
    * @returns boolean that is `true` if constraints are successfully applied, `false` otherwise
   */
   async applyConstraints(constraints: MediaTrackConstraints): Promise<boolean> {
+    logger.debug({
+      ID: constraints?.deviceId?.toString(), mediaType: DEVICE, action: 'applyConstraints()', description: `Called with ${JSON.stringify(constraints)}`,
+    });
     logger.info({
       ID: constraints?.deviceId?.toString(),
       mediaType: DEVICE,
@@ -81,17 +84,26 @@ export class Track implements TrackInterface {
 
     for (const thisConstraint of Object.keys(constraints)) {
       if (!supportedConstraints[thisConstraint as keyof MediaTrackSupportedConstraints]) {
+        logger.debug({
+          ID: constraints?.deviceId?.toString(), mediaType: DEVICE, action: 'applyConstraints()', description: `Not suported constraint tracked ${thisConstraint}`,
+        });
         notSupportedConstraints.push(thisConstraint);
       }
     }
 
     if (notSupportedConstraints.length > 0) {
       console.warn(`#TrackObject Unsupported constraints - ${notSupportedConstraints.join(', ')}`);
+      logger.debug({
+        ID: constraints?.deviceId?.toString(), mediaType: DEVICE, action: 'applyConstraints()', description: 'Constraints not applied',
+      });
 
       return false;
     }
 
     await this.#mediaStreamTrack.applyConstraints(constraints);
+    logger.debug({
+      ID: constraints?.deviceId?.toString(), mediaType: DEVICE, action: 'applyConstraints()', description: 'Constraints applied successfully',
+    });
 
     return true;
   }
@@ -102,14 +114,22 @@ export class Track implements TrackInterface {
    * @returns MediaTrackSettings - settings of media track
   */
   getSettings(): MediaTrackSettings {
+    logger.debug({
+      mediaType: MEDIA, action: 'getSettings()', description: 'Called',
+    });
     logger.info({
       mediaType: MEDIA,
       action: 'getSettings()',
       description:
         'Fetching constraints properties for the current media stream track',
     });
+    const settings = this.#mediaStreamTrack.getSettings();
 
-    return this.#mediaStreamTrack.getSettings();
+    logger.debug({
+      mediaType: MEDIA, action: 'getSettings()', description: `Received settings ${JSON.stringify(settings)}`,
+    });
+
+    return settings;
   }
 
   /**
@@ -118,6 +138,15 @@ export class Track implements TrackInterface {
    * @returns #mediaStreamTrack of type MediaStreamTrack
   */
   getMediaStreamTrack(): MediaStreamTrack {
-    return this.#mediaStreamTrack;
+    logger.debug({
+      mediaType: MEDIA, action: 'getMediaStreamTrack()', description: 'Called',
+    });
+    const mediaStreamTrack = this.#mediaStreamTrack;
+
+    logger.debug({
+      mediaType: MEDIA, action: 'getMediaStreamTrack()', description: `Received media stream track ${JSON.stringify(mediaStreamTrack)}`,
+    });
+
+    return mediaStreamTrack;
   }
 }

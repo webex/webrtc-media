@@ -19,6 +19,8 @@ const _streams: WeakMap<MediaStream, string> = new WeakMap();
    * @returns Promise Array of MediaDeviceInfo objects
    */
 const getDevices = async (): Promise<MediaDeviceInfo[]> => {
+  logger.debug({mediaType: DEVICE, action: 'getDevices()', description: 'Called'});
+
   if (!navigator.mediaDevices?.enumerateDevices) {
     console.warn('navigator.mediaDevices.enumerateDevices() is not supported.');
 
@@ -40,6 +42,7 @@ const getDevices = async (): Promise<MediaDeviceInfo[]> => {
  * @public
  */
 const getCameras = async (): Promise<Device[]> => {
+  logger.debug({mediaType: DEVICE, action: 'getCameras()', description: 'Called'});
   const devices = await getDevices();
 
   logger.info({
@@ -50,7 +53,13 @@ const getCameras = async (): Promise<Device[]> => {
 
   return devices
     .filter(({kind}) => kind === DeviceKinds.VIDEO_INPUT)
-    .map((device) => new Device(device));
+    .map((device) => {
+      logger.debug({
+        ID: device.deviceId, mediaType: DEVICE, action: 'getCameras()', description: `Received camera device ${JSON.stringify(device)}`,
+      });
+
+      return new Device(device);
+    });
 };
 
 /**
@@ -60,6 +69,7 @@ const getCameras = async (): Promise<Device[]> => {
  * @public
  */
 const getMicrophones = async (): Promise<Device[]> => {
+  logger.debug({mediaType: DEVICE, action: 'getMicrophones()', description: 'Called'});
   const devices = await getDevices();
 
   logger.info({
@@ -71,7 +81,13 @@ const getMicrophones = async (): Promise<Device[]> => {
 
   return devices
     .filter(({kind}) => kind === DeviceKinds.AUDIO_INPUT)
-    .map((device) => new Device(device));
+    .map((device) => {
+      logger.debug({
+        ID: device.deviceId, mediaType: DEVICE, action: 'getMicrophones()', description: `Received microphone device ${JSON.stringify(device)}`,
+      });
+
+      return new Device(device);
+    });
 };
 
 /**
@@ -81,6 +97,7 @@ const getMicrophones = async (): Promise<Device[]> => {
  * @public
  */
 const getSpeakers = async (): Promise<Device[]> => {
+  logger.debug({mediaType: DEVICE, action: 'getSpeakers()', description: 'Called'});
   const devices = await getDevices();
 
   logger.info({
@@ -91,7 +108,13 @@ const getSpeakers = async (): Promise<Device[]> => {
 
   return devices
     .filter(({kind}) => kind === DeviceKinds.AUDIO_OUTPUT)
-    .map((device) => new Device(device));
+    .map((device) => {
+      logger.debug({
+        ID: device.deviceId, mediaType: DEVICE, action: 'getSpeakers()', description: `Received speaker device ${JSON.stringify(device)}`,
+      });
+
+      return new Device(device);
+    });
 };
 
 /**
@@ -102,6 +125,7 @@ const getSpeakers = async (): Promise<Device[]> => {
  * @returns
  */
 function getUnsupportedConstraints(mediaConstraints: MediaTrackConstraints): Array<string> {
+  logger.debug({mediaType: MEDIA, action: 'getUnsupportedConstraints()', description: `Called with ${JSON.stringify(mediaConstraints)}`});
   logger.info({
     mediaType: MEDIA,
     action: 'getUnsupportedConstraints()',
@@ -119,6 +143,7 @@ function getUnsupportedConstraints(mediaConstraints: MediaTrackConstraints): Arr
       unsupportedConstraints.push(constraint);
     }
   });
+  logger.debug({mediaType: MEDIA, action: 'getUnsupportedConstraints()', description: `Received unsupported constraints ${unsupportedConstraints}`});
 
   return unsupportedConstraints;
 }
@@ -130,6 +155,10 @@ function getUnsupportedConstraints(mediaConstraints: MediaTrackConstraints): Arr
  * @returns Promise of Track object
  */
 async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterface> {
+  logger.debug({
+    ID: device?.ID, mediaType: DEVICE, action: 'createAudioTrack()', description: `Called ${device ? `with ${JSON.stringify(device)}` : ''} `,
+  });
+
   if (device && device.kind !== DeviceKinds.AUDIO_INPUT) {
     const error = new Error('Given device is not an audio type');
 
@@ -158,6 +187,9 @@ async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterfac
 
   if (track) {
     _streams.set(stream, stream.id);
+    logger.debug({
+      ID: device?.ID, mediaType: DEVICE, action: 'createAudioTrack()', description: `Received audio track ${JSON.stringify(track)}`,
+    });
 
     return new Track(track);
   }
@@ -182,6 +214,9 @@ async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterfac
  * @returns Promise of Track object
  */
 async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterface> {
+  logger.debug({
+    ID: device?.ID, mediaType: DEVICE, action: 'createVideoTrack()', description: `Called ${device ? `with ${JSON.stringify(device)}` : ''} `,
+  });
   if (device && device.kind !== DeviceKinds.VIDEO_INPUT) {
     const error = new Error('Given device is not a video type');
 
@@ -210,6 +245,10 @@ async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterfac
 
   if (track) {
     _streams.set(stream, stream.id);
+
+    logger.debug({
+      ID: device?.ID, mediaType: DEVICE, action: 'createVideoTrack()', description: `Received video track ${JSON.stringify(track)}`,
+    });
 
     return new Track(track);
   }
@@ -243,6 +282,9 @@ async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterfac
 async function createContentTrack(
   mediaConstraints?: MediaTrackConstraints,
 ): Promise<TrackInterface> {
+  logger.debug({
+    ID: mediaConstraints?.deviceId?.toString(), mediaType: DEVICE, action: 'createContentTrack()', description: `Called ${mediaConstraints ? `with ${JSON.stringify(mediaConstraints)}` : ''} `,
+  });
   logger.info({
     ID: mediaConstraints?.deviceId?.toString(),
     mediaType: MEDIA,
@@ -281,6 +323,10 @@ async function createContentTrack(
 
     if (unsupportedConstraints.length <= 0) {
       track.applyConstraints(mediaConstraints);
+
+      logger.debug({
+        ID: mediaConstraints?.deviceId?.toString(), mediaType: DEVICE, action: 'createContentTrack()', description: 'Applied media constraints to fetched content track',
+      });
     } else {
       const error = new Error(`${unsupportedConstraints.join(', ')} constraint is not supported by browser`);
 
@@ -298,6 +344,10 @@ async function createContentTrack(
 
   if (track) {
     _streams.set(stream, stream.id);
+
+    logger.debug({
+      ID: mediaConstraints?.deviceId?.toString(), mediaType: DEVICE, action: 'createContentTrack()', description: `Received content track ${JSON.stringify(track)}`,
+    });
 
     return new Track(track);
   }
@@ -324,6 +374,9 @@ async function createContentTrack(
  * @returns promise that resolves with subscription object that can be used to unsubscribe
 */
 async function subscribe(eventName: string, listener: () => void): Promise<subscription> {
+  logger.debug({
+    mediaType: MEDIA, action: 'subscribe()', description: `Called with ${eventName},${listener}`,
+  });
   logger.info({
     mediaType: MEDIA,
     action: 'subscribe()',
@@ -369,6 +422,9 @@ async function subscribe(eventName: string, listener: () => void): Promise<subsc
  * @returns `true` when subscription is found and unsubscribed, `false` otherwise
  */
 const unsubscribe = (subscriptionInstance?:subscription): boolean => {
+  logger.debug({
+    mediaType: MEDIA, action: 'unsubscribe()', description: `Called ${subscriptionInstance ? `with ${JSON.stringify(subscriptionInstance)}` : ''} `,
+  });
   let isUnsubscribed = false;
 
   if (subscriptionInstance) {
@@ -392,6 +448,9 @@ const unsubscribe = (subscriptionInstance?:subscription): boolean => {
   if (subscriptions.events['device:changed'].size === 0) {
     navigator.mediaDevices.removeEventListener('devicechange', deviceChangePublisher);
   }
+  logger.debug({
+    mediaType: MEDIA, action: 'unsubscribe()', description: `Unsubscription ${isUnsubscribed ? 'done' : 'failed'}`,
+  });
 
   return isUnsubscribed;
 };

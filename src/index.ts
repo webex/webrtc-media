@@ -27,6 +27,9 @@ export function isBrowserSupported(): boolean {
   ) {
     isSupported = true;
   }
+  logger.debug({
+    mediaType: MEDIA, action: 'isBrowserSupported()', description: `webRTC  is ${isSupported ? '' : 'not'} supported by ${DetectRTC.browser.name} browser`,
+  });
 
   return isSupported;
 }
