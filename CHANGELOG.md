@@ -1,3 +1,10 @@
+# [1.13.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.12.0...v1.13.0) (2022-03-08)
+
+
+### Features
+
+* **media:** added info logs in webrtc media files ([653944a](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/653944a3a17f4521ec724906e9876c901bd9f103))
+
 # [1.12.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.11.0...v1.12.0) (2022-03-08)
 
 
