@@ -5,17 +5,26 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "moduleResolution": "Node",
     "strict": true,
+    "alwaysStrict": true /* Parse in strict mode and emit "use strict" for each source file. */,
+    "noImplicitAny": true /* Raise error on expressions and declarations with an implied 'any' type. */,
+    "noImplicitThis": true /* Raise error on 'this' expressions with an implied 'any' type. */,
+    "strictNullChecks": true /* Enable strict null checks. */,
+    "noImplicitReturns": true /* Report error when not all code paths in function return a value. */,
+    "suppressImplicitAnyIndexErrors": true /* Suppresses errors about implicit anys when indexing into objects. */,
     "sourceMap": true,
+    "removeComments": true /* Do not emit comments to output. */,
     "declaration": true,
     "declarationMap": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noImplicitReturns": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "outDir": "dist"
+    /* Advanced Options */
+    "skipLibCheck": true, /* Skip type checking of declaration files. */
+    "forceConsistentCasingInFileNames": true, /* Disallow inconsistently-cased references to the same file. */
+    "outDir": "dist/transpiled/"
   },
   "include": ["src"],
   "exclude": ["test", "docs/examples", "*test.ts"]

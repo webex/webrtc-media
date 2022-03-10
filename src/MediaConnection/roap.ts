@@ -1,4 +1,4 @@
-import 'webrtc-adapter';
+// import 'webrtc-adapter';
 import EventEmitter from 'events';
 
 import logger from '../Logger';

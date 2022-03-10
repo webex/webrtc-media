@@ -1,12 +1,16 @@
 {
   "name": "@webex/webrtc-media",
+<<<<<<< HEAD
   "version": "1.16.1",
+=======
+  "version": "1.14.1",
+>>>>>>> feat: add rollup config to bundle it via esm
   "files": [
-    "dist"
+    "dist/transpiled/"
   ],
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/transpiled/index.js",
+  "module": "dist/transpiled/index.js",
+  "types": "dist/transpiled/index.d.ts",
   "license": "MIT",
   "author": "devsupport@webex.com",
   "repository": {
@@ -22,20 +26,25 @@
   },
   "scripts": {
     "prebuild": "rimraf dist",
-    "build": "tsc",
+    "build": "tsc && rollup --config",
     "test": "karma start --browsers chrome",
+    "start": "web-dev-server --config web-dev-server.config.js",
     "test:integration": "karma start --integration",
     "test:integration:debug": "karma start --integration --browsers=chrome --single-run=false --debug --auto-watch",
     "test:debug": "karma start --browsers=chrome --single-run=false --debug --auto-watch",
-    "lint": " eslint 'src/**/*.ts' --fix",
+    "test:lint": "eslint src --ext .ts --max-warnings=0",
+    "test:prettier": "prettier \"src/**/*.ts\" --list-different",
+    "fix": "run-s fix:*",
+    "fix:prettier": "prettier \"src/**/*.ts\" --write",
+    "fix:lint": "eslint src --ext .ts --fix",
     "prepare": "husky install",
     "release": "semantic-release",
     "docs": "rimraf ./docs && api-extractor run -c ./api-extractor.json && api-documenter markdown -i ./docs/temp -o ./docs",
     "docs:publish": "gh-pages-deploy"
   },
   "dependencies": {
-    "events": "^3.3.0",
     "detectrtc": "^1.4.1",
+    "events": "^3.3.0",
     "sdp-transform": "^2.14.1",
     "uuid": "^8.3.2",
     "webrtc-adapter": "^8.1.1"
@@ -45,6 +54,9 @@
     "@commitlint/config-conventional": "^13.1.0",
     "@microsoft/api-documenter": "^7.13.54",
     "@microsoft/api-extractor": "^7.18.11",
+    "@rollup/plugin-commonjs": "^21.0.2",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^13.1.3",
     "@semantic-release/changelog": "^5.0.1",
     "@semantic-release/git": "^9.0.0",
     "@semantic-release/release-notes-generator": "^9.0.3",
@@ -54,14 +66,18 @@
     "@types/sdp-transform": "^2.4.5",
     "@types/sinon": "^10.0.9",
     "@types/uuid": "^8.3.4",
-    "@typescript-eslint/eslint-plugin": "^4.29.2",
-    "@typescript-eslint/parser": "^4.29.2",
+    "@typescript-eslint/eslint-plugin": "^5.15.0",
+    "@typescript-eslint/parser": "^5.15.0",
+    "@web/dev-server": "^0.1.30",
     "chai": "^4.3.4",
     "dotenv": "^16.0.0",
-    "eslint": "^7.32.0",
+    "eslint": "^8.11.0",
     "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-prettier": "^8.5.0",
     "eslint-import-resolver-typescript": "^2.4.0",
-    "eslint-plugin-import": "^2.24.1",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-jsdoc": "^38.0.4",
+    "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-tsdoc": "^0.2.14",
     "gh-pages-deploy": "^0.5.1",
     "husky": "^7.0.0",
@@ -78,11 +94,18 @@
     "karma-typescript": "^5.5.2",
     "karma-typescript-es6-transform": "^5.5.2",
     "mocha": "^9.1.2",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.5.1",
     "puppeteer": "^10.4.0",
     "rimraf": "^3.0.2",
+    "rollup": "^2.70.0",
+    "rollup-plugin-babel": "^4.4.0",
+    "rollup-plugin-polyfill-node": "^0.8.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "rollup-plugin-typescript2": "^0.31.2",
     "semantic-release": "^17.4.7",
     "sinon": "^11.1.2",
-    "typescript": "^4.3.5"
+    "typescript": "4.4"
   },
   "commitlint": {
     "extends": [
