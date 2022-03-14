@@ -189,6 +189,61 @@ export class MediaConnection extends EventEmitter {
   }
 
   /**
+   * @param options - send and receive options
+   *
+   * @returns true if a new local SDP offer is needed for the changes to take effect
+   */
+  private updateTransceivers(options: {
+    send: LocalTracks;
+    receive: {
+      audio: boolean;
+      video: boolean;
+      screenShareVideo: boolean;
+    };
+  }): boolean {
+    let newOfferNeeded = false;
+
+    this.receiveOptions = options.receive;
+
+    this.identifyTransceivers(); // this is needed here only for the case of update*Options() being called on incoming call after the initial offer came with no remote tracks at all
+
+    localTrackTypes.forEach(({type, kind}) => {
+      const trackType = type as keyof LocalTracks;
+      const transceiverType = type as keyof Transceivers;
+
+      const track = options.send[trackType];
+      const transceiver = this.transceivers[transceiverType];
+
+      if (track !== undefined && track !== this.localTracks[trackType]) {
+        this.localTracks[trackType] = track;
+        if (transceiver) {
+          this.log('updateTransceivers()', `replacing sender track on "${type}" transceiver`);
+          transceiver.sender.replaceTrack(track);
+        }
+      }
+
+      if (transceiver) {
+        const trackInfo = getLocalTrackInfo(
+          kind as TrackKind,
+          this.receiveOptions[trackType],
+          this.localTracks[trackType],
+        );
+
+        if (transceiver.direction !== trackInfo.direction) {
+          this.log(
+            'updateTransceivers()',
+            `updating direction to ${trackInfo.direction} on "${type}" transceiver`,
+          );
+          transceiver.direction = trackInfo.direction;
+          newOfferNeeded = true;
+        }
+      }
+    });
+
+    return newOfferNeeded;
+  }
+
+  /**
    * Updates the local tracks to be sent by the RTCPeerConnection.
    *
    *
@@ -204,32 +259,11 @@ export class MediaConnection extends EventEmitter {
   public updateSendOptions(tracks: LocalTracks): Promise<void> {
     this.log('updateSendOptions()', `called with ${JSON.stringify(tracks)}`);
 
-    let newOfferNeeded = false;
-
-    this.identifyTransceivers(); // this is needed here only for the case of updateSendOptions() being called on incoming call after the initial offer came with no remote tracks at all
-
-    localTrackTypes.forEach(({type, kind}) => {
-      const trackType = type as keyof LocalTracks;
-      const transceiverType = type as keyof Transceivers;
-
-      const track = tracks[trackType];
-      const transceiver = this.transceivers[transceiverType];
-
-      if (track !== undefined) {
-        this.localTracks[trackType] = track;
-
-        if (transceiver) {
-          const trackInfo = getLocalTrackInfo(
-            kind as TrackKind,
-            this.receiveOptions[trackType],
-            track,
-          );
-
-          transceiver.direction = trackInfo.direction;
-          transceiver.sender.replaceTrack(track);
-          newOfferNeeded = true; // todo: we probably don't need a new offer if only track was changed and not direction
-        }
-      }
+    const newOfferNeeded = this.updateTransceivers({
+      send: tracks,
+      receive: {
+        ...this.receiveOptions,
+      },
     });
 
     if (newOfferNeeded) {
@@ -256,34 +290,50 @@ export class MediaConnection extends EventEmitter {
   }): Promise<void> {
     this.log('updateReceiveOptions()', `called with ${JSON.stringify(options)}`);
 
-    this.receiveOptions = options;
-
-    this.identifyTransceivers(); // this is needed here only for the case of updateReceiveOptions() being called on incoming call after the initial offer came with no remote tracks at all
-
-    let newOfferNeeded = false;
-
-    localTrackTypes.forEach(({type, kind}) => {
-      const trackType = type as keyof LocalTracks;
-      const transceiverType = type as keyof Transceivers;
-
-      const transceiver = this.transceivers[transceiverType];
-
-      if (transceiver) {
-        const trackInfo = getLocalTrackInfo(
-          kind as TrackKind,
-          this.receiveOptions[trackType],
-          this.localTracks[trackType],
-        );
-
-        if (transceiver.direction !== trackInfo.direction) {
-          transceiver.direction = trackInfo.direction;
-          newOfferNeeded = true;
-        }
-      }
+    const newOfferNeeded = this.updateTransceivers({
+      send: this.localTracks,
+      receive: {
+        ...this.receiveOptions,
+      },
     });
 
     if (newOfferNeeded) {
       this.log('updateReceiveOptions()', 'triggering offer...');
+
+      return this.roap.initiateOffer();
+    }
+
+    return Promise.resolve();
+  }
+
+  /**
+   * Updates the choice of which tracks we want to receive
+   * and the local tracks to be sent by the RTCPeerConnection
+   *
+   * @param options - specifies which remote tracks to receieve (audio, video, screenShareVideo)
+   *                  and which local tracks to update:
+   *                  each local track (audio, video, screenShareVideo) can have one of these values:
+   *                  - undefined - means "no change"
+   *                  - null - means "stop using the current track"
+   *                  - a MediaStreamTrack reference - means "replace the current track with this new one"
+   *
+   * @returns Promise - promise that's resolved once the new SDP exchange is initiated
+   *                    or immediately if no new SDP exchange is needed
+   */
+  public updateSendReceiveOptions(options: {
+    send: LocalTracks;
+    receive: {
+      audio: boolean;
+      video: boolean;
+      screenShareVideo: boolean;
+    };
+  }): Promise<void> {
+    this.log('updateSendReceiveOptions()', `called with ${JSON.stringify(options)}`);
+
+    const newOfferNeeded = this.updateTransceivers(options);
+
+    if (newOfferNeeded) {
+      this.log('updateSendReceiveOptions()', 'triggering offer...');
 
       return this.roap.initiateOffer();
     }
