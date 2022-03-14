@@ -237,7 +237,7 @@ export class Roap extends EventEmitter {
             {
               allowPort0: !!this.config.sdpMunging.convertPort9to0,
             },
-            this.error,
+            this.error.bind(this),
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             this.pc.localDescription!.sdp,
           );
@@ -277,7 +277,10 @@ export class Roap extends EventEmitter {
           this.log('checkIceCandidates()', 'evt.candidate === null received');
           doneGatheringIceCandidates();
         } else {
-          this.log('checkIceCandidates()', `ICE Candidate: ${evt.candidate?.candidate}`);
+          this.log(
+            'checkIceCandidates()',
+            `ICE Candidate(${evt.candidate?.sdpMLineIndex}): ${evt.candidate?.candidate}`,
+          );
         }
       };
 

@@ -40,18 +40,21 @@ export function isSdpInvalid(
 
   for (const mediaLine of parsedSdp.media) {
     if (!mediaLine.candidates || mediaLine.candidates?.length === 0) {
-      errorLog('isSdpInvalid', 'ice candidates missing');
+      errorLog('isSdpInvalid', `ice candidates missing for m-line with mid=${mediaLine.mid}`);
 
       return 'isSdpInvalid: ice candidates missing';
     }
 
     if (!options.allowPort0 && mediaLine.port === 0) {
-      errorLog('isSdpInvalid', 'Found invalid port number 0');
+      errorLog('isSdpInvalid', `Found invalid port number 0 at m-line with mid=${mediaLine.mid}`);
 
       return 'isSdpInvalid: Found invalid port number 0';
     }
     if (!mediaLine.icePwd || !mediaLine.iceUfrag) {
-      errorLog('isSdpInvalid', 'ice ufrag and password not found');
+      errorLog(
+        'isSdpInvalid',
+        `ice ufrag and password not found for m-line with mid=${mediaLine.mid}`,
+      );
 
       return 'isSdpInvalid: ice ufrag and password not found';
     }
