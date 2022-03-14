@@ -91,7 +91,10 @@ export class MediaConnection extends EventEmitter {
     this.mediaConnectionState = ConnectionState.NEW;
 
     // TODO: existing SDK sets bundlePolicy: 'max-compat' for Firefox so we should probably do the same here
-    this.pc = new window.RTCPeerConnection({iceServers: this.config.iceServers});
+    this.pc = new window.RTCPeerConnection({
+      iceServers: this.config.iceServers,
+      bundlePolicy: 'max-compat', // needed for Firefox to create ICE candidates for each m-line
+    });
 
     this.roap = new Roap(this.pc, this.config, debugId);
     this.roap.on(Event.ROAP_MESSAGE_TO_SEND, this.onRoapMessageToSend.bind(this));
