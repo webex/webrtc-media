@@ -1,7 +1,12 @@
-import 'setimmediate';
-import {
-  createLogger, format, Logger, transports,
-} from 'winston';
+interface LevelsInterface {
+  [key: string]: number;
+}
+const LEVELS:LevelsInterface = {
+  error: 1,
+  warn: 2,
+  info: 3,
+  debug: 4,
+};
 
 interface CustomLogFormat {
   ID?: string;
@@ -12,24 +17,17 @@ interface CustomLogFormat {
 }
 
 interface LoggerInterface {
-  info: (logInfo: CustomLogFormat) => Logger;
-  warn: (logInfo: CustomLogFormat) => Logger;
-  error: (logInfo: CustomLogFormat) => Logger;
-  debug: (logInfo: CustomLogFormat) => Logger;
+  info: (logInfo: CustomLogFormat) => void;
+  warn: (logInfo: CustomLogFormat) => void;
+  error: (logInfo: CustomLogFormat) => void;
+  debug: (logInfo: CustomLogFormat) => void;
 }
 
-interface TransformableInfo {
-  [key: string]: CustomLogFormat;
-}
-
-const logFormat = format.printf((logDetails: TransformableInfo) => {
+const logFormat = (level:string, logDetails: CustomLogFormat) => {
   const {
-    timestamp,
-    level,
-    message: {
-      ID, mediaType, action, description, error,
-    },
+    ID, mediaType, action, description, error,
   } = logDetails;
+  const timestamp = new Date().toISOString();
 
   return `${timestamp} ${level} ${
     ID ?? ''
@@ -38,46 +36,37 @@ const logFormat = format.printf((logDetails: TransformableInfo) => {
   }`
     .replace(/\s+/g, ' ')
     .trim();
-});
+};
 
-const activeTransports = [];
+let currentLevel = 'error';
 
-if (process.env.NODE_ENV !== 'production') {
-  activeTransports.push(
-    new transports.Console({
-      format: format.combine(
-        format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
-        format.simple(),
-        logFormat,
-      ),
-    }),
-  );
-}
-
-const winstonLogger: Logger = createLogger({
-  level: 'error',
-  transports: activeTransports,
-});
+const log = (level: string, args: CustomLogFormat) => {
+  if (LEVELS[level] <= LEVELS[currentLevel]) {
+    // eslint-disable-next-line no-console
+    console.log(logFormat(level, args));
+  }
+};
 
 // create a custom logger and export it
-const logger: LoggerInterface = {
-  info: () => winstonLogger.info({}),
-  warn: () => winstonLogger.warn({}),
-  error: () => winstonLogger.error({}),
-  debug: () => winstonLogger.debug({}),
+const logger:LoggerInterface = {
+  info: (args: CustomLogFormat) => log('info', args),
+  warn: (args: CustomLogFormat) => log('warn', args),
+  error: (args: CustomLogFormat) => log('error', args),
+  debug: (args: CustomLogFormat) => log('debug', args),
 };
 
 for (const level of ['info', 'warn', 'error', 'debug']) {
+  // eslint-disable-next-line no-loop-func
   logger[level as keyof LoggerInterface] = (
     logInfo: CustomLogFormat,
-  ): Logger => {
+  ):void => {
     const {
       ID, mediaType, action, description, error,
     } = logInfo;
 
-    winstonLogger.level = level; // dynamically changing log level
+    currentLevel = level; // dynamically changing log level
 
-    return winstonLogger[level as keyof Logger]({
+    return log(level, {
       ID,
       mediaType,
       action,
