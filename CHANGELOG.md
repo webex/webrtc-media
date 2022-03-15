@@ -1,3 +1,10 @@
+## [1.16.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.16.0...v1.16.1) (2022-03-15)
+
+
+### Bug Fixes
+
+* **logger:** replace winston logger with a custom logger ([58cfded](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/58cfded7c232c571dbfedb56af217cc72fae23cd))
+
 # [1.16.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.15.0...v1.16.0) (2022-03-15)
 
 
