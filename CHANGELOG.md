@@ -1,3 +1,16 @@
+# [1.16.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.15.0...v1.16.0) (2022-03-15)
+
+
+### Bug Fixes
+
+* logging when SDP checks fail ([8e6aec1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/8e6aec1fba6d23db54c35ea4bbc0eb8137dbf927))
+* media connection establishment in Firefox ([e2003f6](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/e2003f6a4160d521cc60977f096859a1c217301f))
+
+
+### Features
+
+* updateSendReceiveOptions() added to MediaConnection ([bdac04d](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/bdac04d50c437ec8a6cb8d8458e8dbee4880c8c0))
+
 # [1.15.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.14.0...v1.15.0) (2022-03-10)
 
 
