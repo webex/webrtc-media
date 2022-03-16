@@ -65,10 +65,13 @@ export class Track implements TrackInterface {
    *
    * @param constraints - Object to apply constraints
    * @returns boolean that is `true` if constraints are successfully applied, `false` otherwise
-  */
+   */
   async applyConstraints(constraints: MediaTrackConstraints): Promise<boolean> {
     logger.debug({
-      ID: constraints?.deviceId?.toString(), mediaType: DEVICE, action: 'applyConstraints()', description: `Called with ${JSON.stringify(constraints)}`,
+      ID: constraints?.deviceId?.toString(),
+      mediaType: DEVICE,
+      action: 'applyConstraints()',
+      description: `Called with ${JSON.stringify(constraints)}`,
     });
     logger.info({
       ID: constraints?.deviceId?.toString(),
@@ -77,15 +80,17 @@ export class Track implements TrackInterface {
       description: 'Applying constraints to track objects',
     });
 
-    const supportedConstraints: MediaTrackSupportedConstraints = (
-      navigator.mediaDevices.getSupportedConstraints()
-    );
+    const supportedConstraints: MediaTrackSupportedConstraints =
+      navigator.mediaDevices.getSupportedConstraints();
     const notSupportedConstraints = [];
 
     for (const thisConstraint of Object.keys(constraints)) {
       if (!supportedConstraints[thisConstraint as keyof MediaTrackSupportedConstraints]) {
         logger.debug({
-          ID: constraints?.deviceId?.toString(), mediaType: DEVICE, action: 'applyConstraints()', description: `Not suported constraint tracked ${thisConstraint}`,
+          ID: constraints?.deviceId?.toString(),
+          mediaType: DEVICE,
+          action: 'applyConstraints()',
+          description: `Not suported constraint tracked ${thisConstraint}`,
         });
         notSupportedConstraints.push(thisConstraint);
       }
@@ -94,7 +99,10 @@ export class Track implements TrackInterface {
     if (notSupportedConstraints.length > 0) {
       console.warn(`#TrackObject Unsupported constraints - ${notSupportedConstraints.join(', ')}`);
       logger.debug({
-        ID: constraints?.deviceId?.toString(), mediaType: DEVICE, action: 'applyConstraints()', description: 'Constraints not applied',
+        ID: constraints?.deviceId?.toString(),
+        mediaType: DEVICE,
+        action: 'applyConstraints()',
+        description: 'Constraints not applied',
       });
 
       return false;
@@ -102,7 +110,10 @@ export class Track implements TrackInterface {
 
     await this.#mediaStreamTrack.applyConstraints(constraints);
     logger.debug({
-      ID: constraints?.deviceId?.toString(), mediaType: DEVICE, action: 'applyConstraints()', description: 'Constraints applied successfully',
+      ID: constraints?.deviceId?.toString(),
+      mediaType: DEVICE,
+      action: 'applyConstraints()',
+      description: 'Constraints applied successfully',
     });
 
     return true;
@@ -112,21 +123,24 @@ export class Track implements TrackInterface {
    * This function gets the constraint applied on the track
    *
    * @returns MediaTrackSettings - settings of media track
-  */
+   */
   getSettings(): MediaTrackSettings {
     logger.debug({
-      mediaType: MEDIA, action: 'getSettings()', description: 'Called',
+      mediaType: MEDIA,
+      action: 'getSettings()',
+      description: 'Called',
     });
     logger.info({
       mediaType: MEDIA,
       action: 'getSettings()',
-      description:
-        'Fetching constraints properties for the current media stream track',
+      description: 'Fetching constraints properties for the current media stream track',
     });
     const settings = this.#mediaStreamTrack.getSettings();
 
     logger.debug({
-      mediaType: MEDIA, action: 'getSettings()', description: `Received settings ${JSON.stringify(settings)}`,
+      mediaType: MEDIA,
+      action: 'getSettings()',
+      description: `Received settings ${JSON.stringify(settings)}`,
     });
 
     return settings;
@@ -136,15 +150,19 @@ export class Track implements TrackInterface {
    * This method returns the underlying MediaStreamTrack
    *
    * @returns #mediaStreamTrack of type MediaStreamTrack
-  */
+   */
   getMediaStreamTrack(): MediaStreamTrack {
     logger.debug({
-      mediaType: MEDIA, action: 'getMediaStreamTrack()', description: 'Called',
+      mediaType: MEDIA,
+      action: 'getMediaStreamTrack()',
+      description: 'Called',
     });
     const mediaStreamTrack = this.#mediaStreamTrack;
 
     logger.debug({
-      mediaType: MEDIA, action: 'getMediaStreamTrack()', description: `Received media stream track ${JSON.stringify(mediaStreamTrack)}`,
+      mediaType: MEDIA,
+      action: 'getMediaStreamTrack()',
+      description: `Received media stream track ${JSON.stringify(mediaStreamTrack)}`,
     });
 
     return mediaStreamTrack;

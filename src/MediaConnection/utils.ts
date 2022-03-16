@@ -9,7 +9,7 @@ export type TrackKind = 'audio' | 'video';
 export function getLocalTrackInfo(
   kind: TrackKind,
   receive: boolean,
-  localTrack?: MediaStreamTrack | null,
+  localTrack?: MediaStreamTrack | null
 ): {trackOrKind: MediaStreamTrack | TrackKind; direction: RTCRtpTransceiverDirection} {
   const direction = (() => {
     const send = !!localTrack;
@@ -30,7 +30,7 @@ export function isSdpInvalid(
     allowPort0: boolean;
   },
   errorLog: (action: string, description: string) => void,
-  sdp?: string,
+  sdp?: string
 ): string {
   if (!sdp) {
     return 'iceCandidate: SDP missing';
@@ -53,7 +53,7 @@ export function isSdpInvalid(
     if (!mediaLine.icePwd || !mediaLine.iceUfrag) {
       errorLog(
         'isSdpInvalid',
-        `ice ufrag and password not found for m-line with mid=${mediaLine.mid}`,
+        `ice ufrag and password not found for m-line with mid=${mediaLine.mid}`
       );
 
       return 'isSdpInvalid: ice ufrag and password not found';

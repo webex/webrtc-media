@@ -1,10 +1,6 @@
 {
   "name": "@webex/webrtc-media",
-<<<<<<< HEAD
   "version": "1.16.1",
-=======
-  "version": "1.14.1",
->>>>>>> feat: add rollup config to bundle it via esm
   "files": [
     "dist/transpiled/"
   ],
@@ -32,6 +28,7 @@
     "test:integration": "karma start --integration",
     "test:integration:debug": "karma start --integration --browsers=chrome --single-run=false --debug --auto-watch",
     "test:debug": "karma start --browsers=chrome --single-run=false --debug --auto-watch",
+    "lint": "run-s test:lint && run-s test:prettier",
     "test:lint": "eslint src --ext .ts --max-warnings=0",
     "test:prettier": "prettier \"src/**/*.ts\" --list-different",
     "fix": "run-s fix:*",
@@ -76,7 +73,7 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-import-resolver-typescript": "^2.4.0",
     "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-jsdoc": "^38.0.4",
+    "eslint-plugin-jest": "^26.1.1",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-tsdoc": "^0.2.14",
     "gh-pages-deploy": "^0.5.1",

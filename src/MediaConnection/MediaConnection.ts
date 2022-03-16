@@ -4,13 +4,7 @@ import logger from '../Logger';
 import {MEDIA_CONNECTION} from '../constants';
 import {Roap} from './roap';
 import {getLocalTrackInfo, TrackKind} from './utils';
-import {
-  Event,
-  ConnectionState,
-  RemoteTrackType,
-  RoapMessage,
-  RoapMessageEvent,
-} from './eventTypes';
+import {Event, ConnectionState, RemoteTrackType, RoapMessage, RoapMessageEvent} from './eventTypes';
 
 import {MediaConnectionConfig} from './config';
 
@@ -79,7 +73,7 @@ export class MediaConnection extends EventEmitter {
         screenShareVideo: boolean;
       };
     },
-    debugId?: string,
+    debugId?: string
   ) {
     super();
 
@@ -105,7 +99,7 @@ export class MediaConnection extends EventEmitter {
 
     this.log(
       'constructor()',
-      `config: ${JSON.stringify(mediaConnectionConfig)}, options: ${JSON.stringify(options)}`,
+      `config: ${JSON.stringify(mediaConnectionConfig)}, options: ${JSON.stringify(options)}`
     );
   }
 
@@ -135,7 +129,7 @@ export class MediaConnection extends EventEmitter {
       const trackInfo = getLocalTrackInfo(
         kind as TrackKind,
         this.receiveOptions[trackType],
-        this.localTracks[trackType],
+        this.localTracks[trackType]
       );
 
       this.transceivers[transceiverType] = this.pc.addTransceiver(trackInfo.trackOrKind, {
@@ -226,13 +220,13 @@ export class MediaConnection extends EventEmitter {
         const trackInfo = getLocalTrackInfo(
           kind as TrackKind,
           this.receiveOptions[trackType],
-          this.localTracks[trackType],
+          this.localTracks[trackType]
         );
 
         if (transceiver.direction !== trackInfo.direction) {
           this.log(
             'updateTransceivers()',
-            `updating direction to ${trackInfo.direction} on "${type}" transceiver`,
+            `updating direction to ${trackInfo.direction} on "${type}" transceiver`
           );
           transceiver.direction = trackInfo.direction;
           newOfferNeeded = true;
@@ -360,7 +354,7 @@ export class MediaConnection extends EventEmitter {
   public roapMessageReceived(roapMessage: RoapMessage): Promise<void> {
     this.log(
       'roapMessageReceived()',
-      `called with messageType=${roapMessage.messageType}, seq=${roapMessage.seq}`,
+      `called with messageType=${roapMessage.messageType}, seq=${roapMessage.seq}`
     );
 
     // todo: fix this - currently we will call addLocalTracks each time we get new offer in incoming calls
@@ -375,7 +369,7 @@ export class MediaConnection extends EventEmitter {
   private onRoapMessageToSend(event: RoapMessageEvent) {
     this.log(
       'onRoapMessageToSend()',
-      `emitting Event.ROAP_MESSAGE_TO_SEND: messageType=${event.roapMessage.messageType}, seq=${event.roapMessage.seq}`,
+      `emitting Event.ROAP_MESSAGE_TO_SEND: messageType=${event.roapMessage.messageType}, seq=${event.roapMessage.seq}`
     );
     this.emit(Event.ROAP_MESSAGE_TO_SEND, event);
   }
@@ -478,7 +472,7 @@ export class MediaConnection extends EventEmitter {
   private onConnectionStateChange() {
     this.log(
       'onConnectionStateChange()',
-      `callback called: connectionState=${this.pc.connectionState}`,
+      `callback called: connectionState=${this.pc.connectionState}`
     );
 
     this.evaluateMediaConnectionState();
@@ -487,7 +481,7 @@ export class MediaConnection extends EventEmitter {
   private onIceConnectionStateChange() {
     this.log(
       'onIceConnectionStateChange()',
-      `callback called: iceConnectionState=${this.pc.iceConnectionState}`,
+      `callback called: iceConnectionState=${this.pc.iceConnectionState}`
     );
 
     this.evaluateMediaConnectionState();
@@ -513,7 +507,7 @@ export class MediaConnection extends EventEmitter {
 
     this.log(
       'evaluateConnectionState',
-      `iceConnectionState=${iceState} rtcPcConnectionState=${rtcPcConnectionState} => mediaConnectionState=${this.mediaConnectionState}`,
+      `iceConnectionState=${iceState} rtcPcConnectionState=${rtcPcConnectionState} => mediaConnectionState=${this.mediaConnectionState}`
     );
     this.emit(Event.CONNECTION_STATE_CHANGED, {state: this.mediaConnectionState});
   }

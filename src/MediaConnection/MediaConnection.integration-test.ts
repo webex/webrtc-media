@@ -54,9 +54,7 @@ describe('2 MediaConnections connected to each other', () => {
     };
 
     testConnections.forEach(
-      ({
-        mc, debug, connectionEstablished, audioRemoteTrackAdded, videoRemoteTrackAdded,
-      }) => {
+      ({mc, debug, connectionEstablished, audioRemoteTrackAdded, videoRemoteTrackAdded}) => {
         if (mc) {
           mc.on(Event.CONNECTION_STATE_CHANGED, (e: ConnectionStateChangedEvent) => {
             console.log(`TEST: got CONNECTION_STATE_CHANGED from ${debug}:`, e);
@@ -91,7 +89,7 @@ describe('2 MediaConnections connected to each other', () => {
             }
           });
         }
-      },
+      }
     );
   };
 
@@ -114,7 +112,7 @@ describe('2 MediaConnections connected to each other', () => {
         mc: new MediaConnection(
           {iceServers: [], sdpMunging: {convertPort9to0: false}},
           {send, receive},
-          'mc1',
+          'mc1'
         ),
         debug: 'mc1',
         connectionEstablished: createControlledPromise(),
@@ -125,7 +123,7 @@ describe('2 MediaConnections connected to each other', () => {
         mc: new MediaConnection(
           {iceServers: [], sdpMunging: {convertPort9to0: false}},
           {send, receive},
-          'mc2',
+          'mc2'
         ),
         debug: 'mc2',
         connectionEstablished: createControlledPromise(),
@@ -168,7 +166,7 @@ describe('2 MediaConnections connected to each other', () => {
           connectionEstablished,
           audioRemoteTrackAdded,
         ])
-        .flat(),
+        .flat()
     );
   });
 
@@ -193,18 +191,21 @@ describe('2 MediaConnections connected to each other', () => {
           audioRemoteTrackAdded,
           videoRemoteTrackAdded,
         ])
-        .flat(),
+        .flat()
     );
   });
 
   it('updateLocalTracks() should add an audio track (outgoing call)', async () => {
     // start with no audio or video tracks
-    createTestConnections({send: {}, receive: {audio: true, video: true, screenShareVideo: true}});
+    createTestConnections({
+      send: {},
+      receive: {audio: true, video: true, screenShareVideo: true},
+    });
 
     await testConnections[0].mc.initiateOffer();
 
     await Promise.all(
-      testConnections.map(({connectionEstablished}) => [connectionEstablished]).flat(),
+      testConnections.map(({connectionEstablished}) => [connectionEstablished]).flat()
     );
 
     // add audio track to the first connection (that's the outgoing one)
@@ -216,12 +217,15 @@ describe('2 MediaConnections connected to each other', () => {
 
   it('updateLocalTracks() should add an audio track (incoming call)', async () => {
     // start with no audio or video tracks
-    createTestConnections({send: {}, receive: {audio: true, video: true, screenShareVideo: true}});
+    createTestConnections({
+      send: {},
+      receive: {audio: true, video: true, screenShareVideo: true},
+    });
 
     await testConnections[0].mc.initiateOffer();
 
     await Promise.all(
-      testConnections.map(({connectionEstablished}) => [connectionEstablished]).flat(),
+      testConnections.map(({connectionEstablished}) => [connectionEstablished]).flat()
     );
 
     // add audio track to the second connection (the incoming one)

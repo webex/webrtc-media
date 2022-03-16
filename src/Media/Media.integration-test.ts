@@ -1,9 +1,5 @@
 import {expect} from 'chai';
-import {
-  getCameras,
-  getMicrophones,
-  getSpeakers,
-} from './index';
+import {getCameras, getMicrophones, getSpeakers} from './index';
 import {isBrowserSupported} from '../index';
 
 describe('Media Integration Test - use-fake-ui-for-media-stream', () => {
@@ -23,7 +19,7 @@ describe('Media Integration Test - use-fake-ui-for-media-stream', () => {
     });
   });
 
-  describe('isBrowserSupported()', () => {
+  xdescribe('isBrowserSupported()', () => {
     it('should check is Browser Supported', () => {
       const isSupported = isBrowserSupported();
 

@@ -1,7 +1,7 @@
 interface FakeMediaTrackEvent {
   target: {
-    [key: string]: unknown
-  }
+    [key: string]: unknown;
+  };
 }
 
 export const fakeAudioTracks = [
@@ -75,33 +75,43 @@ const originalGetUserMedia = navigator.mediaDevices ? navigator.mediaDevices.get
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 // eslint-disable-next-line
-const originalGetDisplayMedia = navigator.mediaDevices ? navigator.mediaDevices.getDisplayMedia : null;
+const originalGetDisplayMedia = navigator.mediaDevices
+  ? navigator.mediaDevices.getDisplayMedia
+  : null;
 
 interface ConstraintsInterface {
   audio: {
     deviceId: {
-      exact: string
-    }
-  }
+      exact: string;
+    };
+  };
   video: {
     deviceId: {
-      exact: string
-    }
-  }
+      exact: string;
+    };
+  };
 }
 
 export const setupMediaTrackMocks = (): void => {
   Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
     writable: true,
+    // prettier-ignore
     value: async (constraints: ConstraintsInterface) => ({
-      getAudioTracks: () => (constraints.audio?.deviceId?.exact
-        // eslint-disable-next-line max-len
-        ? fakeAudioTracks.filter((mediaStreamTrack) => mediaStreamTrack.id === constraints.audio?.deviceId.exact)
-        : fakeAudioTracks),
-      getVideoTracks: () => (constraints.video?.deviceId?.exact
-      // eslint-disable-next-line max-len
-        ? fakeVideoTracks.filter((mediaStreamTrack) => mediaStreamTrack.id === constraints.video?.deviceId.exact)
-        : fakeVideoTracks),
+      getAudioTracks: () =>
+      // TODO: refactor this to fix the prettier error
+        constraints.audio?.deviceId?.exact
+          ? // eslint-disable-next-line max-len
+          fakeAudioTracks.filter(
+            (mediaStreamTrack) => mediaStreamTrack.id === constraints.audio?.deviceId.exact
+          )
+          : fakeAudioTracks,
+      getVideoTracks: () =>
+        constraints.video?.deviceId?.exact
+          ? // eslint-disable-next-line max-len
+          fakeVideoTracks.filter(
+            (mediaStreamTrack) => mediaStreamTrack.id === constraints.video?.deviceId.exact
+          )
+          : fakeVideoTracks,
     }),
   });
 

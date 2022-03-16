@@ -8,7 +8,7 @@ export default class ExampleModule {
    * @param val - a variable.
    * @returns - a string.
    */
-  public static sayHello(val: string):string {
+  public static sayHello(val: string): string {
     return `Hello ${val}`;
   }
 

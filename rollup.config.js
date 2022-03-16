@@ -12,7 +12,7 @@ export default {
   input: 'dist/transpiled/index.js',
   output: [
     {format: 'esm', dir: 'dist/esm'},
-    {format: 'umd', name: 'webrtcCore',file:'./samples/index.js'},
+    {format: 'umd', name: 'webrtcCore',file:'./samples/bundle.js'},
   ],
   plugins: basePlugins,
   watch: {include: 'src/**'},

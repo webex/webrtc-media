@@ -1,0 +1,1 @@
+console.log("FUNCTIONS ON CORE " ,webrtcCore.Media)

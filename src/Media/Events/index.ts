@@ -14,10 +14,12 @@ const subscriptions: activeSubscriptions = {
 /*
  * Makes calls to individual subscription listeners obtained through subscribe method
  * @returns promise that is resolved with void
-*/
-async function deviceChangePublisher() : Promise<void> {
+ */
+async function deviceChangePublisher(): Promise<void> {
   logger.debug({
-    mediaType: DEVICE, action: 'deviceChangePublisher()', description: 'Called',
+    mediaType: DEVICE,
+    action: 'deviceChangePublisher()',
+    description: 'Called',
   });
   if (!navigator.mediaDevices?.enumerateDevices) {
     console.warn('navigator.mediaDevices.enumerateDevices() is not supported.');
@@ -28,8 +30,7 @@ async function deviceChangePublisher() : Promise<void> {
   logger.info({
     mediaType: DEVICE,
     action: 'deviceChangePublisher()',
-    description:
-      'Calling individual subscription listener obtained by device change event',
+    description: 'Calling individual subscription listener obtained by device change event',
   });
   const newDeviceList: Array<MediaDeviceInfo> = await navigator.mediaDevices.enumerateDevices();
   const deviceChangedListeners = subscriptions.events['device:changed'];
@@ -41,24 +42,15 @@ async function deviceChangePublisher() : Promise<void> {
 
   if (newDeviceList.length !== deviceList.length) {
     /**
-         * When a phyisical device is removed / added, two MediaDevice gets added
-         * One input & one output device.
-         * `groupid` is the only thing common between these two MediaDevices
-         * So, the following code is to filter both of those devices based on group ID to pass on to subscribed listeners
-         */
-    [
-      getGroupIdsFrom,
-      filterDevicesFrom,
-      action,
-    ] = newDeviceList.length < deviceList.length ? [
-      newDeviceList,
-      deviceList,
-      'removed',
-    ] : [
-      deviceList,
-      newDeviceList,
-      'added',
-    ];
+     * When a phyisical device is removed / added, two MediaDevice gets added
+     * One input & one output device.
+     * `groupid` is the only thing common between these two MediaDevices
+     * So, the following code is to filter both of those devices based on group ID to pass on to subscribed listeners
+     */
+    [getGroupIdsFrom, filterDevicesFrom, action] =
+      newDeviceList.length < deviceList.length
+        ? [newDeviceList, deviceList, 'removed']
+        : [deviceList, newDeviceList, 'added'];
 
     getGroupIdsFrom.forEach((device) => {
       deviceListGroups.add(device.groupId);
@@ -84,14 +76,16 @@ async function deviceChangePublisher() : Promise<void> {
 
 function trackMutePublisher(event: Event, track: Track): void {
   logger.debug({
-    ID: track.ID, mediaType: TRACK, action: 'trackMutePublisher()', description: `Called with ${JSON.stringify(event)} ${JSON.stringify(track)}`,
+    ID: track.ID,
+    mediaType: TRACK,
+    action: 'trackMutePublisher()',
+    description: `Called with ${JSON.stringify(event)} ${JSON.stringify(track)}`,
   });
   logger.info({
     ID: track.ID,
     mediaType: TRACK,
     action: 'trackMutePublisher()',
-    description:
-      'Calling track subscription listener obtained by track mute event',
+    description: 'Calling track subscription listener obtained by track mute event',
   });
 
   const onmuteListeners = subscriptions.events['track:mute'];
@@ -111,9 +105,4 @@ function trackMutePublisher(event: Event, track: Track): void {
   }
 }
 
-export {
-  subscriptions,
-  deviceList,
-  deviceChangePublisher,
-  trackMutePublisher,
-};
+export {subscriptions, deviceList, deviceChangePublisher, trackMutePublisher};

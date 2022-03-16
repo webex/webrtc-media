@@ -124,3 +124,6 @@ docs/temp
 *.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+
+#samples build versions
+samples/bundle.js

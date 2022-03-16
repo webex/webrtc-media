@@ -10,14 +10,16 @@ describe('Track', () => {
     contentHint: 'sample',
     enabled: true,
     readyState: 'live',
-    stop: () : void => { /* placeholder */ },
+    stop: (): void => {
+      /* placeholder */
+    },
   };
 
   describe('stop()', () => {
-    let track : Track;
+    let track: Track;
 
     beforeEach(() => {
-      track = new Track((mockMediaStreamTrack as unknown) as MediaStreamTrack);
+      track = new Track(mockMediaStreamTrack as unknown as MediaStreamTrack);
     });
 
     it('should update the track status to ended', () => {
@@ -28,7 +30,7 @@ describe('Track', () => {
   });
 
   describe('applyConstraints()', () => {
-    let track : Track;
+    let track: Track;
     let videoTrack: MediaStreamTrack;
 
     beforeEach(async () => {
@@ -52,10 +54,10 @@ describe('Track', () => {
         expect(videoTrack.getSettings().width).to.eq(500);
       });
 
-      it('should not apply constraints beyond the track\'s capabilities', async () => {
+      it("should not apply constraints beyond the track's capabilities", async () => {
         const trackCapabilities: MediaTrackCapabilities = videoTrack.getCapabilities();
 
-        const isApplied : boolean = await track.applyConstraints({
+        const isApplied: boolean = await track.applyConstraints({
           aspectRatio: trackCapabilities.aspectRatio?.max,
         });
         const trackAspectRatio = videoTrack.getSettings().aspectRatio;
@@ -66,12 +68,15 @@ describe('Track', () => {
     });
 
     describe('failure', () => {
-      it('should not apply constraints and return false for unsupported constraints', () => track.applyConstraints({
-        // @ts-expect-error apply unsupported constraints in order to expect error
-        unsupported: 'test',
-        unsupported2: 'testagain',
-        width: 1024,
-      }).then((isApplied) => expect(isApplied).to.be.false));
+      it('should not apply constraints and return false for unsupported constraints', () =>
+        track
+          .applyConstraints({
+            // @ts-expect-error apply unsupported constraints in order to expect error
+            unsupported: 'test',
+            unsupported2: 'testagain',
+            width: 1024,
+          })
+          .then((isApplied) => expect(isApplied).to.be.false));
     });
   });
 

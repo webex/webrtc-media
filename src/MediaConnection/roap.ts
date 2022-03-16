@@ -1,4 +1,4 @@
-// import 'webrtc-adapter';
+import 'webrtc-adapter';
 import EventEmitter from 'events';
 
 import logger from '../Logger';
@@ -67,7 +67,7 @@ export class Roap extends EventEmitter {
   public initiateOffer(): Promise<void> {
     if (this.negotiationState !== NegotiationState.IDLE) {
       return Promise.reject(
-        new Error(`cannot start new negotiation in state ${this.negotiationState}`),
+        new Error(`cannot start new negotiation in state ${this.negotiationState}`)
       );
     }
 
@@ -115,7 +115,7 @@ export class Roap extends EventEmitter {
     // for now we're doing just these basic checks of state and fail, TODO: improve this and handle glare
     if (messageType === 'OFFER' && this.negotiationState !== NegotiationState.IDLE) {
       return Promise.reject(
-        new Error(`received SDP offer in the wrong state: ${this.pc.signalingState}`),
+        new Error(`received SDP offer in the wrong state: ${this.pc.signalingState}`)
       );
     }
 
@@ -124,7 +124,7 @@ export class Roap extends EventEmitter {
       this.negotiationState !== NegotiationState.WAITING_FOR_REMOTE_ANSWER
     ) {
       return Promise.reject(
-        new Error(`received SDP answer in the wrong state: ${this.pc.signalingState}`),
+        new Error(`received SDP answer in the wrong state: ${this.pc.signalingState}`)
       );
     }
     // TODO: check if seq matches when receiving ANSWER
@@ -165,7 +165,7 @@ export class Roap extends EventEmitter {
         new window.RTCSessionDescription({
           type: 'offer',
           sdp,
-        }),
+        })
       )
       .then(() => {
         this.negotiationState = NegotiationState.CREATING_ANSWER;
@@ -206,7 +206,7 @@ export class Roap extends EventEmitter {
         new window.RTCSessionDescription({
           type: 'answer',
           sdp,
-        }),
+        })
       )
       .then(() => {
         this.negotiationState = NegotiationState.IDLE;
@@ -239,7 +239,7 @@ export class Roap extends EventEmitter {
             },
             this.error.bind(this),
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            this.pc.localDescription!.sdp,
+            this.pc.localDescription!.sdp
           );
 
           if (invalidSdpPresent) {
@@ -249,7 +249,7 @@ export class Roap extends EventEmitter {
           // todo: show this log only the first time:
           this.log(
             'checkIceCandidates()',
-            `It took ${miliseconds} miliseconds to gather ice candidates`,
+            `It took ${miliseconds} miliseconds to gather ice candidates`
           );
 
           done = true;
@@ -265,7 +265,7 @@ export class Roap extends EventEmitter {
       this.pc.onicegatheringstatechange = () => {
         this.log(
           'checkIceCandidates()',
-          `iceGatheringState changed to ${this.pc.iceGatheringState}`,
+          `iceGatheringState changed to ${this.pc.iceGatheringState}`
         );
         if (this.pc.iceGatheringState === 'complete') {
           doneGatheringIceCandidates();
@@ -279,7 +279,7 @@ export class Roap extends EventEmitter {
         } else {
           this.log(
             'checkIceCandidates()',
-            `ICE Candidate(${evt.candidate?.sdpMLineIndex}): ${evt.candidate?.candidate}`,
+            `ICE Candidate(${evt.candidate?.sdpMLineIndex}): ${evt.candidate?.candidate}`
           );
         }
       };

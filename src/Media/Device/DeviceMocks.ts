@@ -44,7 +44,9 @@ export const fakeDevices = [
 ];
 
 // eslint-disable-next-line max-len
-const originalEnumerateDevices = navigator.mediaDevices ? navigator.mediaDevices.enumerateDevices : null;
+const originalEnumerateDevices = navigator.mediaDevices
+  ? navigator.mediaDevices.enumerateDevices
+  : null;
 
 export const setupMediaDeviceMocks = (): void => {
   Object.defineProperty(navigator.mediaDevices, 'enumerateDevices', {

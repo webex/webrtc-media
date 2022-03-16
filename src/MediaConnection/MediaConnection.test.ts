@@ -15,7 +15,7 @@ describe('MediaConnection', () => {
           video: true,
           screenShareVideo: true,
         },
-      },
+      }
     );
 
     expect(mediaConnection.getConnectionState()).to.eq(ConnectionState.NEW);
