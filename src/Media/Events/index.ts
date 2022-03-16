@@ -62,7 +62,7 @@ async function deviceChangePublisher(): Promise<void> {
     deviceList.push(...newDeviceList);
 
     for (const entry of deviceChangedListeners) {
-      const listener = entry[1];
+      const {method: listener} = entry[1];
 
       if (listener) {
         listener({
@@ -74,7 +74,7 @@ async function deviceChangePublisher(): Promise<void> {
   }
 }
 
-function trackMutePublisher(event: Event, track: Track): void {
+function trackMutePublisher(event: Event, track: Track, module?:string): void {
   logger.debug({
     ID: track.ID,
     mediaType: TRACK,
@@ -92,11 +92,10 @@ function trackMutePublisher(event: Event, track: Track): void {
   const currentTrack = <MediaStreamTrack>event.target;
 
   for (const entry of onmuteListeners) {
-    const listener = entry[1];
-
+    const {module: listnerModule, method: listener} = entry[1];
     const action = currentTrack.enabled ? 'muted' : 'unmuted';
 
-    if (listener) {
+    if (listnerModule === module && listener) {
       listener({
         action,
         track: <Track>track,

@@ -427,7 +427,10 @@ async function subscribe(eventName: string, listener: () => void): Promise<subsc
     method: listener,
   };
 
-  subscriptions.events[eventName].set(subscriptionListener.id, subscriptionListener.method);
+  subscriptions.events[eventName].set(subscriptionListener.id, {
+    module: 'media',
+    method: subscriptionListener.method,
+  });
   const thisEventListeners = subscriptions.events[eventName];
 
   switch (eventName) {

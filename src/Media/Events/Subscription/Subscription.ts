@@ -1,9 +1,14 @@
-import type {Track} from '../../Track';
+import type { Track } from '../../Track';
 
 interface subscriptionEvent {
   action: string;
   devices?: Array<MediaDeviceInfo>;
   track?: Track;
+}
+
+interface subscriptionListener {
+  module: string,
+  method: (event: subscriptionEvent) => void
 }
 
 interface activeSubscriptions {
@@ -20,4 +25,9 @@ interface subscription {
   };
 }
 
-export {subscriptionEvent, activeSubscriptions, subscription};
+export {
+  subscriptionEvent,
+  activeSubscriptions,
+  subscription,
+  subscriptionListener,
+};

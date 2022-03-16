@@ -46,7 +46,7 @@ export class Track implements TrackInterface {
     this.#mediaStreamTrack = mediaStreamTrack;
     this.#mediaStreamTrack.onmute = (event) => {
       // using arrow function which should bind to this from outer scope track
-      trackMutePublisher(event, this);
+      trackMutePublisher(event, this, 'media');
     };
   }
 
