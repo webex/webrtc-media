@@ -1,3 +1,15 @@
+# [1.17.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.16.1...v1.17.0) (2022-03-22)
+
+
+### Bug Fixes
+
+* **webrtc-core:** fix linting errors and pretify ([cb368d7](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/cb368d7c80b969d25ed880639a600792cc1894b2))
+
+
+### Features
+
+* add rollup config to bundle it via esm ([a7dd4a5](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/a7dd4a587b58846ae5f34c4c1ce7cb605bb21257))
+
 ## [1.16.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.16.0...v1.16.1) (2022-03-15)
 
 
