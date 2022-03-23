@@ -27,7 +27,6 @@ import {
 } from './index';
 import * as pcMock from '../common/peerConnectionMock';
 
-
 import {subscriptions, deviceList} from './Events';
 
 import {subscription as subscriptionType} from './Events/Subscription';
@@ -543,57 +542,56 @@ describe('Media', () => {
   describe('checkH264Support()', () => {
     it('check for codec if no notifications needed', async () => {
       const isCodec = await isCodecAvailable();
-  
+
       describe('hasH264Codec  returns true', () => {
         before(() => {
           pcMock.setupRTCPeerConnectionMockOne();
         });
-  
+
         after(() => {
           pcMock.resetRTCPeerConnection();
         });
-  
+
         it('if codec is loaded in browser', async () => {
           expect(await hasH264Codec()).to.eq(true);
         });
       });
-  
+
       expect(typeof isCodec === 'boolean');
     });
-  
+
     describe('hasH264Codec  returns false', () => {
       before(() => {
         pcMock.setupRTCPeerConnectionMockTwo();
       });
-  
+
       after(() => {
         pcMock.resetRTCPeerConnection();
       });
-  
+
       it('if codec is not loaded in browser', async () => {
         expect(await hasH264Codec()).to.eq(false);
       });
     });
-  
+
     it('check for codec if notifications is needed', async () => {
       const isCodec = await isCodecAvailable();
-  
+
       describe('hasH264Codec  returns true', () => {
         before(() => {
           pcMock.setupRTCPeerConnectionMockThree();
         });
-  
+
         after(() => {
           pcMock.resetRTCPeerConnection();
         });
-  
+
         it('if codec is delayed while loading in browser ', async () => {
           expect(await hasH264Codec()).to.eq(true);
         });
       });
-  
+
       expect(typeof isCodec === 'boolean');
     });
   });
 });
-

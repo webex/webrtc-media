@@ -546,5 +546,5 @@ export {
   subscribe,
   unsubscribe,
   isCodecAvailable,
-  hasH264Codec
+  hasH264Codec,
 };
