@@ -2,6 +2,7 @@ export enum Event {
   CONNECTION_STATE_CHANGED = 'connectionState:changed', // connection state has changed, see ConnectionStateChangedEvent
   REMOTE_TRACK_ADDED = 'remoteTrack:added', // new remote track has been added, see RemoteTrackAddedEvent
   ROAP_MESSAGE_TO_SEND = 'roap:messageToSend', // a ROAP message needs to be sent to the backend, see RoapMessageEvent
+  ROAP_FAILURE = 'roap:failure', // Roap state machine reached an unrecoverable error state
 }
 
 // Overall connection state (based on the ICE and DTLS connection states)
@@ -36,12 +37,13 @@ export interface RemoteTrackAddedEvent {
  */
 export interface RoapMessage {
   seq: number;
-  messageType: 'OFFER' | 'ANSWER' | 'OK' | 'ERROR';
+  messageType: 'OFFER' | 'OFFER_REQUEST' | 'OFFER_RESPONSE' | 'ANSWER' | 'OK' | 'ERROR';
   offererSessionId?: string;
   answererSessionId?: string;
   sdp?: string;
-  tieBreaker?: string;
-  errorType?: string; // used only if messageType==='ERROR'
+  tieBreaker?: number;
+  errorType?: string; // used only if messageType==='ERROR'  // todo enum
+  retryAfter?: number; // in seconds, used only with some errors (messageType==='ERROR')
 }
 
 export interface RoapMessageEvent {

@@ -11,29 +11,7 @@ import {
   RoapMessageEvent,
 } from './index';
 
-interface IControlledPromise<T> extends Promise<T> {
-  resolve: (value: T) => void;
-  reject: (error: Error) => void;
-}
-
-const createControlledPromise = (): IControlledPromise<unknown> => {
-  let resolvePromise;
-  let rejectPromise;
-
-  const promise = new Promise((resolve, reject) => {
-    resolvePromise = resolve;
-    rejectPromise = reject;
-  }) as IControlledPromise<unknown>;
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  promise.resolve = resolvePromise;
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  promise.reject = rejectPromise;
-
-  return promise;
-};
+import {createControlledPromise, IControlledPromise} from './testUtils';
 
 xdescribe('2 MediaConnections connected to each other', () => {
   let localStream: MediaStream;
@@ -146,6 +124,8 @@ xdescribe('2 MediaConnections connected to each other', () => {
     testConnections.forEach((testConnection) => {
       testConnection.mc.close();
     });
+
+    localStream?.getTracks().forEach((track) => track.stop());
   });
 
   it('audio only (both ways)', async () => {
@@ -233,5 +213,127 @@ xdescribe('2 MediaConnections connected to each other', () => {
 
     // we should receive that track in the first connection
     await testConnections[0].audioRemoteTrackAdded;
+  });
+});
+
+describe('1 MediaConnection connected to a raw RTCPeerConnection', () => {
+  let localStream: MediaStream;
+
+  beforeEach(async () => {
+    localStream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+
+    expect(localStream.getAudioTracks().length).to.equal(1);
+    expect(localStream.getVideoTracks().length).to.equal(1);
+  });
+
+  afterEach(() => {
+    localStream?.getTracks().forEach((track) => track.stop());
+  });
+
+  it('incoming audio call (with a single m-line)', async () => {
+    let failMessage;
+    const audioTrack = localStream.getAudioTracks()[0];
+
+    const pc = new RTCPeerConnection();
+
+    const mc = new MediaConnection(
+      {iceServers: [], sdpMunging: {convertPort9to0: false}},
+      {
+        send: {
+          audio: audioTrack,
+        },
+        receive: {
+          audio: true,
+          video: false,
+          screenShareVideo: false,
+        },
+      },
+      'mc'
+    );
+
+    const expectingRoapFromMc = {
+      OFFER: false,
+      OFFER_REQUEST: false,
+      OFFER_RESPONSE: false,
+      ANSWER: false,
+      OK: false,
+      ERROR: false,
+    };
+
+    // setup the MediaConnection callbacks
+    const connectionEstablished = createControlledPromise();
+    const audioRemoteTrackAdded = createControlledPromise();
+
+    const roapOkSent = createControlledPromise();
+
+    mc.on(Event.CONNECTION_STATE_CHANGED, (e: ConnectionStateChangedEvent) => {
+      console.log('TEST: got CONNECTION_STATE_CHANGED:', e);
+      if (e.state === ConnectionState.CONNECTED) {
+        connectionEstablished.resolve({});
+      }
+    });
+
+    mc.on(Event.REMOTE_TRACK_ADDED, (e: RemoteTrackAddedEvent) => {
+      console.log('TEST: got REMOTE_TRACK_ADDED:', JSON.stringify(e));
+      if (e.type === RemoteTrackType.AUDIO) {
+        audioRemoteTrackAdded.resolve({});
+      }
+    });
+
+    mc.on(Event.ROAP_MESSAGE_TO_SEND, async (e: RoapMessageEvent) => {
+      console.log(
+        `TEST: got ROAP_MESSAGE_TO_SEND: ${e.roapMessage.messageType}, ${e.roapMessage.sdp}`
+      );
+
+      if (expectingRoapFromMc[e.roapMessage.messageType]) {
+        if (e.roapMessage.messageType === 'ANSWER') {
+          await pc.setRemoteDescription({type: 'answer', sdp: e.roapMessage.sdp});
+          mc.roapMessageReceived({messageType: 'OK', seq: e.roapMessage.seq});
+        } else if (e.roapMessage.messageType === 'OFFER') {
+          await pc.setRemoteDescription({type: 'offer', sdp: e.roapMessage.sdp});
+
+          const answer = await pc.createAnswer();
+
+          await pc.setLocalDescription(answer);
+          mc.roapMessageReceived({messageType: 'ANSWER', seq: e.roapMessage.seq, sdp: answer.sdp});
+        } else if (e.roapMessage.messageType === 'OK') {
+          roapOkSent.resolve({});
+        }
+      } else {
+        // fail() or expect() in the callback here doesn't cause the test to fail when
+        // the condition is not met, so we have to store it in this helper variable
+        failMessage = `unexpected roap message received: ${JSON.stringify(e.roapMessage)}`;
+      }
+    });
+
+    // start the connection from pc to mc
+    pc.addTransceiver(audioTrack);
+    await pc.setLocalDescription();
+
+    // to make it look more like the SDP from Mobius, remove the a=mid line
+    const sdp = pc.localDescription?.sdp.replaceAll(/\r\na=mid:.*/g, '');
+
+    console.log(`TEST: sending SDP offer to MediaConnection: ${sdp}`);
+
+    expectingRoapFromMc.ANSWER = true;
+
+    mc.roapMessageReceived({
+      messageType: 'OFFER',
+      seq: 1,
+      sdp,
+    });
+
+    await Promise.all([connectionEstablished, audioRemoteTrackAdded]);
+    expect(failMessage).to.equal(undefined);
+
+    // now check also that updates work
+    expectingRoapFromMc.OFFER = true;
+    expectingRoapFromMc.ANSWER = false;
+    expectingRoapFromMc.OK = true;
+
+    mc.updateReceiveOptions({audio: false, video: false, screenShareVideo: false});
+
+    await roapOkSent;
+    expect(failMessage).to.equal(undefined);
   });
 });

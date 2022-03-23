@@ -24,6 +24,8 @@ module.exports = {
       },
     ],
   ],
+  setupFiles: ['<rootDir>/../jest.global.js'],
+  setupFilesAfterEnv: ['<rootDir>/../jest.expectExtensions.js'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   testResultsProcessor: 'jest-junit',
 };

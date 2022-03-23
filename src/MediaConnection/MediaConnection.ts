@@ -92,6 +92,7 @@ export class MediaConnection extends EventEmitter {
 
     this.roap = new Roap(this.pc, this.config, debugId);
     this.roap.on(Event.ROAP_MESSAGE_TO_SEND, this.onRoapMessageToSend.bind(this));
+    this.roap.on(Event.ROAP_FAILURE, this.onRoapFailure.bind(this));
 
     this.pc.ontrack = this.onTrack.bind(this);
     this.pc.oniceconnectionstatechange = this.onIceConnectionStateChange.bind(this);
@@ -370,6 +371,10 @@ export class MediaConnection extends EventEmitter {
       `emitting Event.ROAP_MESSAGE_TO_SEND: messageType=${event.roapMessage.messageType}, seq=${event.roapMessage.seq}`
     );
     this.emit(Event.ROAP_MESSAGE_TO_SEND, event);
+  }
+
+  private onRoapFailure() {
+    this.emit(Event.ROAP_FAILURE);
   }
 
   private identifyTransceivers() {
