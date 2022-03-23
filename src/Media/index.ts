@@ -501,6 +501,39 @@ const unsubscribe = (subscriptionInstance?: subscription): boolean => {
   return isUnsubscribed;
 };
 
+const hasH264Codec = async () => {
+  let hasCodec = false;
+
+  try {
+    const peerConnection = new window.RTCPeerConnection();
+    const offer = await peerConnection.createOffer({offerToReceiveVideo: true});
+
+    if (offer?.sdp?.match(/^a=rtpmap:\d+\s+H264\/\d+/m)) {
+      hasCodec = true;
+    }
+    peerConnection.close();
+  } catch (error) {
+    logger.debug({
+      mediaType: MEDIA,
+      action: 'hasH264Codec()',
+      description: `Meetings:util#hasH264Codec---->  Error creating peerConnection for H.264 test`,
+    });
+  }
+
+  return hasCodec;
+};
+
+/** Notifies the user whether or not the H.264
+ * codec is present. Will continuously check
+ * until max duration.
+ * @returns -boolean
+ */
+const isCodecAvailable = async (): Promise<boolean> => {
+  const isCodec = await hasH264Codec();
+
+  return isCodec;
+};
+
 export * from './Device';
 export * from './Track';
 export {
@@ -512,4 +545,6 @@ export {
   createContentTrack,
   subscribe,
   unsubscribe,
+  isCodecAvailable,
+  hasH264Codec
 };
