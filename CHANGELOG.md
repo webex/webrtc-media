@@ -1,3 +1,10 @@
+# [1.18.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.17.0...v1.18.0) (2022-03-24)
+
+
+### Features
+
+* **media:** added subscription capabilities to track ([1b3e981](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/1b3e981cc7775f61436391d773493aa172872f13))
+
 # [1.17.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.16.1...v1.17.0) (2022-03-22)
 
 
