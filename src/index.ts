@@ -32,9 +32,15 @@ export function isBrowserSupported(): boolean {
   return isSupported;
 }
 
+// TODO: we should be exporting * from Media in this file as well as for MediaConnection
 export const Media = {
   createAudioTrack: MediaCore.createAudioTrack,
   createVideoTrack: MediaCore.createVideoTrack,
+  getCameras: MediaCore.getCameras,
+  getMicrophones: MediaCore.getMicrophones,
+  getSpeakers: MediaCore.getSpeakers,
+  subscribe: MediaCore.subscribe,
+  subscribe: MediaCore.unsubscribe,
   // isBrowserSupported,
 };
 
