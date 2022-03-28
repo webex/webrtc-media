@@ -40,7 +40,7 @@ export const Media = {
   getMicrophones: MediaCore.getMicrophones,
   getSpeakers: MediaCore.getSpeakers,
   subscribe: MediaCore.subscribe,
-  subscribe: MediaCore.unsubscribe,
+  unsubscribe: MediaCore.unsubscribe,
   // isBrowserSupported,
 };
 
