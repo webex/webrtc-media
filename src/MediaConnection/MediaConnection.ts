@@ -286,9 +286,7 @@ export class MediaConnection extends EventEmitter {
 
     const newOfferNeeded = this.updateTransceivers({
       send: this.localTracks,
-      receive: {
-        ...this.receiveOptions,
-      },
+      receive: options,
     });
 
     if (newOfferNeeded) {
