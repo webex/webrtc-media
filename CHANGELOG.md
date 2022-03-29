@@ -1,3 +1,10 @@
+# [1.19.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.18.1...v1.19.0) (2022-03-29)
+
+
+### Features
+
+* **media:** is codec available ([500c928](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/500c928618d66e5ac1b0cadfb344797109e5ddea))
+
 ## [1.18.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.18.0...v1.18.1) (2022-03-28)
 
 
