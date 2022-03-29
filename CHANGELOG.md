@@ -1,3 +1,10 @@
+## [1.19.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.0...v1.19.1) (2022-03-29)
+
+
+### Bug Fixes
+
+* modified mainEntryPointFilePath to rectify jenkins build failure ([6c80231](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/6c802318e204638d1d7d754471e57ef8318213a4))
+
 # [1.19.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.18.1...v1.19.0) (2022-03-29)
 
 
