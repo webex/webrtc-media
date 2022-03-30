@@ -7,8 +7,6 @@ import {deviceChangePublisher, deviceList, subscriptions} from './Events';
 import {subscription} from './Events/Subscription';
 import {Track, TrackInterface} from './Track';
 
-const _streams: WeakMap<MediaStream, string> = new WeakMap();
-
 /**
  * Requests a list of the available media input and output devices, such as microphones and cameras.
  *
@@ -229,7 +227,6 @@ async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterfac
   const track: MediaStreamTrack = stream.getAudioTracks()[0];
 
   if (track) {
-    _streams.set(stream, stream.id);
     logger.debug({
       ID: device?.ID,
       mediaType: DEVICE,
@@ -302,7 +299,6 @@ async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterfac
   const track: MediaStreamTrack = stream.getVideoTracks()[0];
 
   if (track) {
-    _streams.set(stream, stream.id);
 
     logger.debug({
       ID: device?.ID,
@@ -415,7 +411,6 @@ async function createContentTrack(
   }
 
   if (track) {
-    _streams.set(stream, stream.id);
 
     logger.debug({
       ID: mediaConstraints?.deviceId?.toString(),
