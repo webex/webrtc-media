@@ -40,8 +40,8 @@ export const Media = {
   getCameras: MediaCore.getCameras,
   getMicrophones: MediaCore.getMicrophones,
   getSpeakers: MediaCore.getSpeakers,
-  subscribe: MediaCore.subscribe,
-  unsubscribe: MediaCore.unsubscribe,
+  on: MediaCore.on,
+  off: MediaCore.off,
   // isBrowserSupported,
 };
 

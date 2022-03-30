@@ -43,7 +43,7 @@ export const fakeDevices = [
   },
 ];
 
-const mockMediaStreamTrack = {
+export const mockMediaStreamTrack = {
   id: '04b14bc2-2c0e-4c54-9e9d-1d52f7a34c5f',
   kind: 'audio',
   muted: true,
@@ -54,48 +54,4 @@ const mockMediaStreamTrack = {
   stop: (): void => {
     /* placeholder */
   },
-};
-
-const mockMediaDevices = {
-  getUserMedia: () =>
-    Promise.resolve({
-      getVideoTracks: () => [mockMediaStreamTrack],
-    }),
-  ondevicechange: null,
-};
-
-export const RTCPeerConnectionMocks = (): void => {
-  Object.defineProperty(global.window, 'RTCPeerConnection', {
-    writable: true,
-    value: jest.fn(),
-  });
-};
-
-export const setupMediaDeviceMocks = (): void => {
-  Object.defineProperty(window.navigator, 'mediaDevices', {
-    writable: true,
-    value: mockMediaDevices,
-  });
-
-  Object.defineProperty(window.navigator.mediaDevices, 'enumerateDevices', {
-    writable: true,
-    value: async () => fakeDevices,
-  });
-  console.warn('Setting up Mocks on navigator.mediaDevices');
-
-  const map = {};
-
-  Object.defineProperty(window.navigator.mediaDevices, 'addEventListener', {
-    writable: true,
-    value: jest.fn((event, cb) => {
-      map[event] = cb;
-    }),
-  });
-
-  Object.defineProperty(window.navigator.mediaDevices, 'removeEventListener', {
-    writable: true,
-    value: jest.fn((event) => {
-      delete map[event];
-    }),
-  });
 };

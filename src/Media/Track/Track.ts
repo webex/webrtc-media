@@ -1,8 +1,7 @@
-import {v4 as uuidv4} from 'uuid';
+import EventEmitter from 'events';
+
 import {DEVICE, MEDIA} from '../../constants';
 import logger from '../../Logger';
-import {trackMutePublisher, subscriptions} from '../Events/index';
-import {subscription} from '../Events/Subscription';
 
 // eslint-disable-next-line no-shadow
 export enum TrackStatus {
@@ -27,7 +26,7 @@ export interface TrackInterface {
 }
 
 /** @public */
-export class Track implements TrackInterface {
+export class Track extends EventEmitter implements TrackInterface {
   ID: string;
 
   kind: TrackKind;
@@ -40,20 +39,23 @@ export class Track implements TrackInterface {
 
   #mediaStreamTrack: MediaStreamTrack;
 
-  #isSubscribed: boolean;
-
   constructor(mediaStreamTrack: MediaStreamTrack) {
+    super();
     this.ID = mediaStreamTrack.id;
     this.kind = mediaStreamTrack.kind as TrackKind;
     this.status = mediaStreamTrack.readyState as TrackStatus;
     this.muted = mediaStreamTrack.muted;
     this.label = mediaStreamTrack.label;
     this.#mediaStreamTrack = mediaStreamTrack;
-    this.#mediaStreamTrack.onmute = (event) => {
+    this.#mediaStreamTrack.onmute = () => {
       // using arrow function which should bind to this from outer scope track
-      trackMutePublisher(event, this, 'media');
+      const action = this.#mediaStreamTrack.enabled ? 'muted' : 'unmuted';
+      // TODO:  Move this logic else where
+
+      this.emit('track:mute', {
+        action,
+      });
     };
-    this.#isSubscribed = false;
   }
 
   /**
@@ -150,46 +152,6 @@ export class Track implements TrackInterface {
     });
 
     return settings;
-  }
-
-  /**
-   * Subscribe to events specific to a track object
-   * @param eventName - name of event to subscribe to (e.g. 'mute')
-   * @param listener - function to be called when event is fired
-   * @returns promise that resolves with subscription object
-   */
-  async subscribe(eventName: string, listener: () => void): Promise<subscription> {
-    const subscriptionListener = {
-      id: uuidv4(),
-      method: listener,
-    };
-
-    subscriptions.events[eventName].set(subscriptionListener.id, {
-      module: 'track',
-      method: subscriptionListener.method,
-    });
-
-    switch (eventName) {
-      case 'track:mute': {
-        if (this.#isSubscribed !== true) {
-          this.#isSubscribed = true;
-          this.#mediaStreamTrack.addEventListener('mute', (event) => {
-            trackMutePublisher(event, this, 'track');
-          });
-        }
-        break;
-      }
-
-      default:
-        break;
-    }
-
-    return new Promise((resolve) => {
-      resolve({
-        type: eventName,
-        listener: subscriptionListener,
-      });
-    });
   }
 
   /**

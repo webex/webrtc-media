@@ -8,7 +8,7 @@ describe('Exported Media Module', () => {
     expect(Media.createAudioTrack).toBeInstanceOf(Function);
     expect(Media.createVideoTrack).toBeInstanceOf(Function);
     expect(Media.createContentTrack).toBeInstanceOf(Function);
-    expect(Media.subscribe).toBeInstanceOf(Function);
-    expect(Media.unsubscribe).toBeInstanceOf(Function);
+    expect(Media.on).toBeInstanceOf(Function);
+    expect(Media.off).toBeInstanceOf(Function);
   });
 });

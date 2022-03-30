@@ -1,11 +1,14 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["_streams"] }] */
-import {v4 as uuidv4} from 'uuid';
+
+import EventEmitter from 'events';
 import {DEVICE, MEDIA} from '../constants';
 import logger from '../Logger';
 import {Device, DeviceInterface, DeviceKinds} from './Device';
-import {deviceChangePublisher, deviceList, subscriptions} from './Events';
-import {subscription} from './Events/Subscription';
 import {Track, TrackInterface} from './Track';
+
+// Can also convert the Media into class if you want but this should work
+const eventEmitter = new EventEmitter();
+const deviceList: Array<MediaDeviceInfo> = [];
 
 /**
  * Requests a list of the available media input and output devices, such as microphones and cameras.
@@ -299,7 +302,6 @@ async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterfac
   const track: MediaStreamTrack = stream.getVideoTracks()[0];
 
   if (track) {
-
     logger.debug({
       ID: device?.ID,
       mediaType: DEVICE,
@@ -411,7 +413,6 @@ async function createContentTrack(
   }
 
   if (track) {
-
     logger.debug({
       ID: mediaConstraints?.deviceId?.toString(),
       mediaType: DEVICE,
@@ -435,57 +436,85 @@ async function createContentTrack(
   throw error;
 }
 
+/*
+ * Makes calls to individual subscription listeners obtained through on method
+ * @returns promise that is resolved with void
+ */
+async function deviceChangePublisher(): Promise<void> {
+  logger.debug({
+    mediaType: DEVICE,
+    action: 'deviceChangePublisher()',
+    description: 'Called',
+  });
+  if (!navigator.mediaDevices?.enumerateDevices) {
+    console.warn('navigator.mediaDevices.enumerateDevices() is not supported.');
+
+    return;
+  }
+
+  logger.info({
+    mediaType: DEVICE,
+    action: 'deviceChangePublisher()',
+    description: 'Calling individual subscription listener obtained by device change event',
+  });
+  const newDeviceList: Array<MediaDeviceInfo> = await navigator.mediaDevices.enumerateDevices();
+  let filtered: Array<MediaDeviceInfo> = [];
+  let getGroupIdsFrom: Array<MediaDeviceInfo> = [];
+  let filterDevicesFrom: Array<MediaDeviceInfo> = [];
+  let action = 'changed';
+  const deviceListGroups = new Set();
+
+  if (newDeviceList.length !== deviceList.length) {
+    /**
+     * When a phyisical device is removed / added, two MediaDevice gets added
+     * One input & one output device.
+     * `groupid` is the only thing common between these two MediaDevices
+     * So, the following code is to filter both of those devices based on group ID to pass on to subscribed listeners
+     */
+    [getGroupIdsFrom, filterDevicesFrom, action] =
+      newDeviceList.length < deviceList.length
+        ? [newDeviceList, deviceList, 'removed']
+        : [deviceList, newDeviceList, 'added'];
+
+    getGroupIdsFrom.forEach((device) => {
+      deviceListGroups.add(device.groupId);
+    });
+
+    filtered = filterDevicesFrom.filter((device) => !deviceListGroups.has(device.groupId));
+
+    deviceList.splice(0, deviceList.length);
+    deviceList.push(...newDeviceList);
+
+    eventEmitter.emit('device:changed', {
+      action,
+      devices: filtered,
+    });
+  }
+}
+
 /**
  * Obtains multiple subscriptions for various media events and stores listeners
  * Also sets appropriate browser event listeners
  *
- * @param eventName - event name to subscribe to (device:changed | track:mute)
+ * @param eventName - event name to on to (device:changed)
  * @param listener - callback method to call when an event occurs
- * @returns promise that resolves with subscription object that can be used to unsubscribe
+ * @returns promise that resolves with subscription object that can be used to off
  */
-async function subscribe(eventName: string, listener: () => void): Promise<subscription> {
+async function on(eventName: string, listener: () => void) {
   logger.debug({
     mediaType: MEDIA,
-    action: 'subscribe()',
-    description: `Called with ${eventName},${listener}`,
+    action: 'on()',
+    description: `Subscribing to an ${eventName},${listener}`,
   });
-  logger.info({
-    mediaType: MEDIA,
-    action: 'subscribe()',
-    description: 'Subscribing to an event',
-  });
-  const subscriptionListener = {
-    id: uuidv4(),
-    method: listener,
-  };
 
-  subscriptions.events[eventName].set(subscriptionListener.id, {
-    module: 'media',
-    method: subscriptionListener.method,
-  });
-  const thisEventListeners = subscriptions.events[eventName];
+  eventEmitter.on(eventName, listener);
 
-  switch (eventName) {
-    case 'device:changed': {
-      if (thisEventListeners.size === 1) {
-        const thisDeviceList = await getDevices();
+  if (eventName === 'device:changed') {
+    const thisDeviceList = await getDevices();
 
-        deviceList.push(...thisDeviceList);
-        navigator.mediaDevices.addEventListener('devicechange', deviceChangePublisher);
-      }
-      break;
-    }
-
-    default:
-      break;
+    deviceList.push(...thisDeviceList);
+    navigator.mediaDevices.addEventListener('devicechange', deviceChangePublisher);
   }
-
-  return new Promise((resolve) => {
-    resolve({
-      type: eventName,
-      listener: subscriptionListener,
-    });
-  });
 }
 
 /**
@@ -496,44 +525,14 @@ async function subscribe(eventName: string, listener: () => void): Promise<subsc
  * @param subscriptionInstance -optional subscription object that has property type and has a method that needs to be deleted from subscriptions state
  * @returns `true` when subscription is found and unsubscribed, `false` otherwise
  */
-const unsubscribe = (subscriptionInstance?: subscription): boolean => {
+const off = (eventName: string, listener: () => void) => {
   logger.debug({
     mediaType: MEDIA,
-    action: 'unsubscribe()',
-    description: `Called ${
-      subscriptionInstance ? `with ${JSON.stringify(subscriptionInstance)}` : ''
-    } `,
+    action: 'off()',
+    description: `Called ${eventName} with ${listener} listener`,
   });
-  let isUnsubscribed = false;
-
-  if (subscriptionInstance) {
-    logger.info({
-      mediaType: MEDIA,
-      action: 'unsubscribe()',
-      description: 'Unsubscribing to an event',
-    });
-    isUnsubscribed = subscriptions.events[subscriptionInstance.type].delete(
-      subscriptionInstance.listener.id
-    );
-  } else {
-    logger.info({
-      mediaType: MEDIA,
-      action: 'unsubscribe()',
-      description: 'Unsubscribing to all current subscription',
-    });
-    subscriptions.events['device:changed'].clear();
-  }
-
-  if (subscriptions.events['device:changed'].size === 0) {
-    navigator.mediaDevices.removeEventListener('devicechange', deviceChangePublisher);
-  }
-  logger.debug({
-    mediaType: MEDIA,
-    action: 'unsubscribe()',
-    description: `Unsubscription ${isUnsubscribed ? 'done' : 'failed'}`,
-  });
-
-  return isUnsubscribed;
+  eventEmitter.off(eventName, listener);
+  // We dont have to turn on or off the deviceList as SDK we need to keep track of it
 };
 
 /** Creates peer to peer connection and gets the offer
@@ -578,13 +577,14 @@ const isCodecAvailable = async (): Promise<boolean> => {
 export * from './Device';
 export * from './Track';
 export {
+  getDevices,
   getCameras,
   getMicrophones,
   getSpeakers,
   createAudioTrack,
   createVideoTrack,
   createContentTrack,
-  subscribe,
-  unsubscribe,
+  on,
+  off,
   isCodecAvailable,
 };

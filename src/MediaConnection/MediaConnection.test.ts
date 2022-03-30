@@ -1,10 +1,6 @@
-import {RTCPeerConnectionMocks} from '../Media/Device/DeviceMocks';
 import {ConnectionState, MediaConnection} from './index';
 
 describe('MediaConnection', () => {
-  beforeAll(() => {
-    RTCPeerConnectionMocks();
-  });
   it('initial media connection state is NEW', () => {
     const mediaConnection = new MediaConnection(
       {

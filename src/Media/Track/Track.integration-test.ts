@@ -1,10 +1,6 @@
 import {expect} from 'chai';
 import Sinon, {SinonSpy} from 'sinon';
 import {Track} from './Track';
-import {resetMediaTrackMocks, setupMediaTrackMocks} from './TrackMock';
-
-import {subscriptions} from '../Events';
-import {subscription as subscriptionType, subscriptionListener} from '../Events/Subscription';
 
 import {} from '../index';
 
@@ -123,78 +119,36 @@ describe('Track', () => {
   });
 
   // Re Write after adding event emitter
-  xdescribe('subscribe()', () => {
-    let subscription: subscriptionType;
-    let subscription2: subscriptionType;
-    let eventCallbackSpyTrack: SinonSpy = Sinon.spy();
-    const eventCallbackSpyTrack2: SinonSpy = Sinon.spy();
+  describe('Track Muted event()', () => {
+    const eventCallbackSpyTrack: SinonSpy = Sinon.spy();
     let track: Track;
-    let videoTrack: MediaStreamTrack;
+    let audioTrack: MediaStreamTrack;
 
-    xdescribe('track mute event & publisher', () => {
+    describe('track mute event & publisher', () => {
       beforeEach(async () => {
-        [videoTrack] = (
+        [audioTrack] = (
           await navigator.mediaDevices.getUserMedia({
-            video: true,
+            audio: true,
           })
-        ).getVideoTracks();
-        track = new Track(videoTrack as MediaStreamTrack);
-        setupMediaTrackMocks();
-        subscription = await track.subscribe('track:mute', eventCallbackSpyTrack);
-        subscription2 = await track.subscribe('track:mute', eventCallbackSpyTrack2);
+        ).getAudioTracks();
+        track = new Track(audioTrack as MediaStreamTrack);
+        await track.on('track:mute', eventCallbackSpyTrack);
       });
 
-      afterEach(() => {
-        resetMediaTrackMocks();
-      });
-
-      it('should have subscribe, track mute event available', () => {
-        expect(subscription.listener.method).to.be.equal(eventCallbackSpyTrack);
-        expect(
-          subscriptions.events['track:mute'].get(subscription.listener.id)?.method
-        ).to.be.equal(eventCallbackSpyTrack);
-        expect(subscription2.listener.method).to.be.equal(eventCallbackSpyTrack2);
-        expect(
-          subscriptions.events['track:mute'].get(subscription2.listener.id)?.method
-        ).to.be.equal(eventCallbackSpyTrack2);
-      });
-
-      xit('should have called the callback once', () => {
-        track.getMediaStreamTrack().dispatchEvent(new Event('mute'));
-        Sinon.assert.called(eventCallbackSpyTrack);
-        expect(eventCallbackSpyTrack.calledOnce).to.eq(true);
-      });
-
-      it('should have onmute event on track for unmuted', () => {
-        eventCallbackSpyTrack = Sinon.spy();
-        const trackSubscriptionListener: subscriptionListener = subscriptions.events[
-          'track:mute'
-        ].get(subscription.listener.id) as subscriptionListener;
-
-        trackSubscriptionListener.method = eventCallbackSpyTrack;
-
+      it('should trigger`track:mute` event with muted value', () => {
         track.getMediaStreamTrack().enabled = false;
         track.getMediaStreamTrack().dispatchEvent(new Event('mute'));
         Sinon.assert.called(eventCallbackSpyTrack);
 
         expect(eventCallbackSpyTrack.getCall(0).args[0].action).to.be.equal('unmuted');
-        expect(eventCallbackSpyTrack.getCall(0).args[0].track).to.eq(track);
       });
 
-      it('should have onmute event on track for muted', async () => {
-        eventCallbackSpyTrack = Sinon.spy();
-        const trackSubscriptionListener: subscriptionListener = subscriptions.events[
-          'track:mute'
-        ].get(subscription.listener.id) as subscriptionListener;
-
-        trackSubscriptionListener.method = eventCallbackSpyTrack;
-
+      it('should trigger`track:mute` event with unmuted value', async () => {
         track.getMediaStreamTrack().enabled = true;
         track.getMediaStreamTrack().dispatchEvent(new Event('mute'));
         Sinon.assert.called(eventCallbackSpyTrack);
 
-        expect(eventCallbackSpyTrack.getCall(0).args[0].action).to.be.equal('muted');
-        expect(eventCallbackSpyTrack.getCall(0).args[0].track).to.eq(track);
+        expect(eventCallbackSpyTrack.getCall(1).args[0].action).to.be.equal('muted');
       });
     });
   });

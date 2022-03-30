@@ -1,15 +1,10 @@
 import Sinon, {SinonSpy} from 'sinon';
 
 import {DeviceInterface, DeviceKinds} from './Device';
-import {Track, TrackKind, TrackStatus} from './Track';
+import {TrackKind, TrackStatus} from './Track';
 
-import {fakeDevices, setupMediaDeviceMocks} from './Device/DeviceMocks';
-import {
-  fakeAudioTracks,
-  fakeVideoTracks,
-  setupEmptyMediaTrackMocks,
-  setupMediaTrackMocks,
-} from './Track/TrackMock';
+import {fakeDevices} from './Device/DeviceMocks';
+import {setupEmptyMediaTrackMocks, setupMediaTrackMocks} from './Track/TrackMock';
 
 import * as pcMock from '../common/peerConnectionMock';
 import {
@@ -20,14 +15,10 @@ import {
   getMicrophones,
   getSpeakers,
   isCodecAvailable,
-  subscribe,
-  unsubscribe,
+  on,
 } from './index';
 
-import {deviceList, subscriptions} from './Events';
-
 import {isBrowserSupported} from '../index';
-import {subscriptionListener, subscription as subscriptionType} from './Events/Subscription';
 
 // Could not make ES6 import as the library's typescript definition file is corrupt #108 issue raised
 // Todo: Convert to ES6 import once this issue gets resolved -> https://github.com/muaz-khan/DetectRTC/issues/108
@@ -35,10 +26,6 @@ import {subscriptionListener, subscription as subscriptionType} from './Events/S
 const DetectRTC = require('detectrtc');
 
 describe('Media', () => {
-  beforeAll(() => {
-    setupMediaDeviceMocks();
-  });
-
   beforeEach(() => {
     const mockMediaStreamTrack = {
       kind: 'video',
@@ -62,6 +49,7 @@ describe('Media', () => {
       },
     };
 
+    // jest.spyOn().mockImplementation
     Object.defineProperty(window.navigator.mediaDevices, 'getDisplayMedia', {
       writable: true,
       value: jest.fn(() =>
@@ -340,27 +328,22 @@ describe('Media', () => {
     });
   });
 
-  describe('subscribe()', () => {
-    let subscription: subscriptionType;
-    let subscription2: subscriptionType;
+  describe('on()', () => {
     let eventCallbackSpy: SinonSpy = Sinon.spy();
     let eventCallbackSpy2: SinonSpy = Sinon.spy();
 
     beforeAll(async () => {
-      setupMediaDeviceMocks();
-      subscription = await subscribe('device:changed', eventCallbackSpy);
-      subscription2 = await subscribe('device:changed', eventCallbackSpy2);
+      await on('device:changed', eventCallbackSpy);
+      await on('device:changed', eventCallbackSpy2);
+    });
+    afterAll(() => {
+      eventCallbackSpy.resetHistory();
+      eventCallbackSpy2.resetHistory();
     });
 
-    it('should have subscribe, return subscription, have it available in subscriptions', () => {
-      expect(subscription.listener.method).toEqual(eventCallbackSpy);
-      expect(subscriptions.events['device:changed'].get(subscription.listener.id)?.method).toEqual(
-        eventCallbackSpy
-      );
-    });
-
-    it('should get device list when the first subscription happens', () => {
-      expect(deviceList.length).toBeGreaterThan(0);
+    it('should get device list when the first subscription happens', async () => {
+      await on('device:changed', eventCallbackSpy);
+      expect(window.navigator.mediaDevices.enumerateDevices).toBeCalled();
     });
 
     describe('deviceChange event & publisher', () => {
@@ -369,15 +352,6 @@ describe('Media', () => {
         if (navigator.mediaDevices.ondevicechange) {
           eventCallbackSpy = Sinon.spy();
           eventCallbackSpy2 = Sinon.spy();
-          const deviceSubscriptionListener: subscriptionListener = subscriptions.events[
-            'device:changed'
-          ].get(subscription.listener.id) as subscriptionListener;
-          const deviceSubscriptionListener2: subscriptionListener = subscriptions.events[
-            'device:changed'
-          ].get(subscription2.listener.id) as subscriptionListener;
-
-          deviceSubscriptionListener.method = eventCallbackSpy;
-          deviceSubscriptionListener2.method = eventCallbackSpy2;
 
           fakeDevices.splice(0, 1);
           fakeDevices.splice(3, 1);
@@ -393,15 +367,7 @@ describe('Media', () => {
         if (navigator.mediaDevices.ondevicechange) {
           eventCallbackSpy = Sinon.spy();
           eventCallbackSpy2 = Sinon.spy();
-          const deviceSubscriptionListener: subscriptionListener = subscriptions.events[
-            'device:changed'
-          ].get(subscription.listener.id) as subscriptionListener;
-          const deviceSubscriptionListener2: subscriptionListener = subscriptions.events[
-            'device:changed'
-          ].get(subscription2.listener.id) as subscriptionListener;
 
-          deviceSubscriptionListener.method = eventCallbackSpy;
-          deviceSubscriptionListener2.method = eventCallbackSpy2;
           fakeDevices.push(
             ...[
               {
@@ -424,163 +390,6 @@ describe('Media', () => {
           expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('added');
         }
       });
-    });
-
-    describe('track mute event & publisher', () => {
-      const mockDeviceAudio = {
-        ID: '47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a4',
-        groupId: '99782d7b13f331947c1a9865b27cf7eabffbfd48cfe21ab99867d101c6d7b4d0',
-        kind: DeviceKinds.AUDIO_INPUT,
-        label: 'Fake Audio Input 1',
-        mediaDeviceInfo: null,
-      };
-
-      const mockDeviceVideo = {
-        ID: '47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a4',
-        groupId: '99782d7b13f331947c1a9865b27cf7eabffbfd48cfe21ab99867d101c6d7b4d0',
-        kind: DeviceKinds.VIDEO_INPUT,
-        label: 'Fake Video Input 1',
-        mediaDeviceInfo: null,
-      };
-
-      beforeAll(async () => {
-        setupMediaTrackMocks();
-        subscription = await subscribe('track:mute', eventCallbackSpy);
-      });
-
-      it('should have subscribe, track mute event available', () => {
-        expect(subscription.listener.method).toEqual(eventCallbackSpy);
-        expect(subscriptions.events['track:mute'].get(subscription.listener.id)?.method).toEqual(
-          eventCallbackSpy
-        );
-      });
-
-      it('should have onmute event on audio tracks for unmuted', async () => {
-        eventCallbackSpy = Sinon.spy();
-        const trackSubscriptionListener: subscriptionListener = subscriptions.events[
-          'track:mute'
-        ].get(subscription.listener.id) as subscriptionListener;
-
-        trackSubscriptionListener.method = eventCallbackSpy;
-
-        await createAudioTrack(mockDeviceAudio as unknown as DeviceInterface);
-        const filteredTrackByID = fakeAudioTracks.filter((val) => val.id === mockDeviceAudio.ID);
-
-        filteredTrackByID[0].enabled = false;
-        const fakeObjForTrack = {target: filteredTrackByID[0]};
-
-        filteredTrackByID[0].onmute(fakeObjForTrack);
-
-        Sinon.assert.called(eventCallbackSpy);
-        expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('unmuted');
-        // making sure track object from the library(instanceof Track)
-        expect(eventCallbackSpy.getCall(0).args[0].track).toBeInstanceOf(Track);
-      });
-
-      it('should have onmute event on audio tracks for muted', async () => {
-        eventCallbackSpy = Sinon.spy();
-        const trackSubscriptionListener: subscriptionListener = subscriptions.events[
-          'track:mute'
-        ].get(subscription.listener.id) as subscriptionListener;
-
-        trackSubscriptionListener.method = eventCallbackSpy;
-
-        await createAudioTrack(mockDeviceAudio as unknown as DeviceInterface);
-        const filteredTrackByID = fakeAudioTracks.filter((val) => val.id === mockDeviceAudio.ID);
-
-        filteredTrackByID[0].enabled = true;
-        const fakeObjForTrack = {target: filteredTrackByID[0]};
-
-        filteredTrackByID[0].onmute(fakeObjForTrack);
-
-        Sinon.assert.called(eventCallbackSpy);
-        expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('muted');
-        // making sure track object from the library(instanceof Track)
-        expect(eventCallbackSpy.getCall(0).args[0].track).toBeInstanceOf(Track);
-      });
-
-      it('should have onmute event on video tracks for unmuted', async () => {
-        eventCallbackSpy = Sinon.spy();
-        const trackSubscriptionListener: subscriptionListener = subscriptions.events[
-          'track:mute'
-        ].get(subscription.listener.id) as subscriptionListener;
-
-        trackSubscriptionListener.method = eventCallbackSpy;
-
-        await createVideoTrack(mockDeviceVideo as unknown as DeviceInterface);
-        const filteredTrackByID = fakeVideoTracks.filter((val) => val.id === mockDeviceVideo.ID);
-
-        filteredTrackByID[0].enabled = false;
-        const fakeObjForTrack = {target: filteredTrackByID[0]};
-
-        filteredTrackByID[0].onmute(fakeObjForTrack);
-
-        Sinon.assert.called(eventCallbackSpy);
-        expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('unmuted');
-        // making sure track object from the library(instanceof Track)
-        expect(eventCallbackSpy.getCall(0).args[0].track).toBeInstanceOf(Track);
-      });
-
-      it('should have onmute event on vedio tracks for muted', async () => {
-        eventCallbackSpy = Sinon.spy();
-        const trackSubscriptionListener: subscriptionListener = subscriptions.events[
-          'track:mute'
-        ].get(subscription.listener.id) as subscriptionListener;
-
-        trackSubscriptionListener.method = eventCallbackSpy;
-
-        await createVideoTrack(mockDeviceVideo as unknown as DeviceInterface);
-        const filteredTrackByID = fakeVideoTracks.filter((val) => val.id === mockDeviceVideo.ID);
-
-        filteredTrackByID[0].enabled = true;
-        const fakeObjForTrack = {target: filteredTrackByID[0]};
-
-        filteredTrackByID[0].onmute(fakeObjForTrack);
-
-        Sinon.assert.called(eventCallbackSpy);
-        expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('muted');
-        // making sure track object from the library(instanceof Track)
-        expect(eventCallbackSpy.getCall(0).args[0].track).toBeInstanceOf(Track);
-      });
-    });
-  });
-  describe('unsubscribe()', () => {
-    const eventCallbackSpy: SinonSpy = Sinon.spy();
-    let mockSubscription: subscriptionType;
-
-    beforeAll(async () => {
-      setupMediaDeviceMocks();
-      mockSubscription = await subscribe('device:changed', eventCallbackSpy);
-    });
-
-    it('should unsubscribe event if subscription event is passed', () => {
-      const initialSize = subscriptions.events[mockSubscription.type].size;
-
-      if (initialSize > 0) {
-        const isUnsubscribed = unsubscribe(mockSubscription);
-
-        expect(initialSize).not.toEqual(subscriptions.events[mockSubscription.type].size);
-        expect(isUnsubscribed).toBeTruthy();
-      }
-    });
-
-    it('will return false  if passed event subscription is not found ', () => {
-      const initialSize = subscriptions.events[mockSubscription.type].size;
-
-      mockSubscription.listener.id = 'somerandomnumber';
-      if (initialSize > 0) {
-        const isUnsubscribed = unsubscribe(mockSubscription);
-
-        expect(initialSize).toEqual(subscriptions.events[mockSubscription.type].size);
-        expect(isUnsubscribed).toEqual(false);
-      }
-    });
-
-    it('should unsubscribe  all event if no subscription event is passed', () => {
-      const isUnsubscribed = unsubscribe();
-
-      expect(0).toEqual(subscriptions.events[mockSubscription.type].size);
-      expect(isUnsubscribed).toEqual(false);
     });
   });
 });
