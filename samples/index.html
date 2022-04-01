@@ -16,20 +16,20 @@
             <div>
                 <div class="u-mv">
                   <label class="context-info">Audio Input Device</label>
-                  <select id="sd-audio-input-devices"></select>
+                  <select id="audioSource"></select>
                   <button type="button" onclick="setAudioInputDevice()" class="btn-code">meeting.updateAudio()</button>
                   <label id="sd-audio-input-device-status"></label>
                 </div>
                 <div class="u-mv">
                   <label class="context-info">Video Input Device</label>
-                  <select id="sd-video-input-devices"></select>
+                  <select id="videoSource"></select>
                   <button type="button" onclick="setVideoInputDevice()" class="btn-code">meeting.updateVideo()</button>
                   <label id="sd-video-input-device-status"></label>
                 </div>
                 <div class="u-mv">
                   <label class="context-info">Audio Output Device</label>
-                  <select id="sd-audio-output-devices"></select>
-                  <button type="button" onclick="setAudioOutputDevice()" class="btn-code">meeting.setSinkId()</button>
+                  <select id="audioOutput"></select>
+                  <!-- <button type="button" onclick="setAudioOutputDevice()" class="btn-code">meeting.setSinkId()</button> -->
                   <label id="sd-audio-output-device-status"></label>
                 </div>
             </div>
@@ -46,12 +46,12 @@
             <div class="flex flex--wrap">
               <fieldset>
                 <legend>Local Video</legend>
-                <video id="local-video" muted="true" autoplay playsinline></video>
+                <video id="localVideo" muted="true" autoplay playsinline></video>
               </fieldset>
     
               <fieldset>
                 <legend>Local Screenshare</legend>
-                <video id="local-screenshare" autoplay playsinline></video>
+                <video id="localScreenshare" autoplay playsinline></video>
               </fieldset>
     
               <fieldset>
