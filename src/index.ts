@@ -36,6 +36,7 @@ export function isBrowserSupported(): boolean {
 export const Media = {
   createAudioTrack: MediaCore.createAudioTrack,
   createVideoTrack: MediaCore.createVideoTrack,
+  createContentTrack: MediaCore.createContentTrack,
   getCameras: MediaCore.getCameras,
   getMicrophones: MediaCore.getMicrophones,
   getSpeakers: MediaCore.getSpeakers,
