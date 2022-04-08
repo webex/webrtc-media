@@ -1,3 +1,10 @@
+## [1.19.2](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.1...v1.19.2) (2022-04-08)
+
+
+### Bug Fixes
+
+* **media:** export createContentTrack ([8db34fa](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/8db34fa8b1610d55a90ecb128ad2661e75c55422))
+
 ## [1.19.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.0...v1.19.1) (2022-03-29)
 
 
