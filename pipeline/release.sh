@@ -18,4 +18,13 @@ echo "Code has been released"
 
 echo "--------------------------------------------------"
 echo "Building docs..."
-yarn docs && yarn docs:publish
+yarn docs
+echo "Docs have been built"
+
+echo "Pushing updated docs to master"
+git fetch upstream
+git checkout master
+git add docs
+git commit -a -m "docs: update docs [skip ci]"
+git push upstream master
+echo "Docs pushed to master"

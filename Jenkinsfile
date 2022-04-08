@@ -37,16 +37,11 @@ sparkPipeline {
       ]){
         this.sh './pipeline/release.sh'
       }
-
-      this.sh './pipeline/cleanup.sh'
-
-      integration.deployMode = 'skip'
-      production.deployMode = 'skip'
     }
-    } else {
-      this.sh './pipeline/cleanup.sh'
-      integration.deployMode = 'skip'
-      production.deployMode = 'skip'
     }
+    this.sh './pipeline/cleanup.sh'
+
+    integration.deployMode = 'skip'
+    production.deployMode = 'skip'
   }
 }
