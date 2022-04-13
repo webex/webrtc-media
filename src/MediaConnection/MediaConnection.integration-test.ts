@@ -3,10 +3,10 @@ import {expect} from 'chai';
 import {RemoteTrackType} from './eventTypes';
 
 import {
-  MediaConnection,
   ConnectionState,
   ConnectionStateChangedEvent,
   Event,
+  MediaConnection,
   RemoteTrackAddedEvent,
   RoapMessageEvent,
 } from './index';
@@ -35,7 +35,7 @@ const createControlledPromise = (): IControlledPromise<unknown> => {
   return promise;
 };
 
-describe('2 MediaConnections connected to each other', () => {
+xdescribe('2 MediaConnections connected to each other', () => {
   let localStream: MediaStream;
 
   let testConnections: Array<{

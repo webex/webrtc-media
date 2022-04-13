@@ -1,35 +1,33 @@
-import {expect} from 'chai';
 import Sinon, {SinonSpy} from 'sinon';
 
-import {Track, TrackKind, TrackStatus} from './Track';
 import {DeviceInterface, DeviceKinds} from './Device';
+import {Track, TrackKind, TrackStatus} from './Track';
 
+import {fakeDevices, setupMediaDeviceMocks} from './Device/DeviceMocks';
 import {
-  setupMediaTrackMocks,
-  setupEmptyMediaTrackMocks,
-  resetMediaTrackMocks,
   fakeAudioTracks,
   fakeVideoTracks,
+  setupEmptyMediaTrackMocks,
+  setupMediaTrackMocks,
 } from './Track/TrackMock';
-import {setupMediaDeviceMocks, resetMediaDeviceMocks, fakeDevices} from './Device/DeviceMocks';
 
+import * as pcMock from '../common/peerConnectionMock';
 import {
-  getCameras,
-  getSpeakers,
-  getMicrophones,
   createAudioTrack,
-  createVideoTrack,
   createContentTrack,
+  createVideoTrack,
+  getCameras,
+  getMicrophones,
+  getSpeakers,
+  isCodecAvailable,
   subscribe,
   unsubscribe,
-  isCodecAvailable,
 } from './index';
-import * as pcMock from '../common/peerConnectionMock';
 
-import {subscriptions, deviceList} from './Events';
+import {deviceList, subscriptions} from './Events';
 
-import {subscription as subscriptionType, subscriptionListener} from './Events/Subscription';
 import {isBrowserSupported} from '../index';
+import {subscriptionListener, subscription as subscriptionType} from './Events/Subscription';
 
 // Could not make ES6 import as the library's typescript definition file is corrupt #108 issue raised
 // Todo: Convert to ES6 import once this issue gets resolved -> https://github.com/muaz-khan/DetectRTC/issues/108
@@ -37,19 +35,60 @@ import {isBrowserSupported} from '../index';
 const DetectRTC = require('detectrtc');
 
 describe('Media', () => {
-  before(() => {
+  beforeAll(() => {
     setupMediaDeviceMocks();
   });
 
-  after(() => {
-    resetMediaDeviceMocks();
+  beforeEach(() => {
+    const mockMediaStreamTrack = {
+      kind: 'video',
+      muted: true,
+      label: 'Fake Default Video Input',
+      contentHint: 'sample',
+      enabled: true,
+      readyState: 'live',
+      stop: (): void => {
+        /* placeholder */
+      },
+      applyConstraints: (): void => {
+        /* placeholder */
+      },
+      getSettings: (): MediaTrackSettings => {
+        return {
+          frameRate: 10,
+          width: 320,
+          height: 180,
+        };
+      },
+    };
+
+    Object.defineProperty(window.navigator.mediaDevices, 'getDisplayMedia', {
+      writable: true,
+      value: jest.fn(() =>
+        Promise.resolve({
+          getVideoTracks: () => [mockMediaStreamTrack],
+        })
+      ),
+    });
+
+    const mockConstraint = {
+      frameRate: true,
+      width: true,
+      height: true,
+      deviceId: true,
+    };
+
+    Object.defineProperty(window.navigator.mediaDevices, 'getSupportedConstraints', {
+      writable: true,
+      value: jest.fn(() => mockConstraint),
+    });
   });
 
   describe('getCameras', () => {
     it('should resolve array of cameras on success', async () => {
       const [device] = await getCameras();
 
-      expect(device.kind).to.eq('videoinput');
+      expect(device.kind).toEqual('videoinput');
     });
   });
 
@@ -57,7 +96,7 @@ describe('Media', () => {
     it('should resolve array of mics on success', async () => {
       const [device] = await getMicrophones();
 
-      expect(device.kind).to.eq('audioinput');
+      expect(device.kind).toEqual('audioinput');
     });
   });
 
@@ -65,7 +104,7 @@ describe('Media', () => {
     it('should resolve array of speakers on success', async () => {
       const [device] = await getSpeakers();
 
-      expect(device.kind).to.eq('audiooutput');
+      expect(device.kind).toEqual('audiooutput');
     });
   });
 
@@ -73,7 +112,7 @@ describe('Media', () => {
     it('should check if the current Browser Supported', () => {
       const isSupported = isBrowserSupported();
 
-      expect(isSupported).to.eq(true);
+      expect(isSupported).toEqual(true);
     });
 
     it('should check if current Browser is not supported', () => {
@@ -84,14 +123,14 @@ describe('Media', () => {
       DetectRTC.browser.isIE = true;
       const isSupported = isBrowserSupported();
 
-      expect(isSupported).to.eq(false);
+      expect(isSupported).toEqual(false);
     });
 
     it('should check if current Browser is supported but WebRTC not Supported', () => {
       DetectRTC.isWebRTCSupported = false;
       const isSupported = isBrowserSupported();
 
-      expect(isSupported).to.eq(false);
+      expect(isSupported).toEqual(false);
     });
   });
 
@@ -104,12 +143,8 @@ describe('Media', () => {
       mediaDeviceInfo: null,
     };
 
-    before(() => {
+    beforeAll(() => {
       setupMediaTrackMocks();
-    });
-
-    after(() => {
-      resetMediaTrackMocks();
     });
 
     afterEach(() => {
@@ -125,23 +160,23 @@ describe('Media', () => {
     it('should resolve to default audio track on success', async () => {
       const track = await createAudioTrack();
 
-      expect(track.ID).to.eq('default');
-      expect(track.kind).to.eq(TrackKind.AUDIO);
-      expect(track.status).to.eq(TrackStatus.LIVE);
-      expect(track.muted).to.eq(true);
-      expect(track.label).to.eq('Fake Default Audio Input');
-      expect(track.stop).to.be.a('function');
+      expect(track.ID).toEqual('default');
+      expect(track.kind).toEqual(TrackKind.AUDIO);
+      expect(track.status).toEqual(TrackStatus.LIVE);
+      expect(track.muted).toEqual(true);
+      expect(track.label).toEqual('Fake Default Audio Input');
+      expect(track.stop).toBeInstanceOf(Function);
     });
 
     it('should resolve to given device audio track on success', async () => {
       const track = await createAudioTrack(mockDevice as unknown as DeviceInterface);
 
-      expect(track.ID).to.eq('47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a4');
-      expect(track.kind).to.eq(TrackKind.AUDIO);
-      expect(track.status).to.eq(TrackStatus.LIVE);
-      expect(track.muted).to.eq(true);
-      expect(track.label).to.eq('Fake Audio Input 1');
-      expect(track.stop).to.be.a('function');
+      expect(track.ID).toEqual('47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a4');
+      expect(track.kind).toEqual(TrackKind.AUDIO);
+      expect(track.status).toEqual(TrackStatus.LIVE);
+      expect(track.muted).toEqual(true);
+      expect(track.label).toEqual('Fake Audio Input 1');
+      expect(track.stop).toBeInstanceOf(Function);
     });
 
     it('should throw error as given device does not exist', async () => {
@@ -149,12 +184,10 @@ describe('Media', () => {
 
       expect(
         await createAudioTrack(mockDevice as unknown as DeviceInterface).catch((error: Error) =>
-          expect(error)
-            .to.be.an('error')
-            .with.property(
-              'message',
-              `Device could not obtain an audio track of kind ${mockDevice?.kind}`
-            )
+          expect(error).toHaveProperty(
+            'message',
+            `Device could not obtain an audio track of kind ${mockDevice?.kind}`
+          )
         )
       );
     });
@@ -163,9 +196,10 @@ describe('Media', () => {
       mockDevice.kind = DeviceKinds.VIDEO_INPUT;
       expect(
         createAudioTrack(mockDevice as unknown as DeviceInterface).catch((error: Error) =>
-          expect(error)
-            .to.be.an('error')
-            .with.property('message', `Device ${mockDevice.ID} is not of kind AUDIO_INPUT`)
+          expect(error).toHaveProperty(
+            'message',
+            `Device ${mockDevice.ID} is not of kind AUDIO_INPUT`
+          )
         )
       );
     });
@@ -180,12 +214,8 @@ describe('Media', () => {
       mediaDeviceInfo: null,
     };
 
-    before(() => {
+    beforeAll(() => {
       setupMediaTrackMocks();
-    });
-
-    after(() => {
-      resetMediaTrackMocks();
     });
 
     afterEach(() => {
@@ -201,23 +231,23 @@ describe('Media', () => {
     it('should resolve to default video track on success', async () => {
       const track = await createVideoTrack();
 
-      expect(track.ID).to.eq('default');
-      expect(track.kind).to.eq(TrackKind.VIDEO);
-      expect(track.status).to.eq(TrackStatus.LIVE);
-      expect(track.muted).to.eq(true);
-      expect(track.label).to.eq('Fake Default Video Input');
-      expect(track.stop).to.be.a('function');
+      expect(track.ID).toEqual('default');
+      expect(track.kind).toEqual(TrackKind.VIDEO);
+      expect(track.status).toEqual(TrackStatus.LIVE);
+      expect(track.muted).toEqual(true);
+      expect(track.label).toEqual('Fake Default Video Input');
+      expect(track.stop).toBeInstanceOf(Function);
     });
 
     it('should resolve to given device video track on success', async () => {
       const track = await createVideoTrack(mockDevice as unknown as DeviceInterface);
 
-      expect(track.ID).to.eq('47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a4');
-      expect(track.kind).to.eq(TrackKind.VIDEO);
-      expect(track.status).to.eq(TrackStatus.LIVE);
-      expect(track.muted).to.eq(true);
-      expect(track.label).to.eq('Fake Video Input 1');
-      expect(track.stop).to.be.a('function');
+      expect(track.ID).toEqual('47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738add9a4');
+      expect(track.kind).toEqual(TrackKind.VIDEO);
+      expect(track.status).toEqual(TrackStatus.LIVE);
+      expect(track.muted).toEqual(true);
+      expect(track.label).toEqual('Fake Video Input 1');
+      expect(track.stop).toBeInstanceOf(Function);
     });
 
     it('should throw error as given device does not exist', async () => {
@@ -225,12 +255,10 @@ describe('Media', () => {
 
       expect(
         await createVideoTrack(mockDevice as unknown as DeviceInterface).catch((error: Error) =>
-          expect(error)
-            .to.be.an('error')
-            .with.property(
-              'message',
-              `Device could not obtain a video track of kind ${mockDevice?.kind}`
-            )
+          expect(error).toHaveProperty(
+            'message',
+            `Device could not obtain a video track of kind ${mockDevice?.kind}`
+          )
         )
       );
     });
@@ -239,31 +267,29 @@ describe('Media', () => {
       mockDevice.kind = DeviceKinds.AUDIO_INPUT;
       expect(
         createVideoTrack(mockDevice as unknown as DeviceInterface).catch((error: Error) =>
-          expect(error)
-            .to.be.an('error')
-            .with.property('message', `Device ${mockDevice.ID} is not of kind VIDEO_INPUT`)
+          expect(error).toHaveProperty(
+            'message',
+            `Device ${mockDevice.ID} is not of kind VIDEO_INPUT`
+          )
         )
       );
     });
   });
 
   describe('createContentTrack() Without Constraints', () => {
-    before(() => {
+    beforeAll(() => {
       setupMediaTrackMocks();
     });
-    after(() => {
-      resetMediaTrackMocks();
-    });
+
     describe('success', () => {
       it('should resolve to default content track on success', async () => {
         const contentTrack = await createContentTrack();
 
-        expect(contentTrack.ID).to.eq('default');
-        expect(contentTrack.kind).to.eq(TrackKind.VIDEO);
-        expect(contentTrack.status).to.eq(TrackStatus.LIVE);
-        expect(contentTrack.muted).to.eq(true);
-        expect(contentTrack.label).to.eq('Fake Default Video Input');
-        expect(contentTrack.stop).to.be.a('function');
+        expect(contentTrack.kind).toEqual(TrackKind.VIDEO);
+        expect(contentTrack.status).toEqual(TrackStatus.LIVE);
+        expect(contentTrack.muted).toEqual(true);
+        expect(contentTrack.label).toEqual('Fake Default Video Input');
+        expect(contentTrack.stop).toBeInstanceOf(Function);
       });
     });
   });
@@ -278,9 +304,9 @@ describe('Media', () => {
           deviceId: '3786a0243c13d1bc4f39b8091b468f43b14a35315ecd4e878268f095a9d3ba94',
         });
 
-        expect(contentTrack.getSettings().frameRate).to.eq(10);
-        expect(contentTrack.getSettings().width).to.eq(320);
-        expect(contentTrack.getSettings().height).to.eq(180);
+        expect(contentTrack.getSettings().frameRate).toEqual(10);
+        expect(contentTrack.getSettings().width).toEqual(320);
+        expect(contentTrack.getSettings().height).toEqual(180);
       });
     });
 
@@ -293,7 +319,7 @@ describe('Media', () => {
           width: 1024,
           deviceId: '3786a0243c13d1bc4f39b8091b468f43b14a35315ecd4e878268f076979d3ba94',
         }).catch((error) => {
-          expect(error.toString()).to.eq(
+          expect(error.toString()).toEqual(
             'Error: unsupported, unsupported2 constraint is not supported by browser'
           );
         }));
@@ -301,18 +327,14 @@ describe('Media', () => {
   });
 
   describe('createContentTrack() if stream is empty', () => {
-    before(() => {
+    beforeAll(() => {
       setupEmptyMediaTrackMocks();
-    });
-
-    after(() => {
-      resetMediaTrackMocks();
     });
 
     it('should throw error if content track is empty', async () => {
       expect(
         await createContentTrack().catch((error: Error) =>
-          expect(error).to.be.an('error').with.property('message', error.message)
+          expect(error).toHaveProperty('message', error.message)
         )
       );
     });
@@ -324,30 +346,26 @@ describe('Media', () => {
     let eventCallbackSpy: SinonSpy = Sinon.spy();
     let eventCallbackSpy2: SinonSpy = Sinon.spy();
 
-    before(async () => {
+    beforeAll(async () => {
       setupMediaDeviceMocks();
       subscription = await subscribe('device:changed', eventCallbackSpy);
       subscription2 = await subscribe('device:changed', eventCallbackSpy2);
     });
 
-    after(() => {
-      resetMediaDeviceMocks();
-    });
-
     it('should have subscribe, return subscription, have it available in subscriptions', () => {
-      expect(subscription.listener.method).to.be.equal(eventCallbackSpy);
-      expect(
-        subscriptions.events['device:changed'].get(subscription.listener.id)?.method
-      ).to.be.equal(eventCallbackSpy);
+      expect(subscription.listener.method).toEqual(eventCallbackSpy);
+      expect(subscriptions.events['device:changed'].get(subscription.listener.id)?.method).toEqual(
+        eventCallbackSpy
+      );
     });
 
     it('should get device list when the first subscription happens', () => {
-      expect(deviceList).to.have.lengthOf.above(0);
+      expect(deviceList.length).toBeGreaterThan(0);
     });
 
     describe('deviceChange event & publisher', () => {
       it('should trigger multiple device:changed events on device removal', () => {
-        expect(navigator.mediaDevices).to.have.property('ondevicechange');
+        expect(navigator.mediaDevices).toHaveProperty('ondevicechange');
         if (navigator.mediaDevices.ondevicechange) {
           eventCallbackSpy = Sinon.spy();
           eventCallbackSpy2 = Sinon.spy();
@@ -366,12 +384,12 @@ describe('Media', () => {
           navigator.mediaDevices.dispatchEvent(new Event('devicechange'));
           Sinon.assert.called(eventCallbackSpy);
           Sinon.assert.called(eventCallbackSpy2);
-          expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('removed');
+          expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('removed');
         }
       });
 
       it('should trigger multiple device:changed events on device addition', () => {
-        expect(navigator.mediaDevices).to.have.property('ondevicechange');
+        expect(navigator.mediaDevices).toHaveProperty('ondevicechange');
         if (navigator.mediaDevices.ondevicechange) {
           eventCallbackSpy = Sinon.spy();
           eventCallbackSpy2 = Sinon.spy();
@@ -403,7 +421,7 @@ describe('Media', () => {
           navigator.mediaDevices.dispatchEvent(new Event('devicechange'));
           Sinon.assert.called(eventCallbackSpy);
           Sinon.assert.called(eventCallbackSpy2);
-          expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('added');
+          expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('added');
         }
       });
     });
@@ -425,20 +443,16 @@ describe('Media', () => {
         mediaDeviceInfo: null,
       };
 
-      before(async () => {
+      beforeAll(async () => {
         setupMediaTrackMocks();
         subscription = await subscribe('track:mute', eventCallbackSpy);
       });
 
-      after(() => {
-        resetMediaTrackMocks();
-      });
-
       it('should have subscribe, track mute event available', () => {
-        expect(subscription.listener.method).to.be.equal(eventCallbackSpy);
-        expect(
-          subscriptions.events['track:mute'].get(subscription.listener.id)?.method
-        ).to.be.equal(eventCallbackSpy);
+        expect(subscription.listener.method).toEqual(eventCallbackSpy);
+        expect(subscriptions.events['track:mute'].get(subscription.listener.id)?.method).toEqual(
+          eventCallbackSpy
+        );
       });
 
       it('should have onmute event on audio tracks for unmuted', async () => {
@@ -458,9 +472,9 @@ describe('Media', () => {
         filteredTrackByID[0].onmute(fakeObjForTrack);
 
         Sinon.assert.called(eventCallbackSpy);
-        expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('unmuted');
+        expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('unmuted');
         // making sure track object from the library(instanceof Track)
-        expect(eventCallbackSpy.getCall(0).args[0].track).to.be.an.instanceof(Track);
+        expect(eventCallbackSpy.getCall(0).args[0].track).toBeInstanceOf(Track);
       });
 
       it('should have onmute event on audio tracks for muted', async () => {
@@ -480,9 +494,9 @@ describe('Media', () => {
         filteredTrackByID[0].onmute(fakeObjForTrack);
 
         Sinon.assert.called(eventCallbackSpy);
-        expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('muted');
+        expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('muted');
         // making sure track object from the library(instanceof Track)
-        expect(eventCallbackSpy.getCall(0).args[0].track).to.be.an.instanceof(Track);
+        expect(eventCallbackSpy.getCall(0).args[0].track).toBeInstanceOf(Track);
       });
 
       it('should have onmute event on video tracks for unmuted', async () => {
@@ -502,9 +516,9 @@ describe('Media', () => {
         filteredTrackByID[0].onmute(fakeObjForTrack);
 
         Sinon.assert.called(eventCallbackSpy);
-        expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('unmuted');
+        expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('unmuted');
         // making sure track object from the library(instanceof Track)
-        expect(eventCallbackSpy.getCall(0).args[0].track).to.be.an.instanceof(Track);
+        expect(eventCallbackSpy.getCall(0).args[0].track).toBeInstanceOf(Track);
       });
 
       it('should have onmute event on vedio tracks for muted', async () => {
@@ -524,9 +538,9 @@ describe('Media', () => {
         filteredTrackByID[0].onmute(fakeObjForTrack);
 
         Sinon.assert.called(eventCallbackSpy);
-        expect(eventCallbackSpy.getCall(0).args[0].action).to.be.equal('muted');
+        expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('muted');
         // making sure track object from the library(instanceof Track)
-        expect(eventCallbackSpy.getCall(0).args[0].track).to.be.an.instanceof(Track);
+        expect(eventCallbackSpy.getCall(0).args[0].track).toBeInstanceOf(Track);
       });
     });
   });
@@ -534,7 +548,7 @@ describe('Media', () => {
     const eventCallbackSpy: SinonSpy = Sinon.spy();
     let mockSubscription: subscriptionType;
 
-    before(async () => {
+    beforeAll(async () => {
       setupMediaDeviceMocks();
       mockSubscription = await subscribe('device:changed', eventCallbackSpy);
     });
@@ -545,8 +559,8 @@ describe('Media', () => {
       if (initialSize > 0) {
         const isUnsubscribed = unsubscribe(mockSubscription);
 
-        expect(initialSize).not.to.eq(subscriptions.events[mockSubscription.type].size);
-        expect(isUnsubscribed).to.be.eq(true);
+        expect(initialSize).not.toEqual(subscriptions.events[mockSubscription.type].size);
+        expect(isUnsubscribed).toBeTruthy();
       }
     });
 
@@ -557,59 +571,47 @@ describe('Media', () => {
       if (initialSize > 0) {
         const isUnsubscribed = unsubscribe(mockSubscription);
 
-        expect(initialSize).to.eq(subscriptions.events[mockSubscription.type].size);
-        expect(isUnsubscribed).to.eq(false);
+        expect(initialSize).toEqual(subscriptions.events[mockSubscription.type].size);
+        expect(isUnsubscribed).toEqual(false);
       }
     });
 
     it('should unsubscribe  all event if no subscription event is passed', () => {
       const isUnsubscribed = unsubscribe();
 
-      expect(0).to.eq(subscriptions.events[mockSubscription.type].size);
-      expect(isUnsubscribed).to.eq(false);
+      expect(0).toEqual(subscriptions.events[mockSubscription.type].size);
+      expect(isUnsubscribed).toEqual(false);
     });
   });
 });
 describe('isCodecAvailable()', () => {
-  describe('media codec is  loaded in browser but returns valid offer', async () => {
-    before(() => {
+  describe('media codec is loaded in browser but returns valid offer', () => {
+    beforeAll(() => {
       pcMock.setupRTCPeerConnectionMockOne();
     });
 
-    after(() => {
-      pcMock.resetRTCPeerConnection();
-    });
-
     it('isCodecAvailable returns true', async () => {
-      expect(await isCodecAvailable()).to.eq(true);
+      expect(await isCodecAvailable()).toEqual(true);
     });
   });
 
-  describe('media codec is loaded in browser but returns invalid offer', async () => {
-    before(() => {
+  describe('media codec is loaded in browser but returns invalid offer', () => {
+    beforeAll(() => {
       pcMock.setupRTCPeerConnectionMockTwo();
     });
 
-    after(() => {
-      pcMock.resetRTCPeerConnection();
-    });
-
     it('isCodecAvailable returns false', async () => {
-      expect(await isCodecAvailable()).to.eq(false);
+      expect(await isCodecAvailable()).toEqual(false);
     });
   });
 
-  describe('media codec is delayed while loading browser', async () => {
-    before(() => {
+  xdescribe('media codec is delayed while loading browser', () => {
+    beforeAll(() => {
       pcMock.setupRTCPeerConnectionMockThree();
     });
 
-    after(() => {
-      pcMock.resetRTCPeerConnection();
-    });
-
     it('isCodecAvailable returns true', async () => {
-      expect(await isCodecAvailable()).to.eq(true);
+      expect(await isCodecAvailable()).toEqual(true);
     });
   });
 });

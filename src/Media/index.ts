@@ -1,11 +1,11 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["_streams"] }] */
 import {v4 as uuidv4} from 'uuid';
-import {Device, DeviceKinds, DeviceInterface} from './Device';
-import {Track, TrackInterface} from './Track';
-import {subscriptions, deviceChangePublisher, deviceList} from './Events';
-import {subscription} from './Events/Subscription';
-import logger from '../Logger';
 import {DEVICE, MEDIA} from '../constants';
+import logger from '../Logger';
+import {Device, DeviceInterface, DeviceKinds} from './Device';
+import {deviceChangePublisher, deviceList, subscriptions} from './Events';
+import {subscription} from './Events/Subscription';
+import {Track, TrackInterface} from './Track';
 
 const _streams: WeakMap<MediaStream, string> = new WeakMap();
 
@@ -15,7 +15,11 @@ const _streams: WeakMap<MediaStream, string> = new WeakMap();
  * @returns Promise Array of MediaDeviceInfo objects
  */
 const getDevices = async (): Promise<MediaDeviceInfo[]> => {
-  logger.debug({mediaType: DEVICE, action: 'getDevices()', description: 'Called'});
+  logger.debug({
+    mediaType: DEVICE,
+    action: 'getDevices()',
+    description: 'Called',
+  });
 
   if (!navigator.mediaDevices?.enumerateDevices) {
     console.warn('navigator.mediaDevices.enumerateDevices() is not supported.');
@@ -38,7 +42,11 @@ const getDevices = async (): Promise<MediaDeviceInfo[]> => {
  * @public
  */
 const getCameras = async (): Promise<Device[]> => {
-  logger.debug({mediaType: DEVICE, action: 'getCameras()', description: 'Called'});
+  logger.debug({
+    mediaType: DEVICE,
+    action: 'getCameras()',
+    description: 'Called',
+  });
   const devices = await getDevices();
 
   logger.info({
@@ -68,7 +76,11 @@ const getCameras = async (): Promise<Device[]> => {
  * @public
  */
 const getMicrophones = async (): Promise<Device[]> => {
-  logger.debug({mediaType: DEVICE, action: 'getMicrophones()', description: 'Called'});
+  logger.debug({
+    mediaType: DEVICE,
+    action: 'getMicrophones()',
+    description: 'Called',
+  });
   const devices = await getDevices();
 
   logger.info({
@@ -98,7 +110,11 @@ const getMicrophones = async (): Promise<Device[]> => {
  * @public
  */
 const getSpeakers = async (): Promise<Device[]> => {
-  logger.debug({mediaType: DEVICE, action: 'getSpeakers()', description: 'Called'});
+  logger.debug({
+    mediaType: DEVICE,
+    action: 'getSpeakers()',
+    description: 'Called',
+  });
   const devices = await getDevices();
 
   logger.info({
@@ -178,7 +194,7 @@ async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterfac
   });
 
   if (device && device.kind !== DeviceKinds.AUDIO_INPUT) {
-    const error = new Error('Given device is not an audio type');
+    const error = new Error(`Device ${device.ID} is not of kind AUDIO_INPUT`);
 
     logger.error({
       ID: device.ID,
@@ -198,8 +214,17 @@ async function createAudioTrack(device?: DeviceInterface): Promise<TrackInterfac
   });
 
   const deviceConfig = device
-    ? {audio: {deviceId: {exact: device.ID}}}
-    : {audio: true, video: false};
+    ? {
+        audio: {
+          deviceId: {
+            exact: device.ID,
+          },
+        },
+      }
+    : {
+        audio: true,
+        video: false,
+      };
   const stream: MediaStream = await navigator.mediaDevices.getUserMedia(deviceConfig);
   const track: MediaStreamTrack = stream.getAudioTracks()[0];
 
@@ -242,7 +267,7 @@ async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterfac
     description: `Called ${device ? `with ${JSON.stringify(device)}` : ''} `,
   });
   if (device && device.kind !== DeviceKinds.VIDEO_INPUT) {
-    const error = new Error('Given device is not a video type');
+    const error = new Error(`Device ${device.ID} is not of kind VIDEO_INPUT`);
 
     logger.error({
       ID: device.ID,
@@ -262,8 +287,17 @@ async function createVideoTrack(device?: DeviceInterface): Promise<TrackInterfac
   });
 
   const deviceConfig = device
-    ? {video: {deviceId: {exact: device.ID}}}
-    : {audio: false, video: true};
+    ? {
+        video: {
+          deviceId: {
+            exact: device.ID,
+          },
+        },
+      }
+    : {
+        audio: false,
+        video: true,
+      };
   const stream: MediaStream = await navigator.mediaDevices.getUserMedia(deviceConfig);
   const track: MediaStreamTrack = stream.getVideoTracks()[0];
 
@@ -322,7 +356,10 @@ async function createContentTrack(
     description: 'Creating content track',
   });
 
-  const deviceConfig = {audio: false, video: true};
+  const deviceConfig = {
+    audio: false,
+    video: true,
+  };
 
   let track: MediaStreamTrack;
   let stream: MediaStream;
@@ -514,7 +551,9 @@ const hasH264Codec = async () => {
 
   try {
     const peerConnection = new window.RTCPeerConnection();
-    const offer = await peerConnection.createOffer({offerToReceiveVideo: true});
+    const offer = await peerConnection.createOffer({
+      offerToReceiveVideo: true,
+    });
 
     if (offer?.sdp?.match(/^a=rtpmap:\d+\s+H264\/\d+/m)) {
       hasCodec = true;

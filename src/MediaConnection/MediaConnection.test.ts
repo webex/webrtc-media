@@ -1,7 +1,10 @@
-import {expect} from 'chai';
-import {MediaConnection, ConnectionState} from './index';
+import {RTCPeerConnectionMocks} from '../Media/Device/DeviceMocks';
+import {ConnectionState, MediaConnection} from './index';
 
 describe('MediaConnection', () => {
+  beforeAll(() => {
+    RTCPeerConnectionMocks();
+  });
   it('initial media connection state is NEW', () => {
     const mediaConnection = new MediaConnection(
       {
@@ -18,6 +21,6 @@ describe('MediaConnection', () => {
       }
     );
 
-    expect(mediaConnection.getConnectionState()).to.eq(ConnectionState.NEW);
+    expect(mediaConnection.getConnectionState()).toEqual(ConnectionState.NEW);
   });
 });

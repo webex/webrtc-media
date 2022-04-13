@@ -36,7 +36,7 @@ module.exports = {
     'tsdoc/syntax': 'error',
     'no-shadow': 0,
     '@typescript-eslint/no-shadow': ['error'],
-    '@typescript-eslint/indent': ['error', 2],
+    indent: 'off',
     '@typescript-eslint/no-unused-vars': 'error',
     '@typescript-eslint/no-explicit-any': 'error',
     'import/prefer-default-export': 0,

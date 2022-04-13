@@ -44,17 +44,17 @@ class RTCPeerConnectionMock {
   }
 }
 
-const RTCPeerConnectionOriginal = window.RTCPeerConnection;
-
 const setupRTCPeerConnectionMockOne = (): void => {
   RTCPeerConnectionMock.fakeIdentifier = 'one';
   Object.defineProperty(window, 'RTCPeerConnection', {
+    writable: true,
     value: RTCPeerConnectionMock,
   });
 };
 const setupRTCPeerConnectionMockTwo = (): void => {
   RTCPeerConnectionMock.fakeIdentifier = 'two';
   Object.defineProperty(window, 'RTCPeerConnection', {
+    writable: true,
     value: RTCPeerConnectionMock,
   });
 };
@@ -62,19 +62,13 @@ const setupRTCPeerConnectionMockTwo = (): void => {
 const setupRTCPeerConnectionMockThree = (): void => {
   RTCPeerConnectionMock.fakeIdentifier = 'three';
   Object.defineProperty(window, 'RTCPeerConnection', {
+    writable: true,
     value: RTCPeerConnectionMock,
-  });
-};
-
-const resetRTCPeerConnection = (): void => {
-  Object.defineProperty(window, 'RTCPeerConnection', {
-    value: RTCPeerConnectionOriginal,
   });
 };
 
 export {
   setupRTCPeerConnectionMockTwo,
   setupRTCPeerConnectionMockOne,
-  resetRTCPeerConnection,
   setupRTCPeerConnectionMockThree,
 };
