@@ -1,3 +1,10 @@
+## [1.19.3](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.2...v1.19.3) (2022-04-29)
+
+
+### Bug Fixes
+
+* publish esm rather then the transpiled version ([4fb82f0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/4fb82f04b2b8076149746a62feffb0a33db644fc))
+
 ## [1.19.2](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.1...v1.19.2) (2022-04-08)
 
 
