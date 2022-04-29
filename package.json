@@ -2,10 +2,10 @@
   "name": "@webex/webrtc-media",
   "version": "1.19.2",
   "files": [
-    "dist/transpiled/"
+    "dist"
   ],
-  "main": "dist/transpiled/index.js",
-  "module": "dist/transpiled/index.js",
+  "main": "dist/esm/index.js",
+  "module": "dist/esm/index.js",
   "types": "dist/transpiled/index.d.ts",
   "license": "MIT",
   "author": "devsupport@webex.com",
