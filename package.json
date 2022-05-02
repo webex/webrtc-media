@@ -6,7 +6,7 @@
   ],
   "main": "dist/esm/index.js",
   "module": "dist/esm/index.js",
-  "types": "dist/transpiled/index.d.ts",
+  "types": "dist/types/index.d.ts",
   "license": "MIT",
   "author": "devsupport@webex.com",
   "repository": {
