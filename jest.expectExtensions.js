@@ -1,4 +1,5 @@
 expect.extend({
+  /** checks that the function was called only once and with the specific arguments */
   toBeCalledOnceWith(received, ...expected) {
     try {
       expect(received).toBeCalledTimes(1);

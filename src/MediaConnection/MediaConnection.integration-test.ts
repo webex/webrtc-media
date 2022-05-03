@@ -13,7 +13,7 @@ import {
 
 import {createControlledPromise, IControlledPromise} from './testUtils';
 
-xdescribe('2 MediaConnections connected to each other', () => {
+describe('2 MediaConnections connected to each other', () => {
   let localStream: MediaStream;
 
   let testConnections: Array<{
@@ -121,7 +121,7 @@ xdescribe('2 MediaConnections connected to each other', () => {
   });
 
   afterEach(() => {
-    testConnections.forEach((testConnection) => {
+    testConnections?.forEach((testConnection) => {
       testConnection.mc.close();
     });
 

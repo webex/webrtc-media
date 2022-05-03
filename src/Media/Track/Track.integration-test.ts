@@ -105,6 +105,12 @@ describe('Track', () => {
       track = new Track(videoTrack as MediaStreamTrack);
     });
 
+    afterEach(() => {
+      if (track) {
+        track.stop();
+      }
+    });
+
     it('should have getMediaStream method', () => {
       expect(typeof track.getMediaStreamTrack).to.eq('function');
     });
