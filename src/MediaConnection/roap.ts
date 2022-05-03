@@ -18,6 +18,7 @@ import {MediaConnectionConfig} from './config';
 const WEB_TIEBREAKER_VALUE = 0xfffffffe;
 const MAX_RETRIES = 2;
 
+/** Finite state machine (FSM) context - this is additional data associated with the state of the state machine */
 interface FsmContext {
   seq: number;
   pendingLocalOffer: boolean;
@@ -108,7 +109,7 @@ export class Roap extends EventEmitter {
           },
           creatingLocalOffer: {
             invoke: {
-              src: this.fsmCreateLocalOffer.bind(this),
+              src: this.createLocalOffer.bind(this),
               onDone: [
                 // if a new local offer was requested while we were doing this one, go back and start again
                 {cond: 'isPendingLocalOffer', target: 'creatingLocalOffer'},
@@ -179,7 +180,7 @@ export class Roap extends EventEmitter {
           },
           settingRemoteAnswer: {
             invoke: {
-              src: this.fsmHandleRemoteAnswer.bind(this),
+              src: this.handleRemoteAnswer.bind(this),
               onDone: {actions: ['sendRoapOKMessage', 'resetOfferRequestFlag'], target: 'idle'},
               onError: {actions: 'sendGenericError', target: 'browserError'},
             },
@@ -208,7 +209,7 @@ export class Roap extends EventEmitter {
           },
           settingRemoteOffer: {
             invoke: {
-              src: this.fsmHandleRemoteOffer.bind(this),
+              src: this.handleRemoteOffer.bind(this),
               onDone: {
                 actions: ['sendRoapAnswerMessage'],
                 target: 'waitingForOK',
@@ -288,24 +289,24 @@ export class Roap extends EventEmitter {
           // we always have to win the glare conflict (see WEB_TIEBREAKER_VALUE)
           handleGlare: (_context, event: AnyEventObject) => {
             if (event.tieBreaker === WEB_TIEBREAKER_VALUE) {
-              this.fsmActionSendErrorMessage(event.seq, 'DOUBLECONFLICT');
+              this.sendErrorMessage(event.seq, 'DOUBLECONFLICT');
               // we should also receive DOUBLECONFLICT, so just sit and wait
             } else {
-              this.fsmActionSendErrorMessage(event.seq, 'CONFLICT');
+              this.sendErrorMessage(event.seq, 'CONFLICT');
             }
           },
 
-          sendRoapOfferMessage: this.fsmActionSendRoapOfferMessage.bind(this),
-          sendRoapOfferResponseMessage: this.fsmActionSendRoapOfferResponseMessage.bind(this),
-          sendRoapOKMessage: this.fsmActionSendRoapOkMessage.bind(this),
-          sendRoapAnswerMessage: this.fsmActionSendRoapAnswerMessage.bind(this),
-          sendGenericError: (context) => this.fsmActionSendErrorMessage(context.seq, 'FAILED'),
+          sendRoapOfferMessage: this.sendRoapOfferMessage.bind(this),
+          sendRoapOfferResponseMessage: this.sendRoapOfferResponseMessage.bind(this),
+          sendRoapOKMessage: this.sendRoapOkMessage.bind(this),
+          sendRoapAnswerMessage: this.sendRoapAnswerMessage.bind(this),
+          sendGenericError: (context) => this.sendErrorMessage(context.seq, 'FAILED'),
           sendInvalidStateError: (_context, event) =>
-            this.fsmActionSendErrorMessage(event.seq, 'INVALID_STATE'),
+            this.sendErrorMessage(event.seq, 'INVALID_STATE'),
           sendOutOfOrderError: (_context, event) =>
-            this.fsmActionSendErrorMessage(event.seq, 'OUT_OF_ORDER'),
+            this.sendErrorMessage(event.seq, 'OUT_OF_ORDER'),
           sendRetryAfterError: (_context, event) =>
-            this.fsmActionSendErrorMessage(event.seq, 'FAILED', {
+            this.sendErrorMessage(event.seq, 'FAILED', {
               retryAfter: Math.floor(Math.random() * 11),
             }),
 
@@ -411,8 +412,8 @@ export class Roap extends EventEmitter {
     });
   }
 
-  private fsmActionSendRoapOfferMessage(context: FsmContext, event: AnyEventObject) {
-    this.log('fsmActionSendRoapOfferMessage', 'emitting ROAP OFFER');
+  private sendRoapOfferMessage(context: FsmContext, event: AnyEventObject) {
+    this.log('sendRoapOfferMessage', 'emitting ROAP OFFER');
     this.emit(Event.ROAP_MESSAGE_TO_SEND, {
       roapMessage: {
         seq: context.seq,
@@ -423,8 +424,8 @@ export class Roap extends EventEmitter {
     });
   }
 
-  private fsmActionSendRoapOfferResponseMessage(context: FsmContext, event: AnyEventObject) {
-    this.log('fsmActionSendRoapOfferResponseMessage', 'emitting ROAP OFFER RESPONSE');
+  private sendRoapOfferResponseMessage(context: FsmContext, event: AnyEventObject) {
+    this.log('sendRoapOfferResponseMessage', 'emitting ROAP OFFER RESPONSE');
     this.emit(Event.ROAP_MESSAGE_TO_SEND, {
       roapMessage: {
         seq: context.seq,
@@ -434,8 +435,8 @@ export class Roap extends EventEmitter {
     });
   }
 
-  private fsmActionSendRoapOkMessage(context: FsmContext) {
-    this.log('fsmActionSendRoapOkMessage', 'emitting ROAP OK');
+  private sendRoapOkMessage(context: FsmContext) {
+    this.log('sendRoapOkMessage', 'emitting ROAP OK');
     this.emit(Event.ROAP_MESSAGE_TO_SEND, {
       roapMessage: {
         seq: context.seq,
@@ -444,8 +445,8 @@ export class Roap extends EventEmitter {
     });
   }
 
-  private fsmActionSendRoapAnswerMessage(context: FsmContext, event: AnyEventObject) {
-    this.log('fsmActionSendRoapAnswerMessage', 'emitting ROAP ANSWER');
+  private sendRoapAnswerMessage(context: FsmContext, event: AnyEventObject) {
+    this.log('sendRoapAnswerMessage', 'emitting ROAP ANSWER');
     this.emit(Event.ROAP_MESSAGE_TO_SEND, {
       roapMessage: {
         seq: context.seq,
@@ -455,15 +456,11 @@ export class Roap extends EventEmitter {
     });
   }
 
-  private fsmActionSendErrorMessage(
-    seq: number,
-    errorType: string,
-    options: {retryAfter?: number} = {}
-  ) {
+  private sendErrorMessage(seq: number, errorType: string, options: {retryAfter?: number} = {}) {
     const {retryAfter} = options;
 
     // todo enum for errorTypes
-    this.log('fsmActionSendErrorMessage', `emitting ROAP ERROR (${errorType})`);
+    this.log('sendErrorMessage', `emitting ROAP ERROR (${errorType})`);
     this.emit(Event.ROAP_MESSAGE_TO_SEND, {
       roapMessage: {
         seq,
@@ -490,17 +487,17 @@ export class Roap extends EventEmitter {
     return Promise.resolve(); // todo: this is just a temp hack for now
   }
 
-  private fsmCreateLocalOffer(): Promise<{sdp: string}> {
+  private createLocalOffer(): Promise<{sdp: string}> {
     return this.pc
       .createOffer()
       .then((description: RTCSessionDescriptionInit) => {
-        this.log('initiateOffer()', 'local SDP offer created');
+        this.log('createLocalOffer', 'local SDP offer created');
 
         return this.pc.setLocalDescription(description);
       })
       .then(() => this.checkIceCandidates())
       .then(() => {
-        this.log('initiateOffer()', 'local SDP offer set');
+        this.log('createLocalOffer', 'local SDP offer set, checkIceCandidates() passed');
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
 
@@ -565,17 +562,14 @@ export class Roap extends EventEmitter {
     return Promise.resolve(); // todo return the promise that resolves at the right time
   }
 
-  private fsmHandleRemoteOffer(
-    _context: FsmContext,
-    event: AnyEventObject
-  ): Promise<{sdp: string}> {
+  private handleRemoteOffer(_context: FsmContext, event: AnyEventObject): Promise<{sdp: string}> {
     const {sdp} = event;
+
+    this.log('handleRemoteOffer', 'called');
 
     if (!sdp) {
       return Promise.reject(new Error('SDP missing'));
     }
-
-    this.log('handleRoapOffer()', 'called');
 
     return this.pc
       .setRemoteDescription(
@@ -596,14 +590,14 @@ export class Roap extends EventEmitter {
   }
 
   // todo type for event
-  private fsmHandleRemoteAnswer(_context: FsmContext, event: AnyEventObject): Promise<void> {
+  private handleRemoteAnswer(_context: FsmContext, event: AnyEventObject): Promise<void> {
     const {sdp} = event;
+
+    this.log('handleRemoteAnswer', 'called');
 
     if (!sdp) {
       return Promise.reject(new Error('SDP missing'));
     }
-
-    this.log('fsmHandleRemoteAnswer()', 'called');
 
     return this.pc.setRemoteDescription(
       new window.RTCSessionDescription({
