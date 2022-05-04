@@ -27,9 +27,10 @@ const logFormat = (level: string, logDetails: CustomLogFormat) => {
   const {ID, mediaType, action, description, error} = logDetails;
   const timestamp = new Date().toISOString();
 
-  return `${timestamp} ${level} ${ID ?? ''} ${mediaType} ${action} ${description} ${
-    error ? `${error.stack || error}` : ''
-  }`
+  // eslint-disable-next-line no-nested-ternary
+  const errorText = error ? (error.stack ? `${error.message}: ${error.stack}` : `${error}`) : '';
+
+  return `${timestamp} ${level} ${ID ?? ''} ${mediaType} ${action} ${description} ${errorText}`
     .replace(/\s+/g, ' ')
     .trim();
 };
