@@ -311,7 +311,8 @@ describe('1 MediaConnection connected to a raw RTCPeerConnection', () => {
     await pc.setLocalDescription();
 
     // to make it look more like the SDP from Mobius, remove the a=mid line
-    const sdp = pc.localDescription?.sdp.replaceAll(/\r\na=mid:.*/g, '');
+    // and the BUNDLE line (because Firefox doesn't allow SDP with BUNDLE referencing non-existent MIDs)
+    const sdp = pc.localDescription?.sdp.replaceAll(/\r\n(a=mid:.*|a=group:BUNDLE.*)/g, '');
 
     console.log(`TEST: sending SDP offer to MediaConnection: ${sdp}`);
 
