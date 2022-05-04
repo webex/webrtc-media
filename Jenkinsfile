@@ -10,6 +10,16 @@ sparkPipeline {
   builder = 'NODE_JS_BUILDER'
 
   build = { services ->
+
+    commitmessage = this.sh (
+    script: 'git log -n 1  --pretty=format:%s',
+    returnStdout: true
+    ).trim()
+
+    m = commitmessage =~ /skip ci/
+
+    if(!m.find(0)) {
+
     this.sh './pipeline/setup.sh'
     this.sh './pipeline/unit-test.sh'
 
@@ -30,6 +40,11 @@ sparkPipeline {
 
       this.sh './pipeline/cleanup.sh'
 
+      integration.deployMode = 'skip'
+      production.deployMode = 'skip'
+    }
+    } else {
+      this.sh './pipeline/cleanup.sh'
       integration.deployMode = 'skip'
       production.deployMode = 'skip'
     }
