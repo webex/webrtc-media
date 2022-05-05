@@ -1,3 +1,16 @@
+## [1.19.5](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.4...v1.19.5) (2022-05-05)
+
+
+### Bug Fixes
+
+* improved error logging in Firefox ([bd7d1dc](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/bd7d1dcd4b80db2fa308df276d0c18c38a538ffd))
+* integration tests for ChromeHeadless ([5d558a0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/5d558a00a3694bb3b6e7e16d1c3057abd86d7bba))
+* integration tests for MediaConnection on Firefox ([6c6610c](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/6c6610c671ec65635dec29c18830b0510e2ae0ba))
+* removed 'fsm' from roap method names ([d0c776a](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/d0c776abc9f9590f5adc7815dc32f1cb67e2a64f))
+* updated karma version to fix logging warnings ([6fbe6c6](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/6fbe6c63856b4069bfe41583dddbbe5980adfe7b))
+* updateReceiveOptions() ignores arguments passed ([9bcd061](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/9bcd06159652275e7374164470955443e6d9f6e3))
+* using xstate for roap state machine ([535f16f](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/535f16f1385c2a72e68839aefd902f6bd2a6d066))
+
 ## [1.19.4](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.3...v1.19.4) (2022-05-02)
 
 
