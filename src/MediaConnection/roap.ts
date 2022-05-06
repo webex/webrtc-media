@@ -5,15 +5,9 @@ import {AnyEventObject, assign, createMachine, interpret} from 'xstate';
 
 import logger from '../Logger';
 import {ROAP} from '../constants';
-import {isSdpInvalid, mungeLocalSdp} from './utils';
 import {Event, RoapMessage} from './eventTypes';
 
-import {MediaConnectionConfig} from './config';
-
 // todo don't bother sending out offers with all m-lines inactive, because backend will fail with NO_ACTIVE_STREAMS roap error
-
-// todo: some example test cases we need:
-// verify that we send the ERROR with correct seq (matching received OFFER seq) when glare happens
 
 const WEB_TIEBREAKER_VALUE = 0xfffffffe;
 const MAX_RETRIES = 2;
@@ -25,23 +19,37 @@ interface FsmContext {
   isHandlingOfferRequest: boolean; // true means that we received an OFFER_REQUEST and need to send an OFFER_RESPONSE
   retryCounter: number; // number of conescutive attempts we've tried to send our offer and got ERROR back
 }
+
+/**
+ * Callback that gets called whenever a new local SDP (offer or answer) is set on the RTCPeerConnection (it is
+ * guaranteed that the callback is called after pc.setLocalDescription() resolved, so the code in the callback
+ * can access the SDP via pc.localDescription.sdp).
+ * It allows the client to do some processing of the SDP and also SDP munging. The callback should resolve with
+ * an object that contains the munged SDP - that's the SDP that will be sent out with the ROAP_MESSAGE_TO_SEND event
+ */
+type ProcessLocalSdpCallbackType = () => Promise<{sdp: string}>;
+
 // eslint-disable-next-line import/prefer-default-export
 export class Roap extends EventEmitter {
   private id: string; // used just for logging
 
   private pc: RTCPeerConnection;
 
-  private config: MediaConnectionConfig;
+  private processLocalSdpCallback: ProcessLocalSdpCallbackType;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private stateMachine: any; // todo: type
 
-  constructor(pc: RTCPeerConnection, config: MediaConnectionConfig, debugId?: string) {
+  constructor(
+    pc: RTCPeerConnection,
+    processLocalSdpCallback: ProcessLocalSdpCallbackType,
+    debugId?: string
+  ) {
     super();
 
     this.id = debugId || 'ROAP';
-    this.config = config;
     this.pc = pc;
+    this.processLocalSdpCallback = processLocalSdpCallback;
 
     const fsm = createMachine(
       {
@@ -495,14 +503,7 @@ export class Roap extends EventEmitter {
 
         return this.pc.setLocalDescription(description);
       })
-      .then(() => this.checkIceCandidates())
-      .then(() => {
-        this.log('createLocalOffer', 'local SDP offer set, checkIceCandidates() passed');
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
-
-        return {sdp: mungedSdp};
-      });
+      .then(() => this.processLocalSdpCallback());
   }
 
   /**
@@ -580,13 +581,7 @@ export class Roap extends EventEmitter {
       )
       .then(() => this.pc.createAnswer())
       .then((answer: RTCSessionDescriptionInit) => this.pc.setLocalDescription(answer))
-      .then(() => this.checkIceCandidates())
-      .then(() => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
-
-        return {sdp: mungedSdp};
-      });
+      .then(() => this.processLocalSdpCallback());
   }
 
   // todo type for event
@@ -605,76 +600,5 @@ export class Roap extends EventEmitter {
         sdp,
       })
     );
-  }
-
-  // todo: this logic and also SDP munging don't really belong to ROAP so should probably be done through callbacks back in MediaConnection
-  private checkIceCandidates(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      const startTime = performance.now();
-
-      let done = false;
-
-      const doneGatheringIceCandidates = () => {
-        if (!done) {
-          const miliseconds = performance.now() - startTime;
-
-          this.log('checkIceCandidates()', 'checking SDP...');
-
-          const invalidSdpPresent = isSdpInvalid(
-            {
-              allowPort0: !!this.config.sdpMunging.convertPort9to0,
-            },
-            this.error.bind(this),
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            this.pc.localDescription!.sdp
-          );
-
-          if (invalidSdpPresent) {
-            this.error('checkIceCandidates()', 'SDP not valid after waiting.');
-            reject(new Error('SDP not valid'));
-          }
-          // todo: show this log only the first time:
-          this.log(
-            'checkIceCandidates()',
-            `It took ${miliseconds} miliseconds to gather ice candidates`
-          );
-
-          done = true;
-          resolve();
-        }
-      };
-
-      if (this.pc.iceGatheringState === 'complete') {
-        this.log('checkIceCandidates()', 'iceGatheringState is already "complete"');
-        doneGatheringIceCandidates();
-      }
-
-      this.pc.onicegatheringstatechange = () => {
-        this.log(
-          'checkIceCandidates()',
-          `iceGatheringState changed to ${this.pc.iceGatheringState}`
-        );
-        if (this.pc.iceGatheringState === 'complete') {
-          doneGatheringIceCandidates();
-        }
-      };
-
-      this.pc.onicecandidate = (evt) => {
-        if (evt.candidate === null) {
-          this.log('checkIceCandidates()', 'evt.candidate === null received');
-          doneGatheringIceCandidates();
-        } else {
-          this.log(
-            'checkIceCandidates()',
-            `ICE Candidate(${evt.candidate?.sdpMLineIndex}): ${evt.candidate?.candidate}`
-          );
-        }
-      };
-
-      this.pc.onicecandidateerror = (event) => {
-        this.error('checkIceCandidates()', `onicecandidateerror: ${event}`);
-        reject(new Error('Error gathering ICE candidates'));
-      };
-    });
   }
 }

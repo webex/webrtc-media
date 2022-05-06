@@ -1,6 +1,5 @@
 import {Roap} from './roap';
 import {Event, RoapMessage} from './eventTypes';
-import * as utils from './utils';
 import {createControlledPromise} from './testUtils';
 
 describe('Roap', () => {
@@ -9,8 +8,6 @@ describe('Roap', () => {
   const FAKE_LOCAL_SDP = 'some local SDP';
   const MUNGED_LOCAL_SDP = 'munged local SDP';
   const FAKE_REMOTE_SDP = 'some remote SDP';
-
-  let mungeLocalSdpSpy: jest.SpyInstance;
 
   const peerConnection = {
     createOffer: jest.fn().mockResolvedValue({type: 'offer', sdp: FAKE_LOCAL_SDP}),
@@ -21,13 +18,15 @@ describe('Roap', () => {
     localDescription: {sdp: FAKE_LOCAL_SDP},
   } as unknown as RTCPeerConnection;
 
+  const processLocalSdp = jest.fn().mockResolvedValue({sdp: MUNGED_LOCAL_SDP});
+
   const resetPeerConnectionMocks = () => {
     (peerConnection.createOffer as jest.Mock).mockClear();
     (peerConnection.setLocalDescription as jest.Mock).mockClear();
     (peerConnection.setRemoteDescription as jest.Mock).mockClear();
-
-    // also clear the munging util function
-    mungeLocalSdpSpy.mockClear();
+    // whenever we set local description we also call the processLocalSdp callback,
+    // so we need to reset it here too
+    processLocalSdp.mockClear();
   };
 
   const {log} = console;
@@ -46,7 +45,7 @@ describe('Roap', () => {
   } = {};
 
   beforeEach(() => {
-    roap = new Roap(peerConnection, {iceServers: [], sdpMunging: {}});
+    roap = new Roap(peerConnection, processLocalSdp);
     roap.on(Event.ROAP_MESSAGE_TO_SEND, ({roapMessage}) => {
       log(`Event.ROAP_MESSAGE_TO_SEND: ${JSON.stringify(roapMessage)}`);
 
@@ -74,9 +73,6 @@ describe('Roap', () => {
         waitingForState.state = undefined;
       }
     });
-
-    jest.spyOn(utils, 'isSdpInvalid').mockReturnValue('');
-    mungeLocalSdpSpy = jest.spyOn(utils, 'mungeLocalSdp').mockReturnValue(MUNGED_LOCAL_SDP);
   });
 
   const waitForRoapMessage = (expectedMessage: RoapMessage): Promise<void> => {
@@ -122,7 +118,7 @@ describe('Roap', () => {
       type: 'offer',
       sdp,
     });
-    expect(mungeLocalSdpSpy).toBeCalledOnceWith({}, sdp);
+    expect(processLocalSdp).toBeCalledOnceWith();
   };
 
   const expectLocalAnswerToBeCreated = (remoteOffer: string, localAnswer: string) => {
@@ -136,7 +132,7 @@ describe('Roap', () => {
       type: 'answer',
       sdp: localAnswer,
     });
-    expect(mungeLocalSdpSpy).toBeCalledOnceWith({}, localAnswer);
+    expect(processLocalSdp).toBeCalledOnceWith();
   };
 
   it('handles OFFER_REQUEST correctly', async () => {

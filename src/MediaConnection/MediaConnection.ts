@@ -3,7 +3,7 @@ import EventEmitter from 'events';
 import logger from '../Logger';
 import {MEDIA_CONNECTION} from '../constants';
 import {Roap} from './roap';
-import {getLocalTrackInfo, TrackKind} from './utils';
+import {isSdpInvalid, getLocalTrackInfo, mungeLocalSdp, TrackKind} from './utils';
 import {Event, ConnectionState, RemoteTrackType, RoapMessage, RoapMessageEvent} from './eventTypes';
 
 import {MediaConnectionConfig} from './config';
@@ -90,7 +90,7 @@ export class MediaConnection extends EventEmitter {
       bundlePolicy: 'max-compat', // needed for Firefox to create ICE candidates for each m-line
     });
 
-    this.roap = new Roap(this.pc, this.config, debugId);
+    this.roap = new Roap(this.pc, this.processLocalSdp.bind(this), debugId);
     this.roap.on(Event.ROAP_MESSAGE_TO_SEND, this.onRoapMessageToSend.bind(this));
     this.roap.on(Event.ROAP_FAILURE, this.onRoapFailure.bind(this));
 
@@ -513,5 +513,85 @@ export class MediaConnection extends EventEmitter {
       `iceConnectionState=${iceState} rtcPcConnectionState=${rtcPcConnectionState} => mediaConnectionState=${this.mediaConnectionState}`
     );
     this.emit(Event.CONNECTION_STATE_CHANGED, {state: this.mediaConnectionState});
+  }
+
+  private processLocalSdp(): Promise<{sdp: string}> {
+    return this.checkIceCandidates().then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
+
+      return {sdp: mungedSdp};
+    });
+  }
+
+  private checkIceCandidates(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const startTime = performance.now();
+
+      let done = false;
+
+      const doneGatheringIceCandidates = () => {
+        if (!done) {
+          const miliseconds = performance.now() - startTime;
+
+          this.log('checkIceCandidates()', 'checking SDP...');
+
+          const invalidSdpPresent = isSdpInvalid(
+            {
+              allowPort0: !!this.config.sdpMunging.convertPort9to0,
+            },
+            this.error.bind(this),
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.pc.localDescription!.sdp
+          );
+
+          if (invalidSdpPresent) {
+            this.error('checkIceCandidates()', 'SDP not valid after waiting.');
+            reject(new Error('SDP not valid'));
+          }
+          // todo: show this log only the first time:
+          this.log(
+            'checkIceCandidates()',
+            `It took ${miliseconds} miliseconds to gather ice candidates`
+          );
+
+          done = true;
+          // todo: clear the callbacks like this.pc.onicecandidate
+          resolve();
+        }
+      };
+
+      if (this.pc.iceGatheringState === 'complete') {
+        this.log('checkIceCandidates()', 'iceGatheringState is already "complete"');
+        doneGatheringIceCandidates();
+      }
+
+      this.pc.onicegatheringstatechange = () => {
+        this.log(
+          'checkIceCandidates()',
+          `iceGatheringState changed to ${this.pc.iceGatheringState}`
+        );
+        if (this.pc.iceGatheringState === 'complete') {
+          doneGatheringIceCandidates();
+        }
+      };
+
+      this.pc.onicecandidate = (evt) => {
+        if (evt.candidate === null) {
+          this.log('checkIceCandidates()', 'evt.candidate === null received');
+          doneGatheringIceCandidates();
+        } else {
+          this.log(
+            'checkIceCandidates()',
+            `ICE Candidate(${evt.candidate?.sdpMLineIndex}): ${evt.candidate?.candidate}`
+          );
+        }
+      };
+
+      this.pc.onicecandidateerror = (event) => {
+        this.error('checkIceCandidates()', `onicecandidateerror: ${event}`);
+        reject(new Error('Error gathering ICE candidates'));
+      };
+    });
   }
 }
