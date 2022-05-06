@@ -22,9 +22,9 @@ yarn docs
 echo "Docs have been built"
 
 echo "Pushing updated docs to master"
-git fetch upstream
+git fetch origin
 git checkout master
 git add docs
 git commit -a -m "docs: update docs [skip ci]"
-git push upstream master
+git push origin master
 echo "Docs pushed to master"
