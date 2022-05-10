@@ -22,9 +22,10 @@ yarn docs
 echo "Docs have been built"
 
 echo "Pushing updated docs to master"
+git remote set-url origin https://webex-jenkins.gen:$GITHUB_TOKEN@sqbu-github.cisco.com/WebExSquared/webrtc-media-core.git
 git fetch origin
-git checkout master
 git add docs
 git commit -a -m "docs: update docs [skip ci]"
-git push origin master
+git push origin HEAD:master
+git remote set-url origin https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core.git
 echo "Docs pushed to master"
