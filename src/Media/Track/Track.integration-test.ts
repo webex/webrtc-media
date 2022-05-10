@@ -1,8 +1,6 @@
 import {expect} from 'chai';
-import Sinon, {SinonSpy} from 'sinon';
+import sinon, {SinonSpy} from 'sinon';
 import {Track} from './Track';
-
-import {} from '../index';
 
 describe('Track', () => {
   const mockMediaStreamTrack = {
@@ -120,7 +118,7 @@ describe('Track', () => {
 
   // Re Write after adding event emitter
   describe('Track Muted event()', () => {
-    const eventCallbackSpyTrack: SinonSpy = Sinon.spy();
+    const eventCallbackSpyTrack: SinonSpy = sinon.spy();
     let track: Track;
     let audioTrack: MediaStreamTrack;
 
@@ -138,7 +136,7 @@ describe('Track', () => {
       it('should trigger`track:mute` event with muted value', () => {
         track.getMediaStreamTrack().enabled = false;
         track.getMediaStreamTrack().dispatchEvent(new Event('mute'));
-        Sinon.assert.called(eventCallbackSpyTrack);
+        expect(eventCallbackSpyTrack.called).to.equal(true);
 
         expect(eventCallbackSpyTrack.getCall(0).args[0].action).to.be.equal('unmuted');
       });
@@ -146,7 +144,7 @@ describe('Track', () => {
       it('should trigger`track:mute` event with unmuted value', async () => {
         track.getMediaStreamTrack().enabled = true;
         track.getMediaStreamTrack().dispatchEvent(new Event('mute'));
-        Sinon.assert.called(eventCallbackSpyTrack);
+        expect(eventCallbackSpyTrack.called).to.equal(true);
 
         expect(eventCallbackSpyTrack.getCall(1).args[0].action).to.be.equal('muted');
       });

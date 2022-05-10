@@ -8,9 +8,18 @@ window.RTCSessionDescription = jest.fn().mockImplementation((desc) => ({
 window.RTCPeerConnection = jest.fn();
 
 const map = {};
+const mediConstraints = {
+  frameRate: true,
+  width: true,
+  height: true,
+  deviceId: true,
+};
 
 window.navigator.mediaDevices = {
   getUserMedia: jest.fn().mockResolvedValue({
+    getVideoTracks: () => [mockMediaStreamTrack],
+  }),
+  getDisplayMedia: jest.fn().mockResolvedValue({
     getVideoTracks: () => [mockMediaStreamTrack],
   }),
   addEventListener: jest.fn().mockImplementation((event, cb) => {
@@ -21,4 +30,5 @@ window.navigator.mediaDevices = {
   }),
   ondevicechange: null,
   enumerateDevices: jest.fn().mockResolvedValue(fakeDevices),
+  getSupportedConstraints: jest.fn(() => mediConstraints),
 };

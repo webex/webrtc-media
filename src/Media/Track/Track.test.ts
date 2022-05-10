@@ -1,5 +1,4 @@
 import {Track} from './Track';
-import {} from '../index';
 
 describe('Track', () => {
   const mockMediaStreamTrack = {

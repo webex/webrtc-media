@@ -114,14 +114,6 @@ export const setupMediaTrackMocks = (): void => {
           : fakeVideoTracks,
     }),
   });
-
-  Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', {
-    writable: true,
-    value: async () => ({
-      getVideoTracks: () => fakeVideoTracks,
-    }),
-  });
-  console.warn('Setting up Mocks on navigator.mediaDevices');
 };
 
 export const setupEmptyMediaTrackMocks = (): void => {
@@ -137,9 +129,24 @@ export const resetMediaTrackMocks = (): void => {
     writable: true,
     value: originalGetUserMedia,
   });
+};
 
-  Object.defineProperty(navigator.mediaDevices, 'getDisplayMedia', {
-    writable: true,
-    value: originalGetDisplayMedia,
-  });
+export const getFakeTrackBasedOnDevice = async (constraints: ConstraintsInterface) => {
+  return {
+    getAudioTracks: () =>
+      // TODO: refactor this to fix the prettier error
+      constraints.audio?.deviceId?.exact
+        ? // eslint-disable-next-line max-len
+          fakeAudioTracks.filter(
+            (mediaStreamTrack) => mediaStreamTrack.id === constraints.audio?.deviceId.exact
+          )
+        : fakeAudioTracks,
+    getVideoTracks: () =>
+      constraints.video?.deviceId?.exact
+        ? // eslint-disable-next-line max-len
+          fakeVideoTracks.filter(
+            (mediaStreamTrack) => mediaStreamTrack.id === constraints.video?.deviceId.exact
+          )
+        : fakeVideoTracks,
+  };
 };

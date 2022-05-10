@@ -44,14 +44,23 @@ export const fakeDevices = [
 ];
 
 export const mockMediaStreamTrack = {
-  id: '04b14bc2-2c0e-4c54-9e9d-1d52f7a34c5f',
-  kind: 'audio',
+  kind: 'video',
   muted: true,
-  label: 'sample',
+  label: 'Fake Default Video Input',
   contentHint: 'sample',
   enabled: true,
   readyState: 'live',
   stop: (): void => {
     /* placeholder */
+  },
+  applyConstraints: (): void => {
+    /* placeholder */
+  },
+  getSettings: (): MediaTrackSettings => {
+    return {
+      frameRate: 10,
+      width: 320,
+      height: 180,
+    };
   },
 };

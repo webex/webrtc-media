@@ -26,52 +26,6 @@ import {isBrowserSupported} from '../index';
 const DetectRTC = require('detectrtc');
 
 describe('Media', () => {
-  beforeEach(() => {
-    const mockMediaStreamTrack = {
-      kind: 'video',
-      muted: true,
-      label: 'Fake Default Video Input',
-      contentHint: 'sample',
-      enabled: true,
-      readyState: 'live',
-      stop: (): void => {
-        /* placeholder */
-      },
-      applyConstraints: (): void => {
-        /* placeholder */
-      },
-      getSettings: (): MediaTrackSettings => {
-        return {
-          frameRate: 10,
-          width: 320,
-          height: 180,
-        };
-      },
-    };
-
-    // jest.spyOn().mockImplementation
-    Object.defineProperty(window.navigator.mediaDevices, 'getDisplayMedia', {
-      writable: true,
-      value: jest.fn(() =>
-        Promise.resolve({
-          getVideoTracks: () => [mockMediaStreamTrack],
-        })
-      ),
-    });
-
-    const mockConstraint = {
-      frameRate: true,
-      width: true,
-      height: true,
-      deviceId: true,
-    };
-
-    Object.defineProperty(window.navigator.mediaDevices, 'getSupportedConstraints', {
-      writable: true,
-      value: jest.fn(() => mockConstraint),
-    });
-  });
-
   describe('getCameras', () => {
     it('should resolve array of cameras on success', async () => {
       const [device] = await getCameras();
@@ -333,8 +287,8 @@ describe('Media', () => {
     let eventCallbackSpy2: SinonSpy = Sinon.spy();
 
     beforeAll(async () => {
-      await on('device:changed', eventCallbackSpy);
-      await on('device:changed', eventCallbackSpy2);
+      // await on('device:changed', eventCallbackSpy);
+      // await on('device:changed', eventCallbackSpy2);
     });
     afterAll(() => {
       eventCallbackSpy.resetHistory();
@@ -384,9 +338,35 @@ describe('Media', () => {
               },
             ]
           );
-          navigator.mediaDevices.dispatchEvent(new Event('devicechange'));
+          // navigator.mediaDevices.dispatchEvent(new Event('devicechange'));
           Sinon.assert.called(eventCallbackSpy);
           Sinon.assert.called(eventCallbackSpy2);
+          expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('added');
+        }
+      });
+
+      it('should not trigger event if the events are un registred', async () => {
+        expect(navigator.mediaDevices).toHaveProperty('ondevicechange');
+        if (navigator.mediaDevices.ondevicechange) {
+          eventCallbackSpy = Sinon.spy();
+          eventCallbackSpy2 = Sinon.spy();
+
+          // await off('device:changed', eventCallbackSpy);
+          // await off('device:changed', eventCallbackSpy2);
+
+          fakeDevices.push(
+            ...[
+              {
+                deviceId: '47dd6c612bb77e7992cb8f026b660c59648e8105baf4c569f96d226738ad',
+                kind: 'audioinput',
+                label: 'Fake Default Audio Input 2',
+                groupId: 'a6b4fb6a105c92a16a6e2f3fb4efe289a783304764be026d4f973febf805c0c2',
+              },
+            ]
+          );
+          navigator.mediaDevices.dispatchEvent(new Event('devicechange'));
+          expect(eventCallbackSpy).not.toBeCalled();
+          expect(eventCallbackSpy2).not.toBeCalled();
           expect(eventCallbackSpy.getCall(0).args[0].action).toEqual('added');
         }
       });
