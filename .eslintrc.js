@@ -18,7 +18,7 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
   ],
-  ignorePatterns: ['build/**/*.*', 'dist/**/*.*', 'docs/^(?!examples)/*.*'],
+  ignorePatterns: ['build/**/*.*', 'dist/**/*.*', 'docs/^(?!examples)/*.*', '*.typegen.ts'],
   settings: {
     'import/parsers': {
       '@typescript-eslint/parser': ['.js', '.ts'],

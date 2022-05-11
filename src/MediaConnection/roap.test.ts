@@ -1,3 +1,4 @@
+import {StateValue} from 'xstate';
 import {Roap} from './roap';
 import {Event, RoapMessage} from './eventTypes';
 import {createControlledPromise} from './testUtils';
@@ -65,8 +66,8 @@ describe('Roap', () => {
       }
     });
 
-    roap.getStateMachine().onTransition((state: {value: string}) => {
-      roapStateMachineState = state.value;
+    roap.getStateMachine().onTransition((state: {value: StateValue}) => {
+      roapStateMachineState = state.value as string;
 
       if (waitingForState.resolve && state.value === waitingForState.state) {
         waitingForState.resolve();

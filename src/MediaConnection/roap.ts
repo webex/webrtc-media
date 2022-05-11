@@ -1,16 +1,64 @@
-/* eslint-disable no-console */ // todo
 import 'webrtc-adapter';
 import EventEmitter from 'events';
-import {AnyEventObject, assign, createMachine, interpret} from 'xstate';
+import {assign, createMachine, ErrorPlatformEvent, interpret} from 'xstate';
 
 import logger from '../Logger';
 import {ROAP} from '../constants';
 import {Event, RoapMessage} from './eventTypes';
 
+/*  WARNING:
+ *  this module uses an xstate state machine, which depends on an auto-generated file roap.typegen.ts for
+ *  correct typescript types. When you modify the state machine, you need to regenerate the roap.typegen.ts file.
+ *
+ *  The simplest way of doing this is to install the XState VsCode extension from Stately:
+ *  https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode
+ *  Then, the file will be automatically generated for you when you make any changes.
+ *
+ *  Alternatively you can install @xstate/cli package and run "xstate typegen <filename>" with <filename>
+ *  pointing to this file
+ */
+
 // todo don't bother sending out offers with all m-lines inactive, because backend will fail with NO_ACTIVE_STREAMS roap error
 
 const WEB_TIEBREAKER_VALUE = 0xfffffffe;
 const MAX_RETRIES = 2;
+
+type MUNGED_LOCAL_SDP = {sdp: string}; // output of the processing of local SDP (this may be an offer or answer)
+
+/** All events supported by the Roap finite state machine (FSM) */
+type FsmEvent =
+  | {
+      type: 'INITIATE_OFFER';
+    }
+  | {
+      type: 'REMOTE_OFFER_ARRIVED';
+      sdp: string;
+      seq: number;
+      tieBreaker: number;
+    }
+  | {
+      type: 'REMOTE_OFFER_REQUEST_ARRIVED';
+      seq: number;
+      tieBreaker: number;
+    }
+  | {
+      type: 'REMOTE_ANSWER_ARRIVED';
+      sdp: string;
+      seq: number;
+    }
+  | {
+      type: 'REMOTE_OK_ARRIVED';
+      sdp: string;
+      seq: number;
+    }
+  | {
+      type: 'ERROR_ARRIVED';
+      errorType: string;
+      seq: number;
+    }
+  | {
+      type: 'always'; // this is a workaround for TS errors on "always" handlers in state definitions
+    };
 
 /** Finite state machine (FSM) context - this is additional data associated with the state of the state machine */
 interface FsmContext {
@@ -24,10 +72,11 @@ interface FsmContext {
  * Callback that gets called whenever a new local SDP (offer or answer) is set on the RTCPeerConnection (it is
  * guaranteed that the callback is called after pc.setLocalDescription() resolved, so the code in the callback
  * can access the SDP via pc.localDescription.sdp).
- * It allows the client to do some processing of the SDP and also SDP munging. The callback should resolve with
- * an object that contains the munged SDP - that's the SDP that will be sent out with the ROAP_MESSAGE_TO_SEND event
+ * It allows the client to do some processing of the SDP and also SDP munging before it's sent out. The callback
+ * should resolve with an object that contains the munged SDP - that's the SDP that will be sent out
+ * with the ROAP_MESSAGE_TO_SEND event
  */
-type ProcessLocalSdpCallbackType = () => Promise<{sdp: string}>;
+type ProcessLocalSdpCallback = () => Promise<MUNGED_LOCAL_SDP>;
 
 // eslint-disable-next-line import/prefer-default-export
 export class Roap extends EventEmitter {
@@ -35,14 +84,14 @@ export class Roap extends EventEmitter {
 
   private pc: RTCPeerConnection;
 
-  private processLocalSdpCallback: ProcessLocalSdpCallbackType;
+  private processLocalSdpCallback: ProcessLocalSdpCallback;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private stateMachine: any; // todo: type
+  private stateMachine: any;
 
   constructor(
     pc: RTCPeerConnection,
-    processLocalSdpCallback: ProcessLocalSdpCallbackType,
+    processLocalSdpCallback: ProcessLocalSdpCallback,
     debugId?: string
   ) {
     super();
@@ -53,12 +102,20 @@ export class Roap extends EventEmitter {
 
     const fsm = createMachine(
       {
+        tsTypes: {} as import('./roap.typegen').Typegen0,
         schema: {
           context: {} as FsmContext,
+          events: {} as FsmEvent,
+          services: {} as {
+            createLocalOffer: {data: MUNGED_LOCAL_SDP};
+            handleRemoteAnswer: {data: void};
+            handleRemoteOffer: {data: MUNGED_LOCAL_SDP};
+          },
         },
         id: 'roap',
-        initial: 'idle',
+        initial: 'idle', // initial state
         context: {
+          // initial context value
           seq: 0,
           pendingLocalOffer: false,
           isHandlingOfferRequest: false,
@@ -66,19 +123,21 @@ export class Roap extends EventEmitter {
         },
         states: {
           /**
-           * Error state - we get here if one of browser API calls failed
+           * Error state - we get here if one of browser API calls failed, we don't get out of it
            */
           browserError: {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             onEntry: (context, event) =>
               this.error(
                 'FSM',
                 `browserError state onEntry: context=${JSON.stringify(context)}:`,
-                event.data
+                (event as ErrorPlatformEvent).data
               ),
           },
           /**
            * Error state - we get here if we receive an ERROR message from the server in reply to one of our Roap messages
            * and there is nothing more we can do about it (or we've already attempted offer retries and they still failed).
+           * We don't get out of it.
            */
           remoteError: {
             onEntry: () => {
@@ -117,7 +176,7 @@ export class Roap extends EventEmitter {
           },
           creatingLocalOffer: {
             invoke: {
-              src: this.createLocalOffer.bind(this),
+              src: 'createLocalOffer',
               onDone: [
                 // if a new local offer was requested while we were doing this one, go back and start again
                 {cond: 'isPendingLocalOffer', target: 'creatingLocalOffer'},
@@ -134,7 +193,7 @@ export class Roap extends EventEmitter {
             onEntry: ['resetPendingLocalOffer'],
             on: {
               // unexpected events:
-              INIITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
+              INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
               REMOTE_OFFER_ARRIVED: [
                 {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {actions: 'handleGlare'}, // if this results in us sending DOUBLECONFLICT, we continue as normal and rely on the other side to send us DOUBLECONFLICT too
@@ -162,7 +221,7 @@ export class Roap extends EventEmitter {
                 {actions: ['resetRetryCounter', 'updateSeq'], target: 'settingRemoteAnswer'}, // if we get ANSWER with higher seq, we just update our seq (this is what Edonus seems to be doing in such case)
               ],
               // unexpected events:
-              INIITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
+              INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
               REMOTE_OFFER_ARRIVED: [
                 {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {actions: 'handleGlare'},
@@ -188,13 +247,13 @@ export class Roap extends EventEmitter {
           },
           settingRemoteAnswer: {
             invoke: {
-              src: this.handleRemoteAnswer.bind(this),
+              src: 'handleRemoteAnswer',
               onDone: {actions: ['sendRoapOKMessage', 'resetOfferRequestFlag'], target: 'idle'},
               onError: {actions: 'sendGenericError', target: 'browserError'},
             },
             on: {
               // unexpected events:
-              INIITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
+              INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
               REMOTE_OFFER_ARRIVED: [
                 {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {actions: 'sendInvalidStateError'},
@@ -217,7 +276,7 @@ export class Roap extends EventEmitter {
           },
           settingRemoteOffer: {
             invoke: {
-              src: this.handleRemoteOffer.bind(this),
+              src: 'handleRemoteOffer',
               onDone: {
                 actions: ['sendRoapAnswerMessage'],
                 target: 'waitingForOK',
@@ -226,7 +285,7 @@ export class Roap extends EventEmitter {
             },
             on: {
               // unexpected events:
-              INIITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
+              INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
               REMOTE_OFFER_ARRIVED: [
                 {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {cond: 'isSameSeq', actions: 'ignoreDuplicate'},
@@ -254,7 +313,7 @@ export class Roap extends EventEmitter {
                 {actions: 'updateSeq', target: 'idle'}, // if we get OK with higher seq, we just update our seq (this is what Edonus seems to be doing in such case)
               ],
               // unexpected events:
-              INIITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
+              INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
               REMOTE_OFFER_ARRIVED: [
                 {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {cond: 'isSameSeq', actions: 'ignoreDuplicate'}, // if seq is the same it means they haven't received our answer yet and are just resending the offer
@@ -274,12 +333,17 @@ export class Roap extends EventEmitter {
         },
       },
       {
+        services: {
+          createLocalOffer: () => this.createLocalOffer(),
+          handleRemoteAnswer: (_context, event) => this.handleRemoteAnswer(event.sdp),
+          handleRemoteOffer: (_context, event) => this.handleRemoteOffer(event.sdp),
+        },
         actions: {
           enqueueNewOfferCreation: assign((context) => ({...context, pendingLocalOffer: true})),
           resetPendingLocalOffer: assign((context) => ({...context, pendingLocalOffer: false})),
 
           increaseSeq: assign((context) => ({...context, seq: context.seq + 1})),
-          updateSeq: assign((context, event: AnyEventObject) => ({...context, seq: event.seq})),
+          updateSeq: assign((context, event) => ({...context, seq: event.seq})),
 
           increaseRetryCounter: assign((context) => ({
             ...context,
@@ -295,7 +359,7 @@ export class Roap extends EventEmitter {
 
           // because we can't do rollback on safari (only supported from iOS 15.4),
           // we always have to win the glare conflict (see WEB_TIEBREAKER_VALUE)
-          handleGlare: (_context, event: AnyEventObject) => {
+          handleGlare: (_context, event) => {
             if (event.tieBreaker === WEB_TIEBREAKER_VALUE) {
               this.sendErrorMessage(event.seq, 'DOUBLECONFLICT');
               // we should also receive DOUBLECONFLICT, so just sit and wait
@@ -304,10 +368,14 @@ export class Roap extends EventEmitter {
             }
           },
 
-          sendRoapOfferMessage: this.sendRoapOfferMessage.bind(this),
-          sendRoapOfferResponseMessage: this.sendRoapOfferResponseMessage.bind(this),
-          sendRoapOKMessage: this.sendRoapOkMessage.bind(this),
-          sendRoapAnswerMessage: this.sendRoapAnswerMessage.bind(this),
+          sendRoapOfferMessage: (context, event) =>
+            this.sendRoapOfferMessage(context.seq, event.data.sdp),
+          sendRoapOfferResponseMessage: (context, event) =>
+            this.sendRoapOfferResponseMessage(context.seq, event.data.sdp),
+          sendRoapOKMessage: (context) => this.sendRoapOkMessage(context.seq),
+          sendRoapAnswerMessage: (context, event) =>
+            this.sendRoapAnswerMessage(context.seq, event.data.sdp),
+
           sendGenericError: (context) => this.sendErrorMessage(context.seq, 'FAILED'),
           sendInvalidStateError: (_context, event) =>
             this.sendErrorMessage(event.seq, 'INVALID_STATE'),
@@ -420,46 +488,46 @@ export class Roap extends EventEmitter {
     });
   }
 
-  private sendRoapOfferMessage(context: FsmContext, event: AnyEventObject) {
+  private sendRoapOfferMessage(seq: number, sdp: string) {
     this.log('sendRoapOfferMessage', 'emitting ROAP OFFER');
     this.emit(Event.ROAP_MESSAGE_TO_SEND, {
       roapMessage: {
-        seq: context.seq,
+        seq,
         messageType: 'OFFER',
-        sdp: event.data.sdp,
+        sdp,
         tieBreaker: WEB_TIEBREAKER_VALUE,
       },
     });
   }
 
-  private sendRoapOfferResponseMessage(context: FsmContext, event: AnyEventObject) {
+  private sendRoapOfferResponseMessage(seq: number, sdp: string) {
     this.log('sendRoapOfferResponseMessage', 'emitting ROAP OFFER RESPONSE');
     this.emit(Event.ROAP_MESSAGE_TO_SEND, {
       roapMessage: {
-        seq: context.seq,
+        seq,
         messageType: 'OFFER_RESPONSE',
-        sdp: event.data.sdp,
+        sdp,
       },
     });
   }
 
-  private sendRoapOkMessage(context: FsmContext) {
+  private sendRoapOkMessage(seq: number) {
     this.log('sendRoapOkMessage', 'emitting ROAP OK');
     this.emit(Event.ROAP_MESSAGE_TO_SEND, {
       roapMessage: {
-        seq: context.seq,
+        seq,
         messageType: 'OK',
       },
     });
   }
 
-  private sendRoapAnswerMessage(context: FsmContext, event: AnyEventObject) {
+  private sendRoapAnswerMessage(seq: number, sdp: string) {
     this.log('sendRoapAnswerMessage', 'emitting ROAP ANSWER');
     this.emit(Event.ROAP_MESSAGE_TO_SEND, {
       roapMessage: {
-        seq: context.seq,
+        seq,
         messageType: 'ANSWER',
-        sdp: event.data.sdp,
+        sdp,
       },
     });
   }
@@ -536,7 +604,6 @@ export class Roap extends EventEmitter {
         break;
 
       case 'ERROR':
-        // TODO
         this.error('roapMessageReceived', `Error received: seq=${seq} type=${errorType}`);
 
         if (errorType === 'CONFLICT') {
@@ -563,9 +630,7 @@ export class Roap extends EventEmitter {
     return Promise.resolve(); // todo return the promise that resolves at the right time
   }
 
-  private handleRemoteOffer(_context: FsmContext, event: AnyEventObject): Promise<{sdp: string}> {
-    const {sdp} = event;
-
+  private handleRemoteOffer(sdp?: string): Promise<{sdp: string}> {
     this.log('handleRemoteOffer', 'called');
 
     if (!sdp) {
@@ -584,10 +649,7 @@ export class Roap extends EventEmitter {
       .then(() => this.processLocalSdpCallback());
   }
 
-  // todo type for event
-  private handleRemoteAnswer(_context: FsmContext, event: AnyEventObject): Promise<void> {
-    const {sdp} = event;
-
+  private handleRemoteAnswer(sdp?: string): Promise<void> {
     this.log('handleRemoteAnswer', 'called');
 
     if (!sdp) {
