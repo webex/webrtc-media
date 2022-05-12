@@ -55,9 +55,6 @@ type FsmEvent =
       type: 'ERROR_ARRIVED';
       errorType: string;
       seq: number;
-    }
-  | {
-      type: 'always'; // this is a workaround for TS errors on "always" handlers in state definitions
     };
 
 /** Finite state machine (FSM) context - this is additional data associated with the state of the state machine */
@@ -146,12 +143,12 @@ export class Roap extends EventEmitter {
             },
           },
           idle: {
+            always: {
+              cond: 'isPendingLocalOffer',
+              actions: 'increaseSeq',
+              target: 'creatingLocalOffer',
+            },
             on: {
-              always: {
-                cond: 'isPendingLocalOffer',
-                actions: 'increaseSeq',
-                target: 'creatingLocalOffer',
-              },
               INITIATE_OFFER: {actions: 'increaseSeq', target: 'creatingLocalOffer'},
               REMOTE_OFFER_ARRIVED: [
                 {cond: 'isLowerOrEqualSeq', actions: 'sendOutOfOrderError'},

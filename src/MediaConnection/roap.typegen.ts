@@ -3,7 +3,7 @@
 export interface Typegen0 {
   '@@xstate/typegen': true;
   eventsCausingActions: {
-    increaseSeq: 'always' | 'INITIATE_OFFER' | 'ERROR_ARRIVED';
+    increaseSeq: 'INITIATE_OFFER' | '' | 'ERROR_ARRIVED';
     sendOutOfOrderError:
       | 'REMOTE_OFFER_ARRIVED'
       | 'REMOTE_OFFER_REQUEST_ARRIVED'
@@ -38,13 +38,14 @@ export interface Typegen0 {
     sendRoapAnswerMessage: 'done.invoke.roap.settingRemoteOffer:invocation[0]';
     sendRetryAfterError: 'REMOTE_OFFER_ARRIVED';
     resetPendingLocalOffer:
-      | 'always'
       | 'INITIATE_OFFER'
       | 'REMOTE_OFFER_REQUEST_ARRIVED'
+      | ''
       | 'done.invoke.roap.creatingLocalOffer:invocation[0]'
       | 'ERROR_ARRIVED';
   };
   internalEvents: {
+    '': {type: ''};
     'done.invoke.roap.creatingLocalOffer:invocation[0]': {
       type: 'done.invoke.roap.creatingLocalOffer:invocation[0]';
       data: unknown;
@@ -87,16 +88,15 @@ export interface Typegen0 {
   };
   eventsCausingServices: {
     createLocalOffer:
-      | 'always'
       | 'INITIATE_OFFER'
       | 'REMOTE_OFFER_REQUEST_ARRIVED'
+      | ''
       | 'done.invoke.roap.creatingLocalOffer:invocation[0]'
       | 'ERROR_ARRIVED';
     handleRemoteOffer: 'REMOTE_OFFER_ARRIVED';
     handleRemoteAnswer: 'REMOTE_ANSWER_ARRIVED';
   };
   eventsCausingGuards: {
-    isPendingLocalOffer: 'always' | 'done.invoke.roap.creatingLocalOffer:invocation[0]';
     isLowerOrEqualSeq: 'REMOTE_OFFER_ARRIVED' | 'REMOTE_OFFER_REQUEST_ARRIVED';
     isLowerSeq:
       | 'REMOTE_ANSWER_ARRIVED'
@@ -104,6 +104,7 @@ export interface Typegen0 {
       | 'REMOTE_OFFER_ARRIVED'
       | 'REMOTE_OFFER_REQUEST_ARRIVED';
     isSameSeq: 'REMOTE_ANSWER_ARRIVED' | 'ERROR_ARRIVED' | 'REMOTE_OFFER_ARRIVED';
+    isPendingLocalOffer: '' | 'done.invoke.roap.creatingLocalOffer:invocation[0]';
     isHandlingOfferRequest:
       | 'done.invoke.roap.creatingLocalOffer:invocation[0]'
       | 'REMOTE_OFFER_REQUEST_ARRIVED';
