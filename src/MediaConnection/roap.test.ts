@@ -53,6 +53,7 @@ describe('Roap', () => {
         try {
           // we were already waiting for a message, so check if it matches what we're waiting for
           expect(roapMessage).toEqual(expectedNextRoap.message);
+          log('waitForRoapMessage(): expected roapMessage received');
           expectedNextRoap.resolve();
         } catch (e) {
           expectedNextRoap.reject(e);
@@ -76,7 +77,7 @@ describe('Roap', () => {
   });
 
   const waitForRoapMessage = (expectedMessage: RoapMessage): Promise<void> => {
-    log(`test expecting roapMessage ${JSON.stringify(expectedMessage)}`);
+    log(`waitForRoapMessage(): test expecting roapMessage ${JSON.stringify(expectedMessage)}`);
 
     return new Promise((resolve, reject) => {
       if (receivedRoapMessages.length > 0) {
@@ -85,6 +86,7 @@ describe('Roap', () => {
 
         // it matched the expected one so we can remove it from receivedRoapMessages
         receivedRoapMessages.shift();
+        log('waitForRoapMessage(): expected roapMessage has already been received');
         resolve();
       } else {
         // we will wait for the message...
