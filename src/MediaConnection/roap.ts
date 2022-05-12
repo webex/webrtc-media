@@ -124,12 +124,14 @@ export class Roap extends EventEmitter {
            */
           browserError: {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            onEntry: (context, event) =>
+            onEntry: (context, event) => {
               this.error(
                 'FSM',
                 `browserError state onEntry: context=${JSON.stringify(context)}:`,
                 (event as ErrorPlatformEvent).data
-              ),
+              );
+              this.emit(Event.ROAP_FAILURE);
+            },
           },
           /**
            * Error state - we get here if we receive an ERROR message from the server in reply to one of our Roap messages

@@ -1,7 +1,7 @@
 import {StateValue} from 'xstate';
 import {Roap} from './roap';
 import {Event, RoapMessage} from './eventTypes';
-import {createControlledPromise} from './testUtils';
+import {createControlledPromise, IControlledPromise} from './testUtils';
 
 describe('Roap', () => {
   let roap: Roap;
@@ -32,20 +32,27 @@ describe('Roap', () => {
 
   const {log} = console;
 
-  const receivedRoapMessages: Array<RoapMessage> = [];
-  const expectedNextRoap: {
+  let receivedRoapMessages: Array<RoapMessage>;
+  let expectedNextRoap: {
     message?: RoapMessage;
     resolve?: () => void;
     reject?: (e: unknown) => void;
-  } = {};
+  };
 
   let roapStateMachineState: string;
-  const waitingForState: {
+  let waitingForState: {
     state?: string;
     resolve?: () => void;
-  } = {};
+  };
 
   beforeEach(() => {
+    // reset all the variables, so that each test is independent from previous test runs
+    receivedRoapMessages = [];
+    expectedNextRoap = {};
+    roapStateMachineState = '';
+    waitingForState = {};
+
+    // create the roap instance and setup listeners
     roap = new Roap(peerConnection, processLocalSdp);
     roap.on(Event.ROAP_MESSAGE_TO_SEND, ({roapMessage}) => {
       log(`Event.ROAP_MESSAGE_TO_SEND: ${JSON.stringify(roapMessage)}`);
@@ -318,9 +325,11 @@ describe('Roap', () => {
   });
 
   describe('Error messages', () => {
-    const roapFailurePromise = createControlledPromise();
+    let roapFailurePromise: IControlledPromise<unknown>;
 
     beforeEach(() => {
+      roapFailurePromise = createControlledPromise();
+
       roap.on(Event.ROAP_FAILURE, () => {
         log('got ROAP_FAILURE event');
         roapFailurePromise.resolve({});
@@ -501,6 +510,9 @@ describe('Roap', () => {
         errorType: 'FAILED',
         seq: 1,
       });
+
+      await waitForState('browserError');
+      await roapFailurePromise;
     });
 
     it('sends FAILED error if browser rejects the remote SDP answer', async () => {
@@ -528,6 +540,9 @@ describe('Roap', () => {
         errorType: 'FAILED',
         seq: 1,
       });
+
+      await waitForState('browserError');
+      await roapFailurePromise;
     });
   });
 });
