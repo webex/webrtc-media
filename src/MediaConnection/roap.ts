@@ -109,6 +109,7 @@ export class Roap extends EventEmitter {
             handleRemoteOffer: {data: MUNGED_LOCAL_SDP};
           },
         },
+        preserveActionOrder: true,
         id: 'roap',
         initial: 'idle', // initial state
         context: {

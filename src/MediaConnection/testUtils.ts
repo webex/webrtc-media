@@ -1,3 +1,5 @@
+import {setImmediate} from 'timers';
+
 export interface IControlledPromise<T> extends Promise<T> {
   resolve: (value: T) => void;
   reject: (error: Error) => void;
@@ -21,3 +23,5 @@ export const createControlledPromise = (): IControlledPromise<unknown> => {
 
   return promise;
 };
+
+export const flushPromises = () => new Promise(setImmediate);
