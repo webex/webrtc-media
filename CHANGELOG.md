@@ -1,3 +1,16 @@
+## [1.19.6](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.5...v1.19.6) (2022-05-16)
+
+
+### Bug Fixes
+
+* **media:** clean up the mock ([0a9ffa0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/0a9ffa0613fe8bca3e4b2084f4093cb88c80e27a))
+* add custom tracks and remove un unsed code ([916025e](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/916025e83c393d315c4c9828eea93ef0e99604ae))
+* **Track:** add events and remove subscription ([a4902e8](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/a4902e8c344d09063b2525b68d1d713d38ea69a0))
+* adding typescript to roap state machine, fixing typos in some event names ([7672d28](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/7672d2820499f5d1ab4b0175646a7bd56a3ee288))
+* improved logs in roap unit tests ([8007726](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/80077266e29893a4ec16c9e7869d3d6e7f9d383b))
+* incorrect use of 'always' in roap state machine ([5b7253c](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/5b7253c3695533a63d5071eada496321bdb69d29))
+* spark-318696 take out SDP processing code out of roap module ([93f3cff](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/93f3cff40db2484dc9b22098a6e5898a42d7ed93))
+
 ## [1.19.5](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.4...v1.19.5) (2022-05-05)
 
 
