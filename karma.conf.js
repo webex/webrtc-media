@@ -1,22 +1,15 @@
 // eslint-disable-next-line
-const dotenv = require('dotenv')
+const dotenv = require('dotenv');
 dotenv.config();
 // eslint-disable-next-line
 const typescriptTransform = require('karma-typescript-es6-transform');
 // eslint-disable-next-line
-process.env.CHROME_BIN = require('puppeteer')
-  .executablePath();
+process.env.CHROME_BIN = require('puppeteer').executablePath();
 
 // Karma configuration
 module.exports = (config) => {
-  const {
-    SAUCE,
-    SAUCE_USERNAME,
-    SAUCE_ACCESS_KEY,
-    TEST_TIMEOUT,
-    BUILD_NUMBER,
-    NODE_ENV,
-  } = process.env;
+  const {SAUCE, SAUCE_USERNAME, SAUCE_ACCESS_KEY, TEST_TIMEOUT, BUILD_NUMBER, NODE_ENV} =
+    process.env;
 
   const browsers = ['chrome'];
   const appName = 'webrtc-media-core';
@@ -151,9 +144,7 @@ module.exports = (config) => {
     process.exit(1);
   }
 
-  const files = [
-    'src/**/*.ts',
-  ];
+  const files = ['src/**/*.ts'];
 
   const karmaConfig = {
     basePath: '.',
@@ -162,14 +153,8 @@ module.exports = (config) => {
     preprocessors: {
       'src/**/*.ts': ['karma-typescript'],
     },
-    exclude: [],
-    reporters: [
-      'junit',
-      'karma-typescript',
-      'saucelabs',
-      'mocha',
-      'coverage',
-    ],
+    exclude: ['src/**/*.test.ts'],
+    reporters: ['junit', 'karma-typescript', 'saucelabs', 'mocha', 'coverage'],
     port: 9876,
     logLevel: config.DEBUG,
     autoWatch: false,
@@ -219,10 +204,7 @@ module.exports = (config) => {
           '*.wbx2.com',
           '*.ciscospark.com',
         ],
-        tunnelDomains: [
-          '127.0.0.1',
-          'localhost',
-        ],
+        tunnelDomains: ['127.0.0.1', 'localhost'],
       },
     },
     coverageReporter: {
