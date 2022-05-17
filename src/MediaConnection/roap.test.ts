@@ -1,25 +1,23 @@
+import {CustomConsole, LogType, LogMessage} from '@jest/console';
 import {StateValue} from 'xstate';
 import {Roap} from './roap';
-import {Event, RoapMessage} from './eventTypes';
+import {Event, ErrorType, RoapMessage} from './eventTypes';
 import {createControlledPromise, IControlledPromise, flushPromises} from './testUtils';
+import logger from '../Logger';
 
 describe('Roap', () => {
+  let previousConsole: Console;
   let roap: Roap;
 
   const FAKE_LOCAL_SDP = 'some local SDP';
   const MUNGED_LOCAL_SDP = 'munged local SDP';
   const FAKE_REMOTE_SDP = 'some remote SDP';
 
-  const peerConnection = {
-    createOffer: jest.fn().mockResolvedValue({type: 'offer', sdp: FAKE_LOCAL_SDP}),
-    setLocalDescription: jest.fn().mockResolvedValue({}),
-    setRemoteDescription: jest.fn().mockResolvedValue({}),
-    createAnswer: jest.fn().mockResolvedValue({type: 'answer', sdp: FAKE_LOCAL_SDP}),
-    iceGatheringState: 'complete',
-    localDescription: {sdp: FAKE_LOCAL_SDP},
-  } as unknown as RTCPeerConnection;
+  let peerConnection: RTCPeerConnection;
+  let processLocalSdp: jest.Mock<Promise<{sdp: string}>, []>;
 
-  const processLocalSdp = jest.fn().mockResolvedValue({sdp: MUNGED_LOCAL_SDP});
+  const log = (action: string, description: string) =>
+    logger.info({ID: 'Test', mediaType: 'Test', action, description});
 
   const resetPeerConnectionMocks = () => {
     (peerConnection.createOffer as jest.Mock).mockClear();
@@ -29,8 +27,6 @@ describe('Roap', () => {
     // so we need to reset it here too
     processLocalSdp.mockClear();
   };
-
-  const {log} = console;
 
   let receivedRoapMessages: Array<RoapMessage>;
   let expectedNextRoap: {
@@ -45,6 +41,20 @@ describe('Roap', () => {
     resolve?: () => void;
   };
 
+  beforeAll(() => {
+    previousConsole = global.console;
+    // make the console logs shown by jest more concise (1 line instead of 5 for each console.log call)
+    global.console = new CustomConsole(
+      process.stdout,
+      process.stderr,
+      (_type: LogType, message: LogMessage) => message
+    );
+  });
+
+  afterAll(() => {
+    global.console = previousConsole;
+  });
+
   beforeEach(() => {
     // reset all the variables, so that each test is independent from previous test runs
     receivedRoapMessages = [];
@@ -52,16 +62,28 @@ describe('Roap', () => {
     roapStateMachineState = '';
     waitingForState = {};
 
+    // also reset the mock, because it is changed in some of the tests
+    peerConnection = {
+      createOffer: jest.fn().mockResolvedValue({type: 'offer', sdp: FAKE_LOCAL_SDP}),
+      setLocalDescription: jest.fn().mockResolvedValue({}),
+      setRemoteDescription: jest.fn().mockResolvedValue({}),
+      createAnswer: jest.fn().mockResolvedValue({type: 'answer', sdp: FAKE_LOCAL_SDP}),
+      iceGatheringState: 'complete',
+      localDescription: {sdp: FAKE_LOCAL_SDP},
+    } as unknown as RTCPeerConnection;
+
+    processLocalSdp = jest.fn().mockResolvedValue({sdp: MUNGED_LOCAL_SDP});
+
     // create the roap instance and setup listeners
     roap = new Roap(peerConnection, processLocalSdp);
     roap.on(Event.ROAP_MESSAGE_TO_SEND, ({roapMessage}) => {
-      log(`Event.ROAP_MESSAGE_TO_SEND: ${JSON.stringify(roapMessage)}`);
+      log('Event.ROAP_MESSAGE_TO_SEND', `${JSON.stringify(roapMessage)}`);
 
       if (expectedNextRoap.resolve && expectedNextRoap.reject) {
         try {
           // we were already waiting for a message, so check if it matches what we're waiting for
           expect(roapMessage).toEqual(expectedNextRoap.message);
-          log('waitForRoapMessage(): expected roapMessage received');
+          log('waitForRoapMessage()', 'expected roapMessage received');
           expectedNextRoap.resolve();
         } catch (e) {
           expectedNextRoap.reject(e);
@@ -82,10 +104,13 @@ describe('Roap', () => {
         waitingForState.state = undefined;
       }
     });
+
+    // eslint-disable-next-line no-console
+    console.log(`======================== TEST: ${expect.getState().currentTestName}`);
   });
 
   const waitForRoapMessage = (expectedMessage: RoapMessage): Promise<void> => {
-    log(`waitForRoapMessage(): test expecting roapMessage ${JSON.stringify(expectedMessage)}`);
+    log('waitForRoapMessage()', `test expecting roapMessage ${JSON.stringify(expectedMessage)}`);
 
     return new Promise((resolve, reject) => {
       if (receivedRoapMessages.length > 0) {
@@ -94,7 +119,7 @@ describe('Roap', () => {
 
         // it matched the expected one so we can remove it from receivedRoapMessages
         receivedRoapMessages.shift();
-        log('waitForRoapMessage(): expected roapMessage has already been received');
+        log('waitForRoapMessage()', 'expected roapMessage has already been received');
         resolve();
       } else {
         // we will wait for the message...
@@ -107,13 +132,13 @@ describe('Roap', () => {
 
   const waitForState = (expectedState: string): Promise<void> => {
     if (roapStateMachineState === expectedState) {
-      log(`state already matching expectedState ${expectedState}`);
+      log('waitForState()', `state already matching expectedState ${expectedState}`);
 
       return Promise.resolve();
     }
 
     return new Promise((resolve) => {
-      log(`waiting for roap state machine to reach ${expectedState}`);
+      log('waitForState()', `waiting for roap state machine to reach ${expectedState}`);
       waitingForState.state = expectedState;
       waitingForState.resolve = resolve;
     });
@@ -297,7 +322,7 @@ describe('Roap', () => {
         // glare has happened - this should trigger an ERROR CONFLICT
         await waitForRoapMessage({
           messageType: 'ERROR',
-          errorType: 'CONFLICT',
+          errorType: ErrorType.CONFLICT,
           seq: 1,
         });
 
@@ -328,7 +353,7 @@ describe('Roap', () => {
         // glare has happened - this should trigger an ERROR CONFLICT
         await waitForRoapMessage({
           messageType: 'ERROR',
-          errorType: 'CONFLICT',
+          errorType: ErrorType.CONFLICT,
           seq: 1,
         });
       }
@@ -545,7 +570,7 @@ describe('Roap', () => {
       roapFailurePromise = createControlledPromise();
 
       roap.on(Event.ROAP_FAILURE, () => {
-        log('got ROAP_FAILURE event');
+        log('Event.ROAP_FAILURE', 'got ROAP_FAILURE event');
         roapFailurePromise.resolve({});
       });
     });
@@ -567,7 +592,7 @@ describe('Roap', () => {
       // simulate DOUBLECONFLICT from the backend
       roap.roapMessageReceived({
         messageType: 'ERROR',
-        errorType: 'DOUBLECONFLICT',
+        errorType: ErrorType.DOUBLECONFLICT,
         seq: 1,
       });
 
@@ -585,7 +610,12 @@ describe('Roap', () => {
       await checkRemoteAnswerOkFlow(2);
     });
 
-    const retryableErrors = ['DOUBLECONFLICT', 'INVALID_STATE', 'OUT_OF_ORDER', 'RETRY'];
+    const retryableErrors = [
+      ErrorType.DOUBLECONFLICT,
+      ErrorType.INVALID_STATE,
+      ErrorType.OUT_OF_ORDER,
+      ErrorType.RETRY,
+    ];
 
     retryableErrors.map((errorType) =>
       it(`${errorType} triggers no more than 2 offer retries`, async () => {
@@ -601,7 +631,7 @@ describe('Roap', () => {
         expectLocalOfferToBeCreated(FAKE_LOCAL_SDP);
         resetPeerConnectionMocks();
 
-        // simulate error from the backend
+        // simulate error from the backend instead of the answer
         roap.roapMessageReceived({
           messageType: 'ERROR',
           errorType,
@@ -619,7 +649,7 @@ describe('Roap', () => {
         expectLocalOfferToBeCreated(FAKE_LOCAL_SDP);
         resetPeerConnectionMocks();
 
-        // simulate a second error from the backend
+        // simulate a second error from the backend instead of the answer
         roap.roapMessageReceived({
           messageType: 'ERROR',
           errorType,
@@ -637,7 +667,7 @@ describe('Roap', () => {
         expectLocalOfferToBeCreated(FAKE_LOCAL_SDP);
         resetPeerConnectionMocks();
 
-        // simulate a third error from the backend
+        // simulate a third error from the backend instead of the answer
         roap.roapMessageReceived({
           messageType: 'ERROR',
           errorType,
@@ -663,7 +693,7 @@ describe('Roap', () => {
       // simulate unrecoverable error from the backend
       roap.roapMessageReceived({
         messageType: 'ERROR',
-        errorType: 'CONFLICT',
+        errorType: ErrorType.CONFLICT,
         seq: 1,
       });
 
@@ -710,7 +740,7 @@ describe('Roap', () => {
 
       await waitForRoapMessage({
         messageType: 'ERROR',
-        errorType: 'FAILED',
+        errorType: ErrorType.FAILED,
         seq: 1,
       });
 
@@ -740,12 +770,278 @@ describe('Roap', () => {
 
       await waitForRoapMessage({
         messageType: 'ERROR',
-        errorType: 'FAILED',
+        errorType: ErrorType.FAILED,
         seq: 1,
       });
 
       await waitForState('browserError');
       await roapFailurePromise;
+    });
+
+    it('sends FAILED error if browser fails to create a local SDP offer', async () => {
+      processLocalSdp.mockRejectedValue(new Error('local SDP rejected'));
+
+      roap.initiateOffer();
+
+      await waitForState('browserError');
+      await roapFailurePromise;
+    });
+  });
+
+  describe('Unexpected messages', () => {
+    /** Sends a message and expects INVALID_STATE error in response
+     *  (does this twice: first with the correct seq, second with a higher seq)
+     */
+    const checkInvalidStateError = async (
+      messageType: 'ANSWER' | 'OK' | 'OFFER' | 'OFFER_REQUEST',
+      seq: number
+    ) => {
+      // simulate message arriving with the correct seq
+      roap.roapMessageReceived({messageType, seq, sdp: FAKE_REMOTE_SDP});
+
+      await waitForRoapMessage({messageType: 'ERROR', errorType: ErrorType.INVALID_STATE, seq});
+
+      // and with a higher seq
+      roap.roapMessageReceived({messageType, seq: seq + 10, sdp: FAKE_REMOTE_SDP});
+
+      await waitForRoapMessage({
+        messageType: 'ERROR',
+        errorType: ErrorType.INVALID_STATE,
+        seq: seq + 10,
+      });
+    };
+
+    it('sends INVALID_STATE error when receiving messages in wrong state (client initiates the offer)', async () => {
+      const setLocalDescriptionPromise = createControlledPromise();
+      const setRemoteDescriptionPromise = createControlledPromise();
+
+      peerConnection.setLocalDescription = jest.fn().mockReturnValue(setLocalDescriptionPromise);
+      peerConnection.setRemoteDescription = jest.fn().mockReturnValue(setRemoteDescriptionPromise);
+
+      // first check in idle state, before we do anything
+      await checkInvalidStateError('ANSWER', 1);
+      await checkInvalidStateError('OK', 1);
+
+      roap.initiateOffer();
+
+      await flushPromises();
+
+      // now check again while we're creating the local offer
+      await checkInvalidStateError('ANSWER', 1);
+      await checkInvalidStateError('OK', 1);
+
+      // now let setting of local offer to complete
+      setLocalDescriptionPromise.resolve({});
+
+      await waitForRoapMessage({
+        messageType: 'OFFER',
+        seq: 1,
+        sdp: MUNGED_LOCAL_SDP,
+        tieBreaker: 0xfffffffe,
+      });
+
+      expectLocalOfferToBeCreated(FAKE_LOCAL_SDP);
+
+      // check that we send error for OK arriving while we're waiting for an ANSWER
+      await checkInvalidStateError('OK', 1);
+
+      // simulate answer coming from the backend
+      roap.roapMessageReceived({
+        messageType: 'ANSWER',
+        seq: 1,
+        sdp: FAKE_REMOTE_SDP,
+      });
+
+      // check that we send error for unexpected messages while we're processing the ANSWER
+      await checkInvalidStateError('OFFER', 1);
+      await checkInvalidStateError('OFFER_REQUEST', 1);
+      await checkInvalidStateError('OK', 1);
+
+      // now let the answer processing finish
+      setRemoteDescriptionPromise.resolve({});
+
+      await waitForRoapMessage({
+        messageType: 'OK',
+        seq: 1,
+      });
+
+      // we should be back to idle now (with increased seq), so ANSWER and OK should trigger "invalid state" error again
+      await checkInvalidStateError('ANSWER', 2);
+      await checkInvalidStateError('OK', 2);
+
+      await waitForState('idle');
+    });
+
+    it('sends INVALID_STATE error when receiving messages in wrong state (server initiates the offer)', async () => {
+      const setRemoteDescriptionPromise = createControlledPromise();
+
+      peerConnection.setRemoteDescription = jest.fn().mockReturnValue(setRemoteDescriptionPromise);
+
+      // simulate offer coming from the backend
+      roap.roapMessageReceived({
+        messageType: 'OFFER',
+        seq: 1,
+        sdp: FAKE_REMOTE_SDP,
+        tieBreaker: 0x100,
+      });
+
+      // check that we send error for unexpected messages while we're processing the remote OFFER
+      await checkInvalidStateError('ANSWER', 1);
+      await checkInvalidStateError('OK', 1);
+      await checkInvalidStateError('OFFER_REQUEST', 1);
+
+      // now let the offer processing finish
+      setRemoteDescriptionPromise.resolve({});
+
+      await waitForRoapMessage({
+        messageType: 'ANSWER',
+        seq: 1,
+        sdp: MUNGED_LOCAL_SDP,
+      });
+
+      expectLocalAnswerToBeCreated(FAKE_REMOTE_SDP, FAKE_LOCAL_SDP);
+
+      // check that we send error for unexpected messages while we're waiting for OK from the server
+      await checkInvalidStateError('ANSWER', 1);
+      await checkInvalidStateError('OFFER_REQUEST', 1);
+
+      // simulate ok coming from the backend
+      roap.roapMessageReceived({
+        messageType: 'OK',
+        seq: 1,
+      });
+
+      await waitForState('idle');
+    });
+  });
+
+  describe('Duplicate messages from server', () => {
+    /** Sends a message and expects INVALID_STATE error in response
+     *  (does this twice: first with the correct seq, second with a higher seq)
+     */
+    const checkDuplicateIgnored = async (
+      messageType: 'ANSWER' | 'OFFER' | 'OFFER_REQUEST',
+      seq: number
+    ) => {
+      const stateBeforeMessageReceived = roapStateMachineState;
+
+      // simulate a message arriving
+      roap.roapMessageReceived({messageType, seq, sdp: FAKE_REMOTE_SDP});
+
+      await flushPromises();
+
+      // there should be no new notification as the message was ignored
+      expect(receivedRoapMessages.length).toEqual(0);
+      // and the state should not have changed either
+      expect(stateBeforeMessageReceived).toEqual(roapStateMachineState);
+    };
+
+    it('ignores duplicate ANSWER from the server', async () => {
+      const setRemoteDescriptionPromise = createControlledPromise();
+
+      peerConnection.setRemoteDescription = jest.fn().mockReturnValue(setRemoteDescriptionPromise);
+
+      roap.initiateOffer();
+
+      await waitForRoapMessage({
+        messageType: 'OFFER',
+        seq: 1,
+        sdp: MUNGED_LOCAL_SDP,
+        tieBreaker: 0xfffffffe,
+      });
+
+      expectLocalOfferToBeCreated(FAKE_LOCAL_SDP);
+
+      // simulate answer coming from the backend
+      roap.roapMessageReceived({
+        messageType: 'ANSWER',
+        seq: 1,
+        sdp: FAKE_REMOTE_SDP,
+      });
+
+      // check that a second one is ignored
+      await checkDuplicateIgnored('ANSWER', 1);
+
+      // now let the answer processing finish
+      setRemoteDescriptionPromise.resolve({});
+
+      await waitForRoapMessage({
+        messageType: 'OK',
+        seq: 1,
+      });
+
+      await checkDuplicateIgnored('ANSWER', 1);
+
+      await waitForState('idle');
+
+      await checkDuplicateIgnored('ANSWER', 1);
+    });
+
+    it('ignores duplicate OFFER from the server', async () => {
+      const setRemoteDescriptionPromise = createControlledPromise();
+
+      peerConnection.setRemoteDescription = jest.fn().mockReturnValue(setRemoteDescriptionPromise);
+
+      // simulate offer coming from the backend
+      roap.roapMessageReceived({
+        messageType: 'OFFER',
+        seq: 1,
+        sdp: FAKE_REMOTE_SDP,
+        tieBreaker: 0x100,
+      });
+
+      // check that a second one is ignored
+      await checkDuplicateIgnored('OFFER', 1);
+
+      // now let the offer processing finish
+      setRemoteDescriptionPromise.resolve({});
+
+      await waitForRoapMessage({
+        messageType: 'ANSWER',
+        seq: 1,
+        sdp: MUNGED_LOCAL_SDP,
+      });
+
+      expectLocalAnswerToBeCreated(FAKE_REMOTE_SDP, FAKE_LOCAL_SDP);
+
+      await checkDuplicateIgnored('OFFER', 1);
+
+      // simulate ok coming from the backend
+      roap.roapMessageReceived({
+        messageType: 'OK',
+        seq: 1,
+      });
+
+      await waitForState('idle');
+    });
+
+    it('ignores duplicate OFFER_REQUEST from the server', async () => {
+      const setLocalDescriptionPromise = createControlledPromise();
+
+      peerConnection.setLocalDescription = jest.fn().mockReturnValue(setLocalDescriptionPromise);
+
+      roap.roapMessageReceived({
+        messageType: 'OFFER_REQUEST',
+        seq: 1,
+      });
+
+      // check that a second one is ignored
+      await checkDuplicateIgnored('OFFER_REQUEST', 1);
+
+      setLocalDescriptionPromise.resolve({});
+
+      await waitForRoapMessage({
+        messageType: 'OFFER_RESPONSE',
+        seq: 1,
+        sdp: MUNGED_LOCAL_SDP,
+      });
+
+      expectLocalOfferToBeCreated(FAKE_LOCAL_SDP);
+
+      await checkDuplicateIgnored('OFFER_REQUEST', 1);
+
+      // let the flow finish
+      await checkRemoteAnswerOkFlow(1);
     });
   });
 });

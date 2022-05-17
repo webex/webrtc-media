@@ -50,6 +50,7 @@
     "@babel/preset-typescript": "^7.16.7",
     "@commitlint/cli": "^13.1.0",
     "@commitlint/config-conventional": "^13.1.0",
+    "@jest/console": "^28.1.0",
     "@microsoft/api-documenter": "^7.13.54",
     "@microsoft/api-extractor": "^7.18.11",
     "@rollup/plugin-commonjs": "^21.0.2",

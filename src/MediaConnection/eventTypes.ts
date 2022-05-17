@@ -30,6 +30,18 @@ export interface RemoteTrackAddedEvent {
   track: MediaStreamTrack;
 }
 
+export enum ErrorType {
+  DOUBLECONFLICT = 'DOUBLECONFLICT',
+  CONFLICT = 'CONFLICT',
+  FAILED = 'FAILED',
+  INVALID_STATE = 'INVALID_STATE',
+  NOMATCH = 'NOMATCH', // not used
+  OUT_OF_ORDER = 'OUT_OF_ORDER',
+  REFUSED = 'REFUSED', // not used
+  RETRY = 'RETRY',
+  TIMEOUT = 'TIMEOUT', // not used
+}
+
 // TODO: create separate type for each roap message type
 
 /**
@@ -42,7 +54,7 @@ export interface RoapMessage {
   answererSessionId?: string;
   sdp?: string;
   tieBreaker?: number;
-  errorType?: string; // used only if messageType==='ERROR'  // todo enum
+  errorType?: ErrorType; // used only if messageType==='ERROR'
   retryAfter?: number; // in seconds, used only with some errors (messageType==='ERROR')
 }
 

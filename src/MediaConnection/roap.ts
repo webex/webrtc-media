@@ -4,7 +4,7 @@ import {assign, createMachine, ErrorPlatformEvent, interpret} from 'xstate';
 
 import logger from '../Logger';
 import {ROAP} from '../constants';
-import {Event, RoapMessage} from './eventTypes';
+import {Event, ErrorType, RoapMessage} from './eventTypes';
 
 /*  WARNING:
  *  this module uses an xstate state machine, which depends on an auto-generated file roap.typegen.ts for
@@ -53,7 +53,7 @@ type FsmEvent =
     }
   | {
       type: 'ERROR_ARRIVED';
-      errorType: string;
+      errorType: ErrorType;
       seq: number;
     };
 
@@ -145,6 +145,9 @@ export class Roap extends EventEmitter {
               this.emit(Event.ROAP_FAILURE);
             },
           },
+          /**
+           * Idle state - this is where we start and go back to it after SDP exchange is completed
+           */
           idle: {
             always: {
               cond: 'isPendingLocalOffer',
@@ -430,10 +433,10 @@ export class Roap extends EventEmitter {
 
           shouldErrorTriggerOfferRetry: (context, event) => {
             const retryableErrorTypes = [
-              'DOUBLECONFLICT',
-              'INVALID_STATE',
-              'OUT_OF_ORDER',
-              'RETRY',
+              ErrorType.DOUBLECONFLICT,
+              ErrorType.INVALID_STATE,
+              ErrorType.OUT_OF_ORDER,
+              ErrorType.RETRY,
             ];
 
             if (retryableErrorTypes.includes(event.errorType)) {
@@ -606,7 +609,7 @@ export class Roap extends EventEmitter {
       case 'ERROR':
         this.error('roapMessageReceived', `Error received: seq=${seq} type=${errorType}`);
 
-        if (errorType === 'CONFLICT') {
+        if (errorType === ErrorType.CONFLICT) {
           this.error(
             'roapMessageReceived',
             `CONFLICT error type received - this should never happen, because we use the tieBreaker value ${WEB_TIEBREAKER_VALUE}`
