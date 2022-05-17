@@ -119,6 +119,37 @@ describe('Roap', () => {
     });
   };
 
+  // goes through the flow from the point where we receive a remote answer
+  const checkRemoteAnswerOkFlow = async (seq: number) => {
+    roap.roapMessageReceived({
+      messageType: 'ANSWER',
+      seq,
+      sdp: FAKE_REMOTE_SDP,
+    });
+
+    await waitForRoapMessage({
+      messageType: 'OK',
+      seq,
+    });
+
+    await waitForState('idle');
+  };
+
+  // goes through a flow that starts with a local OFFER being created,
+  // followed by remote ANSWER simulated, then local OK generated
+  // and finally state machine going to idle state
+  const checkLocalOfferAnswerOkFlow = async (seq: number) => {
+    await waitForRoapMessage({
+      messageType: 'OFFER',
+      seq,
+      sdp: MUNGED_LOCAL_SDP,
+      tieBreaker: 0xfffffffe,
+    });
+
+    // now proceed with the rest of the flow
+    await checkRemoteAnswerOkFlow(seq);
+  };
+
   /** verifies that the correct calls were made to the browser
    *  to trigger a new SDP offer
    */
@@ -303,18 +334,7 @@ describe('Roap', () => {
       }
 
       // now proceed with the rest of the flow (backend should still send us an answer because we won the conflict)
-      roap.roapMessageReceived({
-        messageType: 'ANSWER',
-        seq: 1,
-        sdp: FAKE_REMOTE_SDP,
-      });
-
-      await waitForRoapMessage({
-        messageType: 'OK',
-        seq: 1,
-      });
-
-      await waitForState('idle');
+      await checkRemoteAnswerOkFlow(1);
     };
 
     it('works correctly when remote OFFER arrives AFTER our offer got created', async () =>
@@ -327,32 +347,6 @@ describe('Roap', () => {
       runTest('OFFER_REQUEST', true));
 
     describe('queueing when initiateOffer() is called', () => {
-      // goes through a flow that starts with a local OFFER being created,
-      // followed by remote ANSWER simulated, then local OK generated
-      // and finally state maching going to idle state
-      const checkNormalOfferAnswerOkFlow = async (seq: number) => {
-        await waitForRoapMessage({
-          messageType: 'OFFER',
-          seq,
-          sdp: MUNGED_LOCAL_SDP,
-          tieBreaker: 0xfffffffe,
-        });
-
-        // now proceed with the rest of the flow
-        roap.roapMessageReceived({
-          messageType: 'ANSWER',
-          seq,
-          sdp: FAKE_REMOTE_SDP,
-        });
-
-        await waitForRoapMessage({
-          messageType: 'OK',
-          seq,
-        });
-
-        await waitForState('idle');
-      };
-
       const testInitiateOffer = async (
         whenToCallInitiateOffer: 'WHILE_PROCESSING_REMOTE_OFFER' | 'WHILE_WAITING_FOR_OK'
       ) => {
@@ -400,7 +394,7 @@ describe('Roap', () => {
         });
 
         // now instead of just staying in "idle" state, we should proceed to create a new local offer (with increased seq)
-        await checkNormalOfferAnswerOkFlow(2);
+        await checkLocalOfferAnswerOkFlow(2);
       };
 
       it('queues another SDP exchange if initiateOffer() is called after receiving remote offer', async () => {
@@ -438,18 +432,7 @@ describe('Roap', () => {
         expect(processLocalSdp).toBeCalledTimes(2);
 
         // simulate answer coming from the backend
-        roap.roapMessageReceived({
-          messageType: 'ANSWER',
-          seq: 1,
-          sdp: FAKE_REMOTE_SDP,
-        });
-
-        await waitForRoapMessage({
-          messageType: 'OK',
-          seq: 1,
-        });
-
-        await waitForState('idle');
+        await checkRemoteAnswerOkFlow(1);
       });
 
       it('restarts SDP exchange if initiateOffer() is called while handling OFFER_REQUEST message', async () => {
@@ -483,18 +466,7 @@ describe('Roap', () => {
         expect(processLocalSdp).toBeCalledTimes(2);
 
         // simulate answer coming from the backend
-        roap.roapMessageReceived({
-          messageType: 'ANSWER',
-          seq: 1,
-          sdp: FAKE_REMOTE_SDP,
-        });
-
-        await waitForRoapMessage({
-          messageType: 'OK',
-          seq: 1,
-        });
-
-        await waitForState('idle');
+        await checkRemoteAnswerOkFlow(1);
       });
 
       it('queues another SDP exchange if initiateOffer() is called while waiting for answer', async () => {
@@ -523,7 +495,7 @@ describe('Roap', () => {
         });
 
         // now instead of just staying in "idle" state, we should proceed to create a new local offer (with increased seq)
-        await checkNormalOfferAnswerOkFlow(2);
+        await checkLocalOfferAnswerOkFlow(2);
       });
 
       it('queues another SDP exchange if initiateOffer() is called while processing an answer', async () => {
@@ -561,7 +533,7 @@ describe('Roap', () => {
         });
 
         // now instead of just staying in "idle" state, we should proceed to create a new local offer (with increased seq)
-        await checkNormalOfferAnswerOkFlow(2);
+        await checkLocalOfferAnswerOkFlow(2);
       });
     });
   });
@@ -610,18 +582,7 @@ describe('Roap', () => {
       expectLocalOfferToBeCreated(FAKE_LOCAL_SDP);
 
       // check the rest of the sequence succeeds
-      roap.roapMessageReceived({
-        messageType: 'ANSWER',
-        seq: 2,
-        sdp: FAKE_REMOTE_SDP,
-      });
-
-      await waitForRoapMessage({
-        messageType: 'OK',
-        seq: 2,
-      });
-
-      await waitForState('idle');
+      await checkRemoteAnswerOkFlow(2);
     });
 
     const retryableErrors = ['DOUBLECONFLICT', 'INVALID_STATE', 'OUT_OF_ORDER', 'RETRY'];
