@@ -1,3 +1,16 @@
+## [1.19.7](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.6...v1.19.7) (2022-05-18)
+
+
+### Bug Fixes
+
+* **roap:** added roap test for queueing of local offers ([c3ed133](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/c3ed13368425c1e527b00357d68f8fd662143319))
+* **roap:** added tests for messages with old seq ([7483294](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/7483294de4b5cf711ce66858f10d733be465ea36))
+* **roap:** emitting Event.ROAP_FAILURE on browserError entry ([c091d93](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/c091d932394008e842116443cb8a82e85bbfbe2b))
+* **roap:** karma builds ([ca33f9f](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/ca33f9f5335ab072e5302119432473347f9f256d))
+* **roap:** more roap unit tests and 1 small fix ([503f821](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/503f821085b0f0aa3849465f20dc0fa5ddbaf07c))
+* **roap:** more tests, added errorType enum, improved jest console logs ([220fded](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/220fded478d9cb23ee94a55a1d9a1a7aa7f59a54))
+* **roap:** test refactor ([45e9e4f](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/45e9e4f632c376ff40dc80f0f5e8b5a0588f632a))
+
 ## [1.19.6](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.5...v1.19.6) (2022-05-16)
 
 
