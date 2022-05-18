@@ -1044,4 +1044,205 @@ describe('Roap', () => {
       await checkRemoteAnswerOkFlow(1);
     });
   });
+
+  describe('messages with old seq are rejected with OUT_OF_ORDER error or ignored', () => {
+    /** Sends a message and expects OUT_OF_ORDER error in response
+     */
+    const checkOutOfOrderError = async (
+      messageType: 'ANSWER' | 'OK' | 'OFFER' | 'OFFER_REQUEST',
+      seq: number
+    ) => {
+      // simulate message arriving with the correct seq
+      roap.roapMessageReceived({messageType, seq, sdp: FAKE_REMOTE_SDP});
+
+      await waitForRoapMessage({messageType: 'ERROR', errorType: ErrorType.OUT_OF_ORDER, seq});
+    };
+
+    /** Sends ERROR messages with old seq (0) and checks that
+     *  there is no message in response and that the state doesn't change
+     */
+    const checkOldErrorsAreIgnored = async () => {
+      // do this for all possible error types
+      for (const errorType of Object.values(ErrorType)) {
+        const stateBeforeMessageReceived = roapStateMachineState;
+
+        // simulate a message arriving
+        roap.roapMessageReceived({
+          messageType: 'ERROR',
+          errorType,
+          seq: 0,
+        });
+
+        // eslint-disable-next-line no-await-in-loop
+        await flushPromises();
+
+        // there should be no new notification as the message was ignored
+        expect(receivedRoapMessages.length).toEqual(0);
+        // and the state should not have changed either
+        expect(stateBeforeMessageReceived).toEqual(roapStateMachineState);
+      }
+    };
+
+    it('in idle state', async () => {
+      roap.initiateOffer();
+
+      await checkLocalOfferAnswerOkFlow(1);
+
+      // now, as we've done 1 full offer-answer-ok flow, we are back in idle state and seq is set to 1
+      await checkOutOfOrderError('OFFER', 0);
+      await checkOutOfOrderError('OFFER', 1);
+      await checkOutOfOrderError('OFFER_REQUEST', 0);
+      await checkOutOfOrderError('OFFER_REQUEST', 1);
+      await checkOutOfOrderError('ANSWER', 0);
+      await checkOutOfOrderError('OK', 0);
+      await checkOldErrorsAreIgnored();
+    });
+
+    it('during the flow where client initiates the offer', async () => {
+      const setLocalDescriptionPromise = createControlledPromise();
+      const setRemoteDescriptionPromise = createControlledPromise();
+
+      peerConnection.setLocalDescription = jest.fn().mockReturnValue(setLocalDescriptionPromise);
+      peerConnection.setRemoteDescription = jest.fn().mockReturnValue(setRemoteDescriptionPromise);
+
+      roap.initiateOffer();
+
+      await flushPromises();
+
+      // check while we're creating the local offer
+      await checkOutOfOrderError('OFFER', 0);
+      await checkOutOfOrderError('OFFER_REQUEST', 0);
+      await checkOutOfOrderError('ANSWER', 0);
+      await checkOutOfOrderError('OK', 0);
+      await checkOldErrorsAreIgnored();
+
+      // now let setting of local offer to complete
+      setLocalDescriptionPromise.resolve({});
+
+      await waitForRoapMessage({
+        messageType: 'OFFER',
+        seq: 1,
+        sdp: MUNGED_LOCAL_SDP,
+        tieBreaker: 0xfffffffe,
+      });
+
+      expectLocalOfferToBeCreated(FAKE_LOCAL_SDP);
+
+      // now check that we send right error while we're waiting for an ANSWER
+      await checkOutOfOrderError('OFFER', 0);
+      await checkOutOfOrderError('OFFER_REQUEST', 0);
+      await checkOutOfOrderError('ANSWER', 0);
+      await checkOutOfOrderError('OK', 0);
+      await checkOldErrorsAreIgnored();
+
+      // simulate answer coming from the backend
+      roap.roapMessageReceived({
+        messageType: 'ANSWER',
+        seq: 1,
+        sdp: FAKE_REMOTE_SDP,
+      });
+
+      // now check that we send right error while we're processing the ANSWER
+      await checkOutOfOrderError('OFFER', 0);
+      await checkOutOfOrderError('OFFER_REQUEST', 0);
+      await checkOutOfOrderError('ANSWER', 0);
+      await checkOutOfOrderError('OK', 0);
+      await checkOldErrorsAreIgnored();
+
+      // now let the answer processing finish
+      setRemoteDescriptionPromise.resolve({});
+
+      await waitForRoapMessage({
+        messageType: 'OK',
+        seq: 1,
+      });
+
+      await waitForState('idle');
+    });
+
+    it('during the flow where server initiates the offer', async () => {
+      const setRemoteDescriptionPromise = createControlledPromise();
+
+      peerConnection.setRemoteDescription = jest.fn().mockReturnValue(setRemoteDescriptionPromise);
+
+      // simulate offer coming from the backend
+      roap.roapMessageReceived({
+        messageType: 'OFFER',
+        seq: 1,
+        sdp: FAKE_REMOTE_SDP,
+        tieBreaker: 0x100,
+      });
+
+      // check while we're processing the remote offer
+      await checkOutOfOrderError('OFFER', 0);
+      await checkOutOfOrderError('OFFER_REQUEST', 0);
+      await checkOutOfOrderError('ANSWER', 0);
+      await checkOutOfOrderError('OK', 0);
+      await checkOldErrorsAreIgnored();
+
+      // now let the offer processing finish
+      setRemoteDescriptionPromise.resolve({});
+
+      await waitForRoapMessage({
+        messageType: 'ANSWER',
+        seq: 1,
+        sdp: MUNGED_LOCAL_SDP,
+      });
+
+      expectLocalAnswerToBeCreated(FAKE_REMOTE_SDP, FAKE_LOCAL_SDP);
+
+      // check while we're waiting for OK from the server
+      await checkOutOfOrderError('OFFER', 0);
+      await checkOutOfOrderError('OFFER_REQUEST', 0);
+      await checkOutOfOrderError('ANSWER', 0);
+      await checkOutOfOrderError('OK', 0);
+      await checkOldErrorsAreIgnored();
+
+      // simulate ok coming from the backend
+      roap.roapMessageReceived({
+        messageType: 'OK',
+        seq: 1,
+      });
+
+      await waitForState('idle');
+    });
+
+    it('during the flow where server sends OFFER_REQUEST', async () => {
+      const setLocalDescriptionPromise = createControlledPromise();
+
+      peerConnection.setLocalDescription = jest.fn().mockReturnValue(setLocalDescriptionPromise);
+
+      roap.roapMessageReceived({
+        messageType: 'OFFER_REQUEST',
+        seq: 1,
+      });
+
+      // check while we're processing the remote offer request
+      await checkOutOfOrderError('OFFER', 0);
+      await checkOutOfOrderError('OFFER_REQUEST', 0);
+      await checkOutOfOrderError('ANSWER', 0);
+      await checkOutOfOrderError('OK', 0);
+      await checkOldErrorsAreIgnored();
+
+      setLocalDescriptionPromise.resolve({});
+
+      await waitForRoapMessage({
+        messageType: 'OFFER_RESPONSE',
+        seq: 1,
+        sdp: MUNGED_LOCAL_SDP,
+      });
+
+      expectLocalOfferToBeCreated(FAKE_LOCAL_SDP);
+
+      // check while we're waiting for the remote answer
+      await checkOutOfOrderError('OFFER', 0);
+      await checkOutOfOrderError('OFFER_REQUEST', 0);
+      await checkOutOfOrderError('ANSWER', 0);
+      await checkOutOfOrderError('OK', 0);
+      await checkOldErrorsAreIgnored();
+
+      // let the flow finish
+      await checkRemoteAnswerOkFlow(1);
+    });
+  });
 });
