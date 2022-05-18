@@ -2,6 +2,7 @@ import EventEmitter from 'events';
 
 import {DEVICE, MEDIA} from '../../constants';
 import logger from '../../Logger';
+import {getTrackSettings} from './Utils';
 
 // eslint-disable-next-line no-shadow
 export enum TrackStatus {
@@ -16,6 +17,7 @@ export enum TrackKind {
 }
 
 export interface TrackInterface {
+  getMediaStreamTrack(): MediaStreamTrack;
   ID: string;
   kind: TrackKind;
   status: TrackStatus;
@@ -143,7 +145,7 @@ export class Track extends EventEmitter implements TrackInterface {
       action: 'getSettings()',
       description: 'Fetching constraints properties for the current media stream track',
     });
-    const settings = this.#mediaStreamTrack.getSettings();
+    const settings = getTrackSettings(this.#mediaStreamTrack);
 
     logger.debug({
       mediaType: MEDIA,
