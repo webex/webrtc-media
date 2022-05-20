@@ -25,7 +25,9 @@ export interface Typegen0 {
       | 'REMOTE_OFFER_ARRIVED'
       | 'REMOTE_OFFER_REQUEST_ARRIVED';
     sendRoapOfferResponseMessage: 'done.invoke.roap.creatingLocalOffer:invocation[0]';
+    resolvePendingInitiateOfferPromises: 'done.invoke.roap.creatingLocalOffer:invocation[0]';
     sendRoapOfferMessage: 'done.invoke.roap.creatingLocalOffer:invocation[0]';
+    rejectPendingInitiateOfferPromises: 'error.platform.roap.creatingLocalOffer:invocation[0]';
     enqueueNewOfferCreation: 'INITIATE_OFFER';
     handleGlare: 'REMOTE_OFFER_ARRIVED' | 'REMOTE_OFFER_REQUEST_ARRIVED';
     resetRetryCounter: 'REMOTE_ANSWER_ARRIVED';
@@ -51,6 +53,10 @@ export interface Typegen0 {
       data: unknown;
       __tip: 'See the XState TS docs to learn how to strongly type this.';
     };
+    'error.platform.roap.creatingLocalOffer:invocation[0]': {
+      type: 'error.platform.roap.creatingLocalOffer:invocation[0]';
+      data: unknown;
+    };
     'done.invoke.roap.settingRemoteAnswer:invocation[0]': {
       type: 'done.invoke.roap.settingRemoteAnswer:invocation[0]';
       data: unknown;
@@ -68,10 +74,6 @@ export interface Typegen0 {
       type: 'done.invoke.roap.settingRemoteOffer:invocation[0]';
       data: unknown;
       __tip: 'See the XState TS docs to learn how to strongly type this.';
-    };
-    'error.platform.roap.creatingLocalOffer:invocation[0]': {
-      type: 'error.platform.roap.creatingLocalOffer:invocation[0]';
-      data: unknown;
     };
     'xstate.init': {type: 'xstate.init'};
   };

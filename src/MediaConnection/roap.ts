@@ -86,6 +86,8 @@ export class Roap extends EventEmitter {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private stateMachine: any;
 
+  private initiateOfferPromises: Array<{resolve: () => void; reject: (error: Error) => void}>;
+
   constructor(
     pc: RTCPeerConnection,
     processLocalSdpCallback: ProcessLocalSdpCallback,
@@ -96,6 +98,7 @@ export class Roap extends EventEmitter {
     this.id = debugId || 'ROAP';
     this.pc = pc;
     this.processLocalSdpCallback = processLocalSdpCallback;
+    this.initiateOfferPromises = [];
 
     const fsm = createMachine(
       {
@@ -186,12 +189,15 @@ export class Roap extends EventEmitter {
                 // otherwise continue to 'waitingForAnswer'
                 {
                   cond: 'isHandlingOfferRequest',
-                  actions: 'sendRoapOfferResponseMessage',
+                  actions: ['sendRoapOfferResponseMessage', 'resolvePendingInitiateOfferPromises'],
                   target: 'waitingForAnswer',
                 },
-                {actions: 'sendRoapOfferMessage', target: 'waitingForAnswer'},
+                {
+                  actions: ['sendRoapOfferMessage', 'resolvePendingInitiateOfferPromises'],
+                  target: 'waitingForAnswer',
+                },
               ],
-              onError: 'browserError',
+              onError: {actions: 'rejectPendingInitiateOfferPromises', target: 'browserError'},
             },
             onEntry: ['resetPendingLocalOffer'],
             on: {
@@ -391,6 +397,10 @@ export class Roap extends EventEmitter {
 
           ignoreDuplicate: (_context, event) =>
             this.log('FSM', `ignoring duplicate roap message ${event.type} with seq=${event.seq}`),
+
+          resolvePendingInitiateOfferPromises: () => this.resolvePendingInitiateOfferPromises(),
+          rejectPendingInitiateOfferPromises: (_context, event) =>
+            this.rejectPendingInitiateOfferPromises((event as ErrorPlatformEvent).data),
         },
         guards: {
           isPendingLocalOffer: (context) => context.pendingLocalOffer,
@@ -561,9 +571,26 @@ export class Roap extends EventEmitter {
    * @returns Promise<void>
    */
   public initiateOffer(): Promise<void> {
-    this.stateMachine.send('INITIATE_OFFER');
+    return new Promise((resolve, reject) => {
+      this.initiateOfferPromises.push({resolve, reject});
+      this.stateMachine.send('INITIATE_OFFER');
+    });
+  }
 
-    return Promise.resolve(); // todo: this is just a temp hack for now
+  private resolvePendingInitiateOfferPromises() {
+    while (this.initiateOfferPromises.length > 0) {
+      const promise = this.initiateOfferPromises.shift();
+
+      promise?.resolve();
+    }
+  }
+
+  private rejectPendingInitiateOfferPromises(error: Error) {
+    while (this.initiateOfferPromises.length > 0) {
+      const promise = this.initiateOfferPromises.shift();
+
+      promise?.reject(error);
+    }
   }
 
   private createLocalOffer(): Promise<{sdp: string}> {
@@ -582,11 +609,11 @@ export class Roap extends EventEmitter {
    *
    * @param roapMessage - ROAP message received
    */
-  public roapMessageReceived(roapMessage: RoapMessage): Promise<void> {
+  public roapMessageReceived(roapMessage: RoapMessage): void {
     const {errorType, messageType, sdp, seq, tieBreaker} = roapMessage;
 
     if (!this.pc) {
-      return Promise.reject(new Error('RTCPeerConnection object is missing'));
+      throw new Error('RTCPeerConnection object is missing');
     }
 
     switch (messageType) {
@@ -627,10 +654,8 @@ export class Roap extends EventEmitter {
       default:
         this.error('roapMessageReceived()', `unsupported messageType: ${messageType}`);
 
-        return Promise.reject(new Error('unhandled messageType'));
+        throw new Error('unhandled messageType');
     }
-
-    return Promise.resolve(); // todo return the promise that resolves at the right time
   }
 
   private handleRemoteOffer(sdp?: string): Promise<{sdp: string}> {

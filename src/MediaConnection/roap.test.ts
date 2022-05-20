@@ -375,6 +375,7 @@ describe('Roap', () => {
       const testInitiateOffer = async (
         whenToCallInitiateOffer: 'WHILE_PROCESSING_REMOTE_OFFER' | 'WHILE_WAITING_FOR_OK'
       ) => {
+        let initiateOfferResolved = false;
         const remoteOfferMessageType = 'OFFER';
         const setRemoteDescriptionPromise = createControlledPromise();
 
@@ -393,7 +394,9 @@ describe('Roap', () => {
         if (whenToCallInitiateOffer === 'WHILE_PROCESSING_REMOTE_OFFER') {
           // start an offer from our side
           // (it should be queued and the processing of remote offer should just continue)
-          roap.initiateOffer();
+          roap.initiateOffer().then(() => {
+            initiateOfferResolved = true;
+          });
         }
 
         setRemoteDescriptionPromise.resolve({});
@@ -409,8 +412,15 @@ describe('Roap', () => {
         if (whenToCallInitiateOffer === 'WHILE_WAITING_FOR_OK') {
           // start an offer from our side
           // (it should be queued and processed after we receive OK for the last answer we've sent)
-          roap.initiateOffer();
+          roap.initiateOffer().then(() => {
+            initiateOfferResolved = true;
+          });
         }
+
+        await flushPromises();
+
+        // promise returned by initiateOffer should not be resolved yet
+        expect(initiateOfferResolved).toEqual(false);
 
         // simulate ok coming from the backend
         roap.roapMessageReceived({
@@ -419,27 +429,50 @@ describe('Roap', () => {
         });
 
         // now instead of just staying in "idle" state, we should proceed to create a new local offer (with increased seq)
-        await checkLocalOfferAnswerOkFlow(2);
+        await waitForRoapMessage({
+          messageType: 'OFFER',
+          seq: 2,
+          sdp: MUNGED_LOCAL_SDP,
+          tieBreaker: 0xfffffffe,
+        });
+
+        await flushPromises();
+
+        // and only now the promise returned by initiateOffer should be resolved
+        expect(initiateOfferResolved).toEqual(true);
+
+        // proceed with the rest of the flow
+        await checkRemoteAnswerOkFlow(2);
       };
 
       it('queues another SDP exchange if initiateOffer() is called after receiving remote offer', async () => {
-        testInitiateOffer('WHILE_PROCESSING_REMOTE_OFFER');
+        await testInitiateOffer('WHILE_PROCESSING_REMOTE_OFFER');
       });
       it('queues another SDP exchange if initiateOffer() is when waiting for OK message', async () => {
-        testInitiateOffer('WHILE_WAITING_FOR_OK');
+        await testInitiateOffer('WHILE_WAITING_FOR_OK');
       });
 
       it('restarts SDP exchange if initiateOffer() is called while creating a local offer', async () => {
         const setLocalDescriptionPromise = createControlledPromise();
+        const initiateOfferResolved = [false, false];
 
         peerConnection.setLocalDescription = jest.fn().mockReturnValue(setLocalDescriptionPromise);
 
-        roap.initiateOffer();
+        roap.initiateOffer().then(() => {
+          initiateOfferResolved[0] = true;
+        });
 
         await flushPromises();
 
         // call it again, while we're already setting a local offer
-        roap.initiateOffer();
+        roap.initiateOffer().then(() => {
+          initiateOfferResolved[1] = true;
+        });
+
+        await flushPromises();
+
+        // at this point both promises should not be resolved yet
+        expect(initiateOfferResolved).toEqual([false, false]);
 
         // now let setting of local offer to complete
         setLocalDescriptionPromise.resolve({});
@@ -450,6 +483,11 @@ describe('Roap', () => {
           sdp: MUNGED_LOCAL_SDP,
           tieBreaker: 0xfffffffe,
         });
+
+        await flushPromises();
+
+        // now both promises should be resolved
+        expect(initiateOfferResolved).toEqual([true, true]);
 
         // all the browser APIs related to local SDP should have been called twice because of the second initiateOffer()
         expect(peerConnection.createOffer).toBeCalledTimes(2);
@@ -462,6 +500,7 @@ describe('Roap', () => {
 
       it('restarts SDP exchange if initiateOffer() is called while handling OFFER_REQUEST message', async () => {
         const setLocalDescriptionPromise = createControlledPromise();
+        let initiateOfferResolved = false;
 
         peerConnection.setLocalDescription = jest.fn().mockReturnValue(setLocalDescriptionPromise);
 
@@ -474,7 +513,14 @@ describe('Roap', () => {
         await flushPromises();
 
         // call initiateOffer() while we're already setting a local offer
-        roap.initiateOffer();
+        roap.initiateOffer().then(() => {
+          initiateOfferResolved = true;
+        });
+
+        await flushPromises();
+
+        // at this point both promises should not be resolved yet
+        expect(initiateOfferResolved).toEqual(false);
 
         // now let setting of local offer to complete
         setLocalDescriptionPromise.resolve({});
@@ -484,6 +530,11 @@ describe('Roap', () => {
           seq: 1,
           sdp: MUNGED_LOCAL_SDP,
         });
+
+        await flushPromises();
+
+        // now the promise should be resolved
+        expect(initiateOfferResolved).toEqual(true);
 
         // all the browser APIs related to local SDP should have been called twice because of the second initiateOffer()
         expect(peerConnection.createOffer).toBeCalledTimes(2);
@@ -495,7 +546,11 @@ describe('Roap', () => {
       });
 
       it('queues another SDP exchange if initiateOffer() is called while waiting for answer', async () => {
-        roap.initiateOffer();
+        const initiateOfferResolved = [false, false];
+
+        roap.initiateOffer().then(() => {
+          initiateOfferResolved[0] = true;
+        });
 
         await waitForRoapMessage({
           messageType: 'OFFER',
@@ -505,7 +560,14 @@ describe('Roap', () => {
         });
 
         // call initiateOffer() again, before we got the answer
-        roap.initiateOffer();
+        roap.initiateOffer().then(() => {
+          initiateOfferResolved[1] = true;
+        });
+
+        await flushPromises();
+
+        // at this point only the first promise should be resolved
+        expect(initiateOfferResolved).toEqual([true, false]);
 
         // simulate answer coming from the backend
         roap.roapMessageReceived({
@@ -520,17 +582,33 @@ describe('Roap', () => {
         });
 
         // now instead of just staying in "idle" state, we should proceed to create a new local offer (with increased seq)
-        await checkLocalOfferAnswerOkFlow(2);
+        await waitForRoapMessage({
+          messageType: 'OFFER',
+          seq: 2,
+          sdp: MUNGED_LOCAL_SDP,
+          tieBreaker: 0xfffffffe,
+        });
+
+        await flushPromises();
+
+        // finally both promises should be resolved now
+        expect(initiateOfferResolved).toEqual([true, true]);
+
+        // now proceed with the rest of the flow
+        await checkRemoteAnswerOkFlow(2);
       });
 
       it('queues another SDP exchange if initiateOffer() is called while processing an answer', async () => {
+        const initiateOfferResolved = [false, false];
         const setRemoteDescriptionPromise = createControlledPromise();
 
         peerConnection.setRemoteDescription = jest
           .fn()
           .mockReturnValue(setRemoteDescriptionPromise);
 
-        roap.initiateOffer();
+        roap.initiateOffer().then(() => {
+          initiateOfferResolved[0] = true;
+        });
 
         await waitForRoapMessage({
           messageType: 'OFFER',
@@ -538,6 +616,11 @@ describe('Roap', () => {
           sdp: MUNGED_LOCAL_SDP,
           tieBreaker: 0xfffffffe,
         });
+
+        await flushPromises();
+
+        // at this point only the first promise should be resolved (the second one doesn't even exist yet)
+        expect(initiateOfferResolved).toEqual([true, false]);
 
         // simulate answer coming from the backend
         roap.roapMessageReceived({
@@ -547,7 +630,14 @@ describe('Roap', () => {
         });
 
         // call initiateOffer() again, before the remote answer was fully processed
-        roap.initiateOffer();
+        roap.initiateOffer().then(() => {
+          initiateOfferResolved[1] = true;
+        });
+
+        await flushPromises();
+
+        // still only the first promise should be resolved
+        expect(initiateOfferResolved).toEqual([true, false]);
 
         // now let the answer processing finish
         setRemoteDescriptionPromise.resolve({});
@@ -558,7 +648,20 @@ describe('Roap', () => {
         });
 
         // now instead of just staying in "idle" state, we should proceed to create a new local offer (with increased seq)
-        await checkLocalOfferAnswerOkFlow(2);
+        await waitForRoapMessage({
+          messageType: 'OFFER',
+          seq: 2,
+          sdp: MUNGED_LOCAL_SDP,
+          tieBreaker: 0xfffffffe,
+        });
+
+        await flushPromises();
+
+        // finally both promises should be resolved now
+        expect(initiateOfferResolved).toEqual([true, true]);
+
+        // now proceed with the rest of the flow
+        await checkRemoteAnswerOkFlow(2);
       });
     });
   });
@@ -779,9 +882,11 @@ describe('Roap', () => {
     });
 
     it('sends FAILED error if browser fails to create a local SDP offer', async () => {
-      processLocalSdp.mockRejectedValue(new Error('local SDP rejected'));
+      const fakeError = new Error('local SDP rejected');
 
-      roap.initiateOffer();
+      processLocalSdp.mockRejectedValue(fakeError);
+
+      await expect(roap.initiateOffer()).rejects.toEqual(fakeError);
 
       await waitForState('browserError');
       await roapFailurePromise;

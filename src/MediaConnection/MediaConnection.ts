@@ -350,7 +350,7 @@ export class MediaConnection extends EventEmitter {
    *
    * @param roapMessage - ROAP message received
    */
-  public roapMessageReceived(roapMessage: RoapMessage): Promise<void> {
+  public roapMessageReceived(roapMessage: RoapMessage): void {
     this.log(
       'roapMessageReceived()',
       `called with messageType=${roapMessage.messageType}, seq=${roapMessage.seq}`
@@ -362,7 +362,7 @@ export class MediaConnection extends EventEmitter {
       this.addLocalTracks();
     }
 
-    return this.roap.roapMessageReceived(roapMessage);
+    this.roap.roapMessageReceived(roapMessage);
   }
 
   private onRoapMessageToSend(event: RoapMessageEvent) {
