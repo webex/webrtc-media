@@ -33,7 +33,7 @@ if [[ $FILE_COUNT != '0' ]]
 then
 echo "Found $FILE_COUNT changed docs and samples bundle files."
 git commit -m "docs: update docs [skip ci]"
-git push origin documentation
+git push origin documentation -f
 else
 echo "Docs and samples bundle files have not changed."
 echo "Docs will not be published."
