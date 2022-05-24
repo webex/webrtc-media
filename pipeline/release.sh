@@ -27,7 +27,7 @@ git config --global user.email "webex-jenkins.gen"
 git remote set-url origin https://webex-jenkins.gen:$GITHUB_TOKEN@sqbu-github.cisco.com/WebExSquared/webrtc-media-core.git
 git fetch origin
 git checkout -b documentation
-git add ./docs ./samples/bundle.js
+git add ./docs ./samples/bundle.js -f
 FILE_COUNT=$(git status -s | wc -l | xargs)
 if [[ $FILE_COUNT != '0' ]]
 then
