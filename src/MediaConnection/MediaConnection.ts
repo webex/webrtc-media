@@ -133,9 +133,11 @@ export class MediaConnection extends EventEmitter {
         this.localTracks[trackType]
       );
 
-      this.transceivers[transceiverType] = this.pc.addTransceiver(trackInfo.trackOrKind, {
-        direction: trackInfo.direction,
-      });
+      if (!this.config.skipInactiveTransceivers || trackInfo.direction !== 'inactive') {
+        this.transceivers[transceiverType] = this.pc.addTransceiver(trackInfo.trackOrKind, {
+          direction: trackInfo.direction,
+        });
+      }
     });
   }
 

@@ -15,6 +15,7 @@ import {createControlledPromise, IControlledPromise} from './testUtils';
 
 describe('2 MediaConnections connected to each other', () => {
   let localStream: MediaStream;
+  let createdSdpOffer: string | undefined;
 
   let testConnections: Array<{
     mc: MediaConnection;
@@ -58,6 +59,9 @@ describe('2 MediaConnections connected to each other', () => {
             if (e.roapMessage.messageType === 'OFFER') {
               const message = e.roapMessage;
 
+              // store the offer so that tests can do some further checks on it
+              createdSdpOffer = message.sdp;
+
               // we need to remove the bundling, otherwise browser puts ICE candidates only in 1 m-line and the checks in isSdpInvalid() fail
               message.sdp = message.sdp?.replace(/\r\na=group:BUNDLE 0 1 2/gi, '');
 
@@ -71,24 +75,32 @@ describe('2 MediaConnections connected to each other', () => {
     );
   };
 
-  const createTestConnections = (options: {
-    send: {
-      audio?: MediaStreamTrack;
-      video?: MediaStreamTrack;
-      screenShareVideo?: MediaStreamTrack;
-    };
-    receive: {
-      audio: boolean;
-      video: boolean;
-      screenShareVideo: boolean;
-    };
-  }) => {
+  const createTestConnections = (
+    options: {
+      send: {
+        audio?: MediaStreamTrack;
+        video?: MediaStreamTrack;
+        screenShareVideo?: MediaStreamTrack;
+      };
+      receive: {
+        audio: boolean;
+        video: boolean;
+        screenShareVideo: boolean;
+      };
+    },
+    configOverrides?: Record<string, unknown>
+  ) => {
     const {send, receive} = options;
 
     testConnections = [
       {
         mc: new MediaConnection(
-          {iceServers: [], sdpMunging: {convertPort9to0: false}},
+          {
+            iceServers: [],
+            skipInactiveTransceivers: false,
+            sdpMunging: {convertPort9to0: false},
+            ...configOverrides,
+          },
           {send, receive},
           'mc1'
         ),
@@ -99,7 +111,7 @@ describe('2 MediaConnections connected to each other', () => {
       },
       {
         mc: new MediaConnection(
-          {iceServers: [], sdpMunging: {convertPort9to0: false}},
+          {iceServers: [], skipInactiveTransceivers: false, sdpMunging: {convertPort9to0: false}},
           {send, receive},
           'mc2'
         ),
@@ -148,6 +160,39 @@ describe('2 MediaConnections connected to each other', () => {
         ])
         .flat()
     );
+
+    // because the test connections are configured with skipInactiveTransceivers=false, we should still see 3 m-lines in the SDP
+    expect(createdSdpOffer?.match(/^m=audio/gm)?.length).to.equal(1);
+    expect(createdSdpOffer?.match(/^m=video/gm)?.length).to.equal(2);
+  });
+
+  it('audio only (both ways) with skipInactiveTransceivers=true', async () => {
+    const audioTrack = localStream.getAudioTracks()[0];
+
+    createTestConnections(
+      {
+        send: {
+          audio: audioTrack,
+        },
+        receive: {audio: true, video: false, screenShareVideo: false},
+      },
+      {skipInactiveTransceivers: true}
+    );
+
+    await testConnections[0].mc.initiateOffer();
+
+    await Promise.all(
+      testConnections
+        .map(({connectionEstablished, audioRemoteTrackAdded}) => [
+          connectionEstablished,
+          audioRemoteTrackAdded,
+        ])
+        .flat()
+    );
+
+    // only 1 audio m-line should have been put into the SDP offer
+    expect(createdSdpOffer?.match(/^m=audio/gm)?.length).to.equal(1);
+    expect(createdSdpOffer?.match(/^m=video/gm)).to.equal(null);
   });
 
   it('audio and video both ways', async () => {
@@ -237,7 +282,7 @@ describe('1 MediaConnection connected to a raw RTCPeerConnection', () => {
     const pc = new RTCPeerConnection();
 
     const mc = new MediaConnection(
-      {iceServers: [], sdpMunging: {convertPort9to0: false}},
+      {iceServers: [], skipInactiveTransceivers: true, sdpMunging: {convertPort9to0: false}},
       {
         send: {
           audio: audioTrack,
