@@ -1,3 +1,10 @@
+## [1.19.8](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.7...v1.19.8) (2022-05-26)
+
+
+### Bug Fixes
+
+* **roap:** promise returned by initiateOffer() ([b5aff90](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/b5aff900e52b313c8274b2c3ff556642f2423039))
+
 ## [1.19.7](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.6...v1.19.7) (2022-05-18)
 
 
