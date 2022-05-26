@@ -3,6 +3,7 @@ import logger from './Logger';
 
 import * as MediaCore from './Media';
 import * as MediaConnections from './MediaConnection';
+import * as BNR from './Media/Effects/BNR';
 
 // Could not make ES6 import as the library's typescript definition file is corrupt #108 issue raised
 // Todo: Convert to ES6 import once this issue gets resolved -> https://github.com/muaz-khan/DetectRTC/issues/108
@@ -42,6 +43,11 @@ export const Media = {
   getSpeakers: MediaCore.getSpeakers,
   on: MediaCore.on,
   off: MediaCore.off,
+  Effects: {
+    BNR: {
+      enableBNR: BNR.enableBNR,
+    },
+  },
   // isBrowserSupported,
 };
 
