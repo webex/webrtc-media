@@ -22,9 +22,9 @@ describe('BNR', () => {
       expect(typeof isValidTrack).to.eq('function');
     });
 
-    it('should return true if track is valid', async () => {
+    it('should return true if track is valid', () => {
       const receivedTrack = track.getMediaStreamTrack();
-      const result: boolean = await isValidTrack(receivedTrack);
+      const result: boolean = isValidTrack(receivedTrack);
 
       expect(result).to.eq(true);
     });

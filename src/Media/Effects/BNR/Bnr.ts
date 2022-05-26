@@ -9,7 +9,7 @@ import {getTrackSettings} from '../../Track/Utils';
  * @returns true if track is valid
  * @throws Error if track is not valid
  */
-async function isValidTrack(track: MediaStreamTrack): Promise<boolean> {
+function isValidTrack(track: MediaStreamTrack): boolean {
   // getSupportedConstraints() returns an object with all the supported constraints
   // for the current browser
   // for mozilla, it returns an object with all the supported constraints where sampleRate is not available(supported)
@@ -18,7 +18,7 @@ async function isValidTrack(track: MediaStreamTrack): Promise<boolean> {
   const supportedSampleRates = [16000, 32000, 48000];
 
   if (supportedConstraints.sampleRate) {
-    const settings = await getTrackSettings(track);
+    const settings = getTrackSettings(track);
     const {sampleRate} = settings;
 
     if (sampleRate && !supportedSampleRates.includes(sampleRate)) {
