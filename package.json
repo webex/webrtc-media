@@ -22,7 +22,7 @@
   },
   "scripts": {
     "prebuild": "rimraf dist",
-    "build": "tsc && rollup --config",
+    "build": "tsc && node postcompile.mjs && rollup --config",
     "test": "jest --config=jest.config.js",
     "start": "web-dev-server --config web-dev-server.config.js",
     "test:integration": "karma start --integration",

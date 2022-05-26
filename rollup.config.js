@@ -5,7 +5,7 @@ import commonjs from '@rollup/plugin-commonjs';
 const basePlugins = [
   nodePolyfills(),
   resolve({browser: true, extensions: ['.js', '.ts']}),
-  commonjs(),
+  commonjs()
 ];
 
 export default {
