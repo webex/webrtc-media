@@ -35,6 +35,8 @@ describe('MediaConnection', () => {
         getTransceivers: jest.fn().mockReturnValue([]),
         createOffer: jest.fn().mockResolvedValue({sdp: '', type: 'offer'}),
         setLocalDescription: jest.fn().mockResolvedValue({}),
+        iceGatheringState: 'complete',
+        localDescription: {sdp: 'fake'},
       } as unknown as RTCPeerConnection;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
