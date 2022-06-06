@@ -10,6 +10,7 @@ const audioInputSelect = document.querySelector('select#audioSource');
 const audioOutputSelect = document.querySelector('select#audioOutput');
 const videoInputSelect = document.querySelector('select#videoSource');
 const selectors = [audioInputSelect, audioOutputSelect, videoInputSelect];
+let localAudioTrack;
 
 // This function is for handling error if promises getting failed
 function handleError(error) {
@@ -93,9 +94,11 @@ function gotDevices(devices) {
 }
 
 // This functions is for running video streams in boxes and return the promise of getting all devices.
-function gotTracks(tracks) {
-  buildLocalVideo(tracks[0]);
-  buildLocalScreenshare(tracks[2]);
+function gotTracks([localVideo, localAudio, localContent]) {
+  buildLocalVideo(localVideo);
+  buildLocalScreenshare(localContent);
+  localAudioTrack = localAudio;
+
 
   const devicePromises = [
     mediaMethods.getMicrophones(),
@@ -142,5 +145,66 @@ function setVideoInputDevice() {
 
   start({videoPayload});
 }
+
+/*
+  Background Noise Reduction (BNR) methods starts
+*/
+
+const listenToAudioBtn = document.getElementById("listenToAudio");
+const enableBnrBtn = document.getElementById("enableBnrBtn");
+
+const bnrAudioOutput = document.getElementById("bnr-audio");
+
+let rawAudioStream;
+let isListening = false;
+
+/**
+ * Method to toggle audio listening for BNR effect
+ * called as part of clicking #listenToAudio button
+*/
+const toggleAudioListen = async () => {
+  if(!isListening){
+    listenToAudioBtn.setAttribute("disabled",  true);
+
+    rawAudioStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    bnrAudioOutput.srcObject = rawAudioStream;
+
+    listenToAudioBtn.innerText = "Stop listening to Audio";
+    listenToAudioBtn.removeAttribute("disabled");
+
+    enableBnrBtn.removeAttribute("disabled");
+
+    isListening = true;
+  }
+  else{
+    listenToAudioBtn.innerText = "Start listening to Audio";
+
+    enableBnrBtn.setAttribute("disabled", true);
+    bnrAudioOutput.srcObject = null;
+
+    isListening = false;
+  }
+}
+
+/**
+ * Method to enableBNR
+ * called as part of clicking #enableBnrBtn button
+*/
+const enableBNR = async () => {
+  let audiotrack = rawAudioStream.getAudioTracks()[0];
+
+  let bnrAudioTrack = await mediaMethods.Effects.BNR.enableBNR(audiotrack);
+
+  let bnrAudioStream = new MediaStream();
+  bnrAudioStream.addTrack(bnrAudioTrack);
+
+  bnrAudioOutput.srcObject = bnrAudioStream;
+
+  enableBnrBtn.setAttribute("disabled", true);
+}
+
+/*
+  Background Noise Reduction (BNR) methods ends
+*/
 
 start({});

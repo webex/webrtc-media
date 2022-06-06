@@ -34,6 +34,19 @@
                 </div>
             </div>
           </fieldset>
+          <fieldset id="meetingControlsDevices">
+            <legend>Background Noise Reduction</legend>
+            <div>
+                <div class="u-mv">
+                  <span>Please put your headphones on for better listening</span>
+                  <br/><br/>
+                  <audio id="bnr-audio" autoplay></audio>
+                  <button id="listenToAudio" type="button" onclick="toggleAudioListen()" class="btn-code">Start listening to Audio</button> <br/><br/>
+                  <button id="enableBnrBtn" disabled type="button" onclick="enableBNR()" class="btn-code">Media.Effects.BNR.enableBNR()</button>
+                  <button id="disableBnrBtn" disabled type="button" class="btn--red">Placeholder for Media.Effects.BNR.disableBNR()</button>
+                </div>
+            </div>
+          </fieldset>
       </section>
 
     
