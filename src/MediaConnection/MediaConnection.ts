@@ -46,7 +46,7 @@ export class MediaConnection extends EventEmitter {
     screenShareVideo: boolean;
   };
 
-  private localOfferInitiated = false;
+  private sdpNegotiationStarted = false;
 
   private mediaConnectionState: ConnectionState;
 
@@ -84,7 +84,6 @@ export class MediaConnection extends EventEmitter {
     this.transceivers = {};
     this.mediaConnectionState = ConnectionState.NEW;
 
-    // TODO: existing SDK sets bundlePolicy: 'max-compat' for Firefox so we should probably do the same here
     this.pc = new window.RTCPeerConnection({
       iceServers: this.config.iceServers,
       bundlePolicy: 'max-compat', // needed for Firefox to create ICE candidates for each m-line
@@ -153,14 +152,14 @@ export class MediaConnection extends EventEmitter {
   public initiateOffer(): Promise<void> {
     this.log('initiateOffer()', 'called');
 
-    if (this.localOfferInitiated || this.pc.getTransceivers().length > 0) {
+    if (this.sdpNegotiationStarted || this.pc.getTransceivers().length > 0) {
       this.error('initiateOffer()', 'SDP negotiation already started');
 
       return Promise.reject(new Error('SDP negotiation already started'));
     }
 
     this.createTransceivers();
-    this.localOfferInitiated = true;
+    this.sdpNegotiationStarted = true;
 
     return this.roap.initiateOffer();
   }
@@ -358,9 +357,9 @@ export class MediaConnection extends EventEmitter {
       `called with messageType=${roapMessage.messageType}, seq=${roapMessage.seq}`
     );
 
-    // todo: fix this - currently we will call addLocalTracks each time we get new offer in incoming calls
-    if (!this.localOfferInitiated && roapMessage.messageType === 'OFFER') {
+    if (!this.sdpNegotiationStarted && roapMessage.messageType === 'OFFER') {
       // this is the first SDP exchange, with an offer coming from the backend
+      this.sdpNegotiationStarted = true;
       this.addLocalTracks();
     }
 
