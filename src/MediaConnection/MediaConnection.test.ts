@@ -1,6 +1,5 @@
-import {RoapMessage} from './eventTypes';
-import {ConnectionState, MediaConnection, MediaConnectionConfig} from './index';
-import * as roap from './roap';
+import {ConnectionState, MediaConnectionConfig} from './index';
+import {MediaConnection} from './MediaConnection';
 
 describe('MediaConnection', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,12 +33,6 @@ describe('MediaConnection', () => {
     localDescription: {sdp: 'fake'},
   };
 
-  const FAKE_ROAP = {
-    initiateOffer: jest.fn(),
-    roapMessageReceived: jest.fn(),
-    on: jest.fn(),
-  };
-
   beforeEach(() => {
     previousRTCPeerConnection = window.RTCPeerConnection;
 
@@ -47,8 +40,6 @@ describe('MediaConnection', () => {
       writable: true,
       value: jest.fn().mockImplementation(() => FAKE_PC),
     });
-
-    jest.spyOn(roap, 'Roap').mockImplementation(() => FAKE_ROAP as unknown as roap.Roap);
   });
 
   afterEach(() => {
@@ -89,8 +80,8 @@ describe('MediaConnection', () => {
       });
     });
 
-    it('creates transceivers and does not call addTrack() when initiateOffer() is called', async () => {
-      await mc.initiateOffer();
+    it('creates transceivers and does not call addTrack() when initializeTransceivers() is called', async () => {
+      await mc.initializeTransceivers(false);
 
       expect(FAKE_PC.addTrack).not.toBeCalled();
 
@@ -100,46 +91,23 @@ describe('MediaConnection', () => {
       expect(FAKE_PC.addTransceiver).nthCalledWith(3, FAKE_SCREENSHARE_TRACK, {
         direction: 'sendrecv',
       });
-
-      expect(FAKE_ROAP.initiateOffer).toBeCalledOnceWith();
     });
 
-    it('fails if initiateOffer() is called for a second time', async () => {
-      await mc.initiateOffer();
-
-      FAKE_ROAP.initiateOffer.mockClear();
-
-      // call it again
-      await expect(mc.initiateOffer()).rejects.toThrow(
-        new Error('SDP negotiation already started')
-      );
-      expect(FAKE_ROAP.initiateOffer).not.toBeCalled();
-    });
-
-    it('fails if any transceiver already exists when initiateOffer() is called', async () => {
+    it('fails if any transceiver already exists when initializeTransceivers() is called', () => {
       const originalMock = FAKE_PC.getTransceivers;
 
       FAKE_PC.getTransceivers = jest.fn().mockReturnValue([{id: 'fake_transceiver'}]);
 
-      await expect(mc.initiateOffer()).rejects.toThrow(
+      expect(() => mc.initializeTransceivers(false)).toThrow(
         new Error('SDP negotiation already started')
       );
-      expect(FAKE_ROAP.initiateOffer).not.toBeCalled();
+
+      // try again with a different argument value - should give same result as above
+      expect(() => mc.initializeTransceivers(true)).toThrow(
+        new Error('SDP negotiation already started')
+      );
 
       FAKE_PC.getTransceivers = originalMock;
-    });
-
-    it('does not call addTrack() nor addTransceiver() on remote offer', async () => {
-      await mc.initiateOffer();
-
-      FAKE_PC.addTransceiver.mockClear();
-      FAKE_PC.addTrack.mockClear();
-
-      // now simulate an offer coming from the backend
-      mc.roapMessageReceived({messageType: 'OFFER', sdp: 'fake', seq: 2});
-
-      expect(FAKE_PC.addTransceiver).not.toBeCalled();
-      expect(FAKE_PC.addTrack).not.toBeCalled();
     });
 
     describe('creates transceivers correctly', () => {
@@ -163,7 +131,7 @@ describe('MediaConnection', () => {
             },
           });
 
-          await mc.initiateOffer();
+          await mc.initializeTransceivers(false);
 
           expect(FAKE_PC.addTransceiver).toBeCalledTimes(3);
           expect(FAKE_PC.addTransceiver).nthCalledWith(1, track || 'audio', {
@@ -187,7 +155,7 @@ describe('MediaConnection', () => {
             },
           });
 
-          await mc.initiateOffer();
+          await mc.initializeTransceivers(false);
 
           expect(FAKE_PC.addTransceiver).toBeCalledTimes(3);
           expect(FAKE_PC.addTransceiver).nthCalledWith(1, 'audio', {direction: 'inactive'});
@@ -211,7 +179,7 @@ describe('MediaConnection', () => {
             },
           });
 
-          await mc.initiateOffer();
+          await mc.initializeTransceivers(false);
 
           expect(FAKE_PC.addTransceiver).toBeCalledTimes(3);
           expect(FAKE_PC.addTransceiver).nthCalledWith(1, 'audio', {direction: 'inactive'});
@@ -225,9 +193,7 @@ describe('MediaConnection', () => {
   });
 
   describe('incoming call', () => {
-    const FAKE_OFFER: RoapMessage = {messageType: 'OFFER', sdp: 'fake', seq: 1};
-
-    it('calls addTrack() for each sent track when first incoming offer arrives', () => {
+    it('calls addTrack() for each sent track when initializeTransceivers(true) is called', () => {
       const mc = new MediaConnection(DEFAULT_CONFIG, {
         send: {
           audio: FAKE_AUDIO_TRACK,
@@ -242,51 +208,12 @@ describe('MediaConnection', () => {
       });
 
       // tracks are added on first incoming offer
-      mc.roapMessageReceived(FAKE_OFFER);
+      mc.initializeTransceivers(true);
 
       expect(FAKE_PC.addTrack).toBeCalledTimes(3);
       expect(FAKE_PC.addTrack).toBeCalledWith(FAKE_AUDIO_TRACK);
       expect(FAKE_PC.addTrack).toBeCalledWith(FAKE_VIDEO_TRACK);
       expect(FAKE_PC.addTrack).toBeCalledWith(FAKE_SCREENSHARE_TRACK);
-
-      expect(FAKE_ROAP.roapMessageReceived).toBeCalledOnceWith(FAKE_OFFER);
-    });
-
-    it('calls addTrack() only once for incoming calls', () => {
-      const mc = new MediaConnection(DEFAULT_CONFIG, {
-        send: {
-          audio: FAKE_AUDIO_TRACK,
-          video: FAKE_VIDEO_TRACK,
-        },
-        receive: {
-          audio: true,
-          video: true,
-          screenShareVideo: true,
-        },
-      });
-
-      // when the incoming offer comes for the first time, addTrack() should be called for each enabled local track
-      mc.roapMessageReceived(FAKE_OFFER);
-
-      expect(FAKE_ROAP.roapMessageReceived).toBeCalledOnceWith(FAKE_OFFER);
-
-      expect(FAKE_PC.addTrack).toBeCalledTimes(2);
-      expect(FAKE_PC.addTrack).toBeCalledWith(FAKE_AUDIO_TRACK);
-      expect(FAKE_PC.addTrack).toBeCalledWith(FAKE_VIDEO_TRACK);
-
-      FAKE_PC.addTrack.mockClear();
-      FAKE_ROAP.roapMessageReceived.mockClear();
-
-      // simulate a second incoming offer, this time addTrack() should not be called
-      mc.roapMessageReceived({messageType: 'OFFER', sdp: 'fake', seq: 2});
-
-      expect(FAKE_ROAP.roapMessageReceived).toBeCalledOnceWith({
-        messageType: 'OFFER',
-        sdp: 'fake',
-        seq: 2,
-      });
-
-      expect(FAKE_PC.addTrack).not.toBeCalled();
     });
   });
 
@@ -320,7 +247,7 @@ describe('MediaConnection', () => {
           sdpMunging: {},
         });
 
-        await mediaConnection.initiateOffer();
+        await mediaConnection.initializeTransceivers(false);
 
         expect(FAKE_PC.addTransceiver).toBeCalledOnceWith(sendAudio ? FAKE_AUDIO_TRACK : 'audio', {
           direction,
@@ -335,7 +262,7 @@ describe('MediaConnection', () => {
         sdpMunging: {},
       });
 
-      await mediaConnection.initiateOffer();
+      await mediaConnection.initializeTransceivers(false);
 
       expect(FAKE_PC.addTransceiver).toBeCalledTimes(3);
       expect(FAKE_PC.addTransceiver).nthCalledWith(1, FAKE_AUDIO_TRACK, {

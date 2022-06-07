@@ -2,9 +2,8 @@ import EventEmitter from 'events';
 
 import logger from '../Logger';
 import {MEDIA_CONNECTION} from '../constants';
-import {Roap} from './roap';
 import {isSdpInvalid, getLocalTrackInfo, mungeLocalSdp, TrackKind} from './utils';
-import {Event, ConnectionState, RemoteTrackType, RoapMessage, RoapMessageEvent} from './eventTypes';
+import {Event, ConnectionState, RemoteTrackType} from './eventTypes';
 
 import {MediaConnectionConfig} from './config';
 
@@ -34,8 +33,6 @@ export class MediaConnection extends EventEmitter {
 
   private pc: RTCPeerConnection;
 
-  private roap: Roap;
-
   private localTracks: LocalTracks;
 
   private transceivers: Transceivers;
@@ -45,8 +42,6 @@ export class MediaConnection extends EventEmitter {
     video: boolean;
     screenShareVideo: boolean;
   };
-
-  private sdpNegotiationStarted = false;
 
   private mediaConnectionState: ConnectionState;
 
@@ -88,10 +83,6 @@ export class MediaConnection extends EventEmitter {
       iceServers: this.config.iceServers,
       bundlePolicy: 'max-compat', // needed for Firefox to create ICE candidates for each m-line
     });
-
-    this.roap = new Roap(this.pc, this.processLocalSdp.bind(this), debugId);
-    this.roap.on(Event.ROAP_MESSAGE_TO_SEND, this.onRoapMessageToSend.bind(this));
-    this.roap.on(Event.ROAP_FAILURE, this.onRoapFailure.bind(this));
 
     this.pc.ontrack = this.onTrack.bind(this);
     this.pc.oniceconnectionstatechange = this.onIceConnectionStateChange.bind(this);
@@ -141,27 +132,23 @@ export class MediaConnection extends EventEmitter {
   }
 
   /**
-   * Starts the process of establishing the connection by creating a local SDP offer.
+   * Makes sure that transceivers are created and local tracks are added to the RTCPeerConnection
    *
-   * Use Event.CONNECTION_STATE_CHANGED to know when connection has been established.
-   * Use Event.ROAP_MESSAGE_TO_SEND to know the local SDP offer created.
-   * Use Event.REMOTE_TRACK_ADDED to know about the remote tracks being received.
-   *
-   * @returns Promise - promise that's resolved once the local offer has been created
+   * @param incomingOffer - should be true if this MediaConnection is for an incoming call
    */
-  public initiateOffer(): Promise<void> {
-    this.log('initiateOffer()', 'called');
-
-    if (this.sdpNegotiationStarted || this.pc.getTransceivers().length > 0) {
+  public initializeTransceivers(incomingOffer: boolean): void {
+    if (this.pc.getTransceivers().length > 0) {
       this.error('initiateOffer()', 'SDP negotiation already started');
 
-      return Promise.reject(new Error('SDP negotiation already started'));
+      throw new Error('SDP negotiation already started');
     }
 
-    this.createTransceivers();
-    this.sdpNegotiationStarted = true;
-
-    return this.roap.initiateOffer();
+    if (incomingOffer) {
+      // for incoming offers we cannot explicitly add transceivers - it would result in extra m-lines that we don't want
+      this.addLocalTracks();
+    } else {
+      this.createTransceivers();
+    }
   }
 
   /**
@@ -169,8 +156,6 @@ export class MediaConnection extends EventEmitter {
    */
   // eslint-disable-next-line class-methods-use-this
   public close(): void {
-    this.log('close()', 'called');
-
     this.pc.close();
     // todo
   }
@@ -180,7 +165,6 @@ export class MediaConnection extends EventEmitter {
    */
   // eslint-disable-next-line class-methods-use-this
   public reconnect(): void {
-    this.log('reconnect()', 'called');
     // todo
   }
 
@@ -249,26 +233,15 @@ export class MediaConnection extends EventEmitter {
    *                 - null - means "stop using the current track"
    *                 - a MediaStreamTrack reference - means "replace the current track with this new one"
    *
-   * @returns Promise - promise that's resolved once the new SDP exchange is initiated
-   *                    or immediately if no new SDP exchange is needed
+   * @returns boolean - true if a new SDP negotiation is required as a result of the update
    */
-  public updateSendOptions(tracks: LocalTracks): Promise<void> {
-    this.log('updateSendOptions()', `called with ${JSON.stringify(tracks)}`);
-
-    const newOfferNeeded = this.updateTransceivers({
+  public updateSendOptions(tracks: LocalTracks): boolean {
+    return this.updateTransceivers({
       send: tracks,
       receive: {
         ...this.receiveOptions,
       },
     });
-
-    if (newOfferNeeded) {
-      this.log('updateSendOptions()', 'triggering offer...');
-
-      return this.roap.initiateOffer();
-    }
-
-    return Promise.resolve();
   }
 
   /**
@@ -276,28 +249,17 @@ export class MediaConnection extends EventEmitter {
    *
    * @param options - specifies which remote tracks to receieve (audio, video, screenShareVideo)
    *
-   * @returns Promise - promise that's resolved once the new SDP exchange is initiated
-   *                    or immediately if no new SDP exchange is needed
+   * @returns boolean - true if a new SDP negotiation is required as a result of the update
    */
   public updateReceiveOptions(options: {
     audio: boolean;
     video: boolean;
     screenShareVideo: boolean;
-  }): Promise<void> {
-    this.log('updateReceiveOptions()', `called with ${JSON.stringify(options)}`);
-
-    const newOfferNeeded = this.updateTransceivers({
+  }): boolean {
+    return this.updateTransceivers({
       send: this.localTracks,
       receive: options,
     });
-
-    if (newOfferNeeded) {
-      this.log('updateReceiveOptions()', 'triggering offer...');
-
-      return this.roap.initiateOffer();
-    }
-
-    return Promise.resolve();
   }
 
   /**
@@ -311,8 +273,7 @@ export class MediaConnection extends EventEmitter {
    *                  - null - means "stop using the current track"
    *                  - a MediaStreamTrack reference - means "replace the current track with this new one"
    *
-   * @returns Promise - promise that's resolved once the new SDP exchange is initiated
-   *                    or immediately if no new SDP exchange is needed
+   * @returns boolean - true if a new SDP negotiation is required as a result of the update
    */
   public updateSendReceiveOptions(options: {
     send: LocalTracks;
@@ -321,18 +282,8 @@ export class MediaConnection extends EventEmitter {
       video: boolean;
       screenShareVideo: boolean;
     };
-  }): Promise<void> {
-    this.log('updateSendReceiveOptions()', `called with ${JSON.stringify(options)}`);
-
-    const newOfferNeeded = this.updateTransceivers(options);
-
-    if (newOfferNeeded) {
-      this.log('updateSendReceiveOptions()', 'triggering offer...');
-
-      return this.roap.initiateOffer();
-    }
-
-    return Promise.resolve();
+  }): boolean {
+    return this.updateTransceivers(options);
   }
 
   /**
@@ -344,38 +295,6 @@ export class MediaConnection extends EventEmitter {
     this.log('getConnectionState()', `called, returning ${this.mediaConnectionState}`);
 
     return this.mediaConnectionState;
-  }
-
-  /**
-   * This function should be called whenever a ROAP message is received from the backend.
-   *
-   * @param roapMessage - ROAP message received
-   */
-  public roapMessageReceived(roapMessage: RoapMessage): void {
-    this.log(
-      'roapMessageReceived()',
-      `called with messageType=${roapMessage.messageType}, seq=${roapMessage.seq}`
-    );
-
-    if (!this.sdpNegotiationStarted && roapMessage.messageType === 'OFFER') {
-      // this is the first SDP exchange, with an offer coming from the backend
-      this.sdpNegotiationStarted = true;
-      this.addLocalTracks();
-    }
-
-    this.roap.roapMessageReceived(roapMessage);
-  }
-
-  private onRoapMessageToSend(event: RoapMessageEvent) {
-    this.log(
-      'onRoapMessageToSend()',
-      `emitting Event.ROAP_MESSAGE_TO_SEND: messageType=${event.roapMessage.messageType}, seq=${event.roapMessage.seq}`
-    );
-    this.emit(Event.ROAP_MESSAGE_TO_SEND, event);
-  }
-
-  private onRoapFailure() {
-    this.emit(Event.ROAP_FAILURE);
   }
 
   private identifyTransceivers() {
@@ -516,13 +435,61 @@ export class MediaConnection extends EventEmitter {
     this.emit(Event.CONNECTION_STATE_CHANGED, {state: this.mediaConnectionState});
   }
 
-  private processLocalSdp(): Promise<{sdp: string}> {
-    return this.checkIceCandidates().then(() => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
+  public createLocalOffer(): Promise<{sdp: string}> {
+    return this.pc
+      .createOffer()
+      .then((description: RTCSessionDescriptionInit) => {
+        this.log('createLocalOffer', 'local SDP offer created');
 
-      return {sdp: mungedSdp};
-    });
+        return this.pc.setLocalDescription(description);
+      })
+      .then(() => this.checkIceCandidates())
+      .then(() => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
+
+        return {sdp: mungedSdp};
+      });
+  }
+
+  public handleRemoteOffer(sdp?: string): Promise<{sdp: string}> {
+    this.log('handleRemoteOffer', 'called');
+
+    if (!sdp) {
+      return Promise.reject(new Error('SDP missing'));
+    }
+
+    return this.pc
+      .setRemoteDescription(
+        new window.RTCSessionDescription({
+          type: 'offer',
+          sdp,
+        })
+      )
+      .then(() => this.pc.createAnswer())
+      .then((answer: RTCSessionDescriptionInit) => this.pc.setLocalDescription(answer))
+      .then(() => this.checkIceCandidates())
+      .then(() => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
+
+        return {sdp: mungedSdp};
+      });
+  }
+
+  public handleRemoteAnswer(sdp?: string): Promise<void> {
+    this.log('handleRemoteAnswer', 'called');
+
+    if (!sdp) {
+      return Promise.reject(new Error('SDP missing'));
+    }
+
+    return this.pc.setRemoteDescription(
+      new window.RTCSessionDescription({
+        type: 'answer',
+        sdp,
+      })
+    );
   }
 
   private checkIceCandidates(): Promise<void> {

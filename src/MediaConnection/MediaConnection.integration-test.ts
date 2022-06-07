@@ -6,19 +6,19 @@ import {
   ConnectionState,
   ConnectionStateChangedEvent,
   Event,
-  MediaConnection,
+  RoapMediaConnection,
   RemoteTrackAddedEvent,
   RoapMessageEvent,
 } from './index';
 
 import {createControlledPromise, IControlledPromise} from './testUtils';
 
-describe('2 MediaConnections connected to each other', () => {
+describe('2 RoapMediaConnections connected to each other', () => {
   let localStream: MediaStream;
   let createdSdpOffer: string | undefined;
 
   let testConnections: Array<{
-    mc: MediaConnection;
+    mc: RoapMediaConnection;
     debug: string;
     connectionEstablished: IControlledPromise<unknown>;
     audioRemoteTrackAdded: IControlledPromise<unknown>;
@@ -27,7 +27,7 @@ describe('2 MediaConnections connected to each other', () => {
 
   const setupConnectionEventHandlers = () => {
     // eslint-disable-next-line arrow-body-style
-    const getOtherConnection = (connection: MediaConnection): MediaConnection => {
+    const getOtherConnection = (connection: RoapMediaConnection): RoapMediaConnection => {
       // return the other connection of the two
       return connection === testConnections[0].mc ? testConnections[1].mc : testConnections[0].mc;
     };
@@ -94,7 +94,7 @@ describe('2 MediaConnections connected to each other', () => {
 
     testConnections = [
       {
-        mc: new MediaConnection(
+        mc: new RoapMediaConnection(
           {
             iceServers: [],
             skipInactiveTransceivers: false,
@@ -110,7 +110,7 @@ describe('2 MediaConnections connected to each other', () => {
         videoRemoteTrackAdded: createControlledPromise(),
       },
       {
-        mc: new MediaConnection(
+        mc: new RoapMediaConnection(
           {iceServers: [], skipInactiveTransceivers: false, sdpMunging: {convertPort9to0: false}},
           {send, receive},
           'mc2'
@@ -261,7 +261,7 @@ describe('2 MediaConnections connected to each other', () => {
   });
 });
 
-describe('1 MediaConnection connected to a raw RTCPeerConnection', () => {
+describe('1 RoapMediaConnection connected to a raw RTCPeerConnection', () => {
   let localStream: MediaStream;
 
   beforeEach(async () => {
@@ -281,7 +281,7 @@ describe('1 MediaConnection connected to a raw RTCPeerConnection', () => {
 
     const pc = new RTCPeerConnection();
 
-    const mc = new MediaConnection(
+    const mc = new RoapMediaConnection(
       {iceServers: [], skipInactiveTransceivers: true, sdpMunging: {convertPort9to0: false}},
       {
         send: {
@@ -305,7 +305,7 @@ describe('1 MediaConnection connected to a raw RTCPeerConnection', () => {
       ERROR: false,
     };
 
-    // setup the MediaConnection callbacks
+    // setup the RoapMediaConnection callbacks
     const connectionEstablished = createControlledPromise();
     const audioRemoteTrackAdded = createControlledPromise();
 
@@ -359,7 +359,7 @@ describe('1 MediaConnection connected to a raw RTCPeerConnection', () => {
     // and the BUNDLE line (because Firefox doesn't allow SDP with BUNDLE referencing non-existent MIDs)
     const sdp = pc.localDescription?.sdp.replaceAll(/\r\n(a=mid:.*|a=group:BUNDLE.*)/g, '');
 
-    console.log(`TEST: sending SDP offer to MediaConnection: ${sdp}`);
+    console.log(`TEST: sending SDP offer to RoapMediaConnection: ${sdp}`);
 
     expectingRoapFromMc.ANSWER = true;
 

@@ -1,4 +1,4 @@
-export * from './MediaConnection';
+export * from './RoapMediaConnection';
 
 export {
   Event,

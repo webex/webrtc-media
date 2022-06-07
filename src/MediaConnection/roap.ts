@@ -66,22 +66,35 @@ interface FsmContext {
 }
 
 /**
- * Callback that gets called whenever a new local SDP (offer or answer) is set on the RTCPeerConnection (it is
- * guaranteed that the callback is called after pc.setLocalDescription() resolved, so the code in the callback
- * can access the SDP via pc.localDescription.sdp).
- * It allows the client to do some processing of the SDP and also SDP munging before it's sent out. The callback
- * should resolve with an object that contains the munged SDP - that's the SDP that will be sent out
- * with the ROAP_MESSAGE_TO_SEND event
+ * Callback that gets called whenever a new local SDP offer needs to be created (createOffer and setLocalDescription
+ * need to be called on the RTCPeerConnection). The callback should resolve with an object that contains the SDP
+ * (it can be munged) - that's the SDP that will be sent out with the ROAP_MESSAGE_TO_SEND event
  */
-type ProcessLocalSdpCallback = () => Promise<MUNGED_LOCAL_SDP>;
+type CreateLocalOfferCallback = () => Promise<MUNGED_LOCAL_SDP>;
+
+/**
+ * Callback that gets called whenever a remote offer SDP needs to be handled (setRemoteDescription, createAnswer
+ * and setLocalDescription need to be called on the RTCPeerConnection). The callback should resolve with an object
+ * that contains the answer SDP (it can be munged) - that's the SDP that will be sent out with
+ * the ROAP_MESSAGE_TO_SEND event as the answer to the remote offer
+ */
+type HandleRemoteOfferCallback = (sdp?: string) => Promise<{sdp: string}>;
+
+/**
+ * Callback that gets called whenever a remote answer SDP needs to be handled (setRemoteDescription needs to be called
+ * on the RTCPeerConnection).
+ */
+type HandleRemoteAnswerCallback = (sdp?: string) => Promise<void>;
 
 // eslint-disable-next-line import/prefer-default-export
 export class Roap extends EventEmitter {
   private id: string; // used just for logging
 
-  private pc: RTCPeerConnection;
+  private createLocalOfferCallback: CreateLocalOfferCallback;
 
-  private processLocalSdpCallback: ProcessLocalSdpCallback;
+  private handleRemoteOfferCallback: HandleRemoteOfferCallback;
+
+  private handleRemoteAnswerCallback: HandleRemoteAnswerCallback;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private stateMachine: any;
@@ -89,15 +102,17 @@ export class Roap extends EventEmitter {
   private initiateOfferPromises: Array<{resolve: () => void; reject: (error: Error) => void}>;
 
   constructor(
-    pc: RTCPeerConnection,
-    processLocalSdpCallback: ProcessLocalSdpCallback,
+    createLocalOfferCallback: CreateLocalOfferCallback,
+    handleRemoteOfferCallback: HandleRemoteOfferCallback,
+    handleRemoteAnswerCallback: HandleRemoteAnswerCallback,
     debugId?: string
   ) {
     super();
 
     this.id = debugId || 'ROAP';
-    this.pc = pc;
-    this.processLocalSdpCallback = processLocalSdpCallback;
+    this.createLocalOfferCallback = createLocalOfferCallback;
+    this.handleRemoteOfferCallback = handleRemoteOfferCallback;
+    this.handleRemoteAnswerCallback = handleRemoteAnswerCallback;
     this.initiateOfferPromises = [];
 
     const fsm = createMachine(
@@ -343,9 +358,9 @@ export class Roap extends EventEmitter {
       },
       {
         services: {
-          createLocalOffer: () => this.createLocalOffer(),
-          handleRemoteAnswer: (_context, event) => this.handleRemoteAnswer(event.sdp),
-          handleRemoteOffer: (_context, event) => this.handleRemoteOffer(event.sdp),
+          createLocalOffer: () => this.createLocalOfferCallback(),
+          handleRemoteAnswer: (_context, event) => this.handleRemoteAnswerCallback(event.sdp),
+          handleRemoteOffer: (_context, event) => this.handleRemoteOfferCallback(event.sdp),
         },
         actions: {
           enqueueNewOfferCreation: assign((context) => ({...context, pendingLocalOffer: true})),
@@ -593,17 +608,6 @@ export class Roap extends EventEmitter {
     }
   }
 
-  private createLocalOffer(): Promise<{sdp: string}> {
-    return this.pc
-      .createOffer()
-      .then((description: RTCSessionDescriptionInit) => {
-        this.log('createLocalOffer', 'local SDP offer created');
-
-        return this.pc.setLocalDescription(description);
-      })
-      .then(() => this.processLocalSdpCallback());
-  }
-
   /**
    * This function should be called whenever a ROAP message is received from the backend.
    *
@@ -611,10 +615,6 @@ export class Roap extends EventEmitter {
    */
   public roapMessageReceived(roapMessage: RoapMessage): void {
     const {errorType, messageType, sdp, seq, tieBreaker} = roapMessage;
-
-    if (!this.pc) {
-      throw new Error('RTCPeerConnection object is missing');
-    }
 
     switch (messageType) {
       case 'ANSWER':
@@ -656,39 +656,5 @@ export class Roap extends EventEmitter {
 
         throw new Error('unhandled messageType');
     }
-  }
-
-  private handleRemoteOffer(sdp?: string): Promise<{sdp: string}> {
-    this.log('handleRemoteOffer', 'called');
-
-    if (!sdp) {
-      return Promise.reject(new Error('SDP missing'));
-    }
-
-    return this.pc
-      .setRemoteDescription(
-        new window.RTCSessionDescription({
-          type: 'offer',
-          sdp,
-        })
-      )
-      .then(() => this.pc.createAnswer())
-      .then((answer: RTCSessionDescriptionInit) => this.pc.setLocalDescription(answer))
-      .then(() => this.processLocalSdpCallback());
-  }
-
-  private handleRemoteAnswer(sdp?: string): Promise<void> {
-    this.log('handleRemoteAnswer', 'called');
-
-    if (!sdp) {
-      return Promise.reject(new Error('SDP missing'));
-    }
-
-    return this.pc.setRemoteDescription(
-      new window.RTCSessionDescription({
-        type: 'answer',
-        sdp,
-      })
-    );
   }
 }
