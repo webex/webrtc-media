@@ -1,3 +1,16 @@
+# [1.20.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.8...v1.20.0) (2022-06-07)
+
+
+### Bug Fixes
+
+* **MediaConnection:** local tracks are added again on 2nd offer in incoming calls ([8c5c31b](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/8c5c31b9c034c9738b25f10617573ce83cee73c8))
+* unit tests after merge with latest master ([d2557c0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/d2557c001d85df7f33c39a51ba25575bd6559dec))
+
+
+### Features
+
+* added skipInactiveTransceivers to MediaConnectionConfig ([61420a8](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/61420a8059b646120e3e3f22d810e4fbaa87dfb8))
+
 ## [1.19.8](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.7...v1.19.8) (2022-05-26)
 
 

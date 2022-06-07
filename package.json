@@ -1,6 +1,6 @@
 {
   "name": "@webex/webrtc-media",
-  "version": "1.19.8",
+  "version": "1.20.0",
   "files": [
     "dist"
   ],
