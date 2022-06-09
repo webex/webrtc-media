@@ -1,3 +1,10 @@
+## [1.20.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.20.0...v1.20.1) (2022-06-09)
+
+
+### Bug Fixes
+
+* refactored dependencies between MediaConnection and Roap, created RoapMediaConnection ([2e70903](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/2e70903efa4bab1335125ff53cdabea644d6f8cd))
+
 # [1.20.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.19.8...v1.20.0) (2022-06-07)
 
 
