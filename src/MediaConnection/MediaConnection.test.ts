@@ -31,6 +31,7 @@ describe('MediaConnection', () => {
     setLocalDescription: jest.fn().mockResolvedValue({}),
     iceGatheringState: 'complete',
     localDescription: {sdp: 'fake'},
+    getStats: jest.fn(),
   };
 
   beforeEach(() => {
@@ -60,6 +61,28 @@ describe('MediaConnection', () => {
     });
 
     expect(mediaConnection.getConnectionState()).toEqual(ConnectionState.NEW);
+  });
+
+  it('getStats() calls getStats() on the RTCPeerConnection', async () => {
+    const FAKE_STATS = {anyKey: 'any value'};
+
+    FAKE_PC.getStats.mockResolvedValue(FAKE_STATS);
+
+    const mediaConnection = new MediaConnection(DEFAULT_CONFIG, {
+      send: {},
+      receive: {
+        audio: true,
+        video: true,
+        screenShareVideo: true,
+      },
+    });
+
+    const stats = await mediaConnection.getStats();
+
+    expect(FAKE_PC.getStats).toBeCalledOnceWith();
+    expect(stats).toEqual(FAKE_STATS);
+
+    FAKE_PC.getStats.mockReset();
   });
 
   describe('outgoing call/joining a meeting', () => {

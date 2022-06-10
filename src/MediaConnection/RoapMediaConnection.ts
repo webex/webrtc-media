@@ -244,6 +244,12 @@ export class RoapMediaConnection extends EventEmitter {
     return this.mediaConnection.getConnectionState();
   }
 
+  /** Returns the curent value of WebRTC stats of the media connection.
+   */
+  public getStats(): Promise<RTCStatsReport> {
+    return this.mediaConnection.getStats();
+  }
+
   /**
    * This function should be called whenever a ROAP message is received from the backend.
    *

@@ -297,6 +297,12 @@ export class MediaConnection extends EventEmitter {
     return this.mediaConnectionState;
   }
 
+  /** Returns the WebRTC stats.
+   */
+  public getStats(): Promise<RTCStatsReport> {
+    return this.pc.getStats();
+  }
+
   private identifyTransceivers() {
     /* this is needed only in case of an incoming call where the first SDP offer comes from the far end */
     if (

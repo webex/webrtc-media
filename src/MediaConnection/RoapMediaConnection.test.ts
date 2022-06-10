@@ -3,7 +3,7 @@ import {RoapMediaConnection} from './index';
 import * as roap from './roap';
 import * as mediaConnection from './MediaConnection';
 
-describe('MediaConnection', () => {
+describe('RoapMediaConnection', () => {
   const DEFAULT_CONFIG = {
     iceServers: [],
     skipInactiveTransceivers: false,
@@ -26,6 +26,7 @@ describe('MediaConnection', () => {
     initializeTransceivers: jest.fn(),
     on: jest.fn(),
     getConnectionState: jest.fn(),
+    getStats: jest.fn(),
   };
 
   const FAKE_ROAP = {
@@ -54,6 +55,28 @@ describe('MediaConnection', () => {
     mc.getConnectionState();
 
     expect(FAKE_MC.getConnectionState).toBeCalledOnceWith();
+  });
+
+  it('getStats() calls getStats() on the media connection', async () => {
+    const FAKE_STATS = {someStats: 'any value'};
+
+    FAKE_MC.getStats.mockResolvedValue(FAKE_STATS);
+
+    const mc = new RoapMediaConnection(DEFAULT_CONFIG, {
+      send: {},
+      receive: {
+        audio: true,
+        video: true,
+        screenShareVideo: true,
+      },
+    });
+
+    const stats = await mc.getStats();
+
+    expect(FAKE_MC.getStats).toBeCalledOnceWith();
+    expect(stats).toEqual(FAKE_STATS);
+
+    FAKE_MC.getStats.mockReset();
   });
 
   describe('outgoing call/joining a meeting', () => {
