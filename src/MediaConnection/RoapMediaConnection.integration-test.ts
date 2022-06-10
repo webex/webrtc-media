@@ -1,4 +1,4 @@
-/* eslint-disable no-console */ // TODO: remove this (it's only temporary)
+/* eslint-disable no-console */
 import {expect} from 'chai';
 import {RemoteTrackType} from './eventTypes';
 
@@ -8,6 +8,7 @@ import {
   Event,
   RoapMediaConnection,
   RemoteTrackAddedEvent,
+  RoapMessage,
   RoapMessageEvent,
 } from './index';
 
@@ -15,7 +16,7 @@ import {createControlledPromise, IControlledPromise} from './testUtils';
 
 describe('2 RoapMediaConnections connected to each other', () => {
   let localStream: MediaStream;
-  let createdSdpOffer: string | undefined;
+  let lastRoapOfferMessage: RoapMessage | undefined;
 
   let testConnections: Array<{
     mc: RoapMediaConnection;
@@ -60,7 +61,7 @@ describe('2 RoapMediaConnections connected to each other', () => {
               const message = e.roapMessage;
 
               // store the offer so that tests can do some further checks on it
-              createdSdpOffer = message.sdp;
+              lastRoapOfferMessage = message;
 
               // we need to remove the bundling, otherwise browser puts ICE candidates only in 1 m-line and the checks in isSdpInvalid() fail
               message.sdp = message.sdp?.replace(/\r\na=group:BUNDLE 0 1 2/gi, '');
@@ -92,8 +93,8 @@ describe('2 RoapMediaConnections connected to each other', () => {
   ) => {
     const {send, receive} = options;
 
-    testConnections = [
-      {
+    const createTestConnection = (debug: string) => {
+      return {
         mc: new RoapMediaConnection(
           {
             iceServers: [],
@@ -102,25 +103,16 @@ describe('2 RoapMediaConnections connected to each other', () => {
             ...configOverrides,
           },
           {send, receive},
-          'mc1'
+          debug
         ),
-        debug: 'mc1',
+        debug,
         connectionEstablished: createControlledPromise(),
         audioRemoteTrackAdded: createControlledPromise(),
         videoRemoteTrackAdded: createControlledPromise(),
-      },
-      {
-        mc: new RoapMediaConnection(
-          {iceServers: [], skipInactiveTransceivers: false, sdpMunging: {convertPort9to0: false}},
-          {send, receive},
-          'mc2'
-        ),
-        debug: 'mc2',
-        connectionEstablished: createControlledPromise(),
-        audioRemoteTrackAdded: createControlledPromise(),
-        videoRemoteTrackAdded: createControlledPromise(),
-      },
-    ];
+      };
+    };
+
+    testConnections = [createTestConnection('mc1'), createTestConnection('mc2')];
 
     setupConnectionEventHandlers();
   };
@@ -162,8 +154,8 @@ describe('2 RoapMediaConnections connected to each other', () => {
     );
 
     // because the test connections are configured with skipInactiveTransceivers=false, we should still see 3 m-lines in the SDP
-    expect(createdSdpOffer?.match(/^m=audio/gm)?.length).to.equal(1);
-    expect(createdSdpOffer?.match(/^m=video/gm)?.length).to.equal(2);
+    expect(lastRoapOfferMessage?.sdp?.match(/^m=audio/gm)?.length).to.equal(1);
+    expect(lastRoapOfferMessage?.sdp?.match(/^m=video/gm)?.length).to.equal(2);
   });
 
   it('audio only (both ways) with skipInactiveTransceivers=true', async () => {
@@ -191,8 +183,8 @@ describe('2 RoapMediaConnections connected to each other', () => {
     );
 
     // only 1 audio m-line should have been put into the SDP offer
-    expect(createdSdpOffer?.match(/^m=audio/gm)?.length).to.equal(1);
-    expect(createdSdpOffer?.match(/^m=video/gm)).to.equal(null);
+    expect(lastRoapOfferMessage?.sdp?.match(/^m=audio/gm)?.length).to.equal(1);
+    expect(lastRoapOfferMessage?.sdp?.match(/^m=video/gm)).to.equal(null);
   });
 
   it('audio and video both ways', async () => {
@@ -258,6 +250,130 @@ describe('2 RoapMediaConnections connected to each other', () => {
 
     // we should receive that track in the first connection
     await testConnections[0].audioRemoteTrackAdded;
+  });
+
+  describe('reconnect() method', () => {
+    const getIceDetails = (sdp?: string) => {
+      return {
+        ufrag: sdp?.match(/^a=ice-ufrag:.*$/gm),
+        pwd: sdp?.match(/^a=ice-pwd:.*$/gm),
+      };
+    };
+
+    interface IceDetails {
+      ufrag?: Array<string> | null;
+      pwd?: Array<string> | null;
+    }
+    const checkIceDetailsChanged = (before: IceDetails, after: IceDetails) => {
+      // check the amount of ice ufrags and passwords hasn't changed before and after
+      expect(before.ufrag?.length).to.equal(after.ufrag?.length);
+      expect(before.pwd?.length).to.equal(after.pwd?.length);
+
+      // also check that we have same amount of ufrags as passwords - this then allows us to check them all in 1 loop
+      expect(before.ufrag?.length).to.equal(before.pwd?.length);
+
+      if (before.ufrag && after.ufrag && before.pwd && after.pwd) {
+        for (let i = 0; i < before.ufrag?.length; i += 1) {
+          expect(before.ufrag[i]).not.to.equal(after.ufrag[i]);
+          expect(before.pwd[i]).not.to.equal(after.pwd[i]);
+        }
+      }
+    };
+
+    beforeEach(async () => {
+      const audioTrack = localStream.getAudioTracks()[0];
+      const videoTrack = localStream.getVideoTracks()[0];
+
+      // create the test connections and wait for them to be fully established
+      createTestConnections({
+        send: {
+          audio: audioTrack,
+          video: videoTrack,
+        },
+        receive: {audio: true, video: true, screenShareVideo: true},
+      });
+
+      await testConnections[0].mc.initiateOffer();
+
+      await Promise.all(
+        testConnections
+          .map(({connectionEstablished, audioRemoteTrackAdded, videoRemoteTrackAdded}) => [
+            connectionEstablished,
+            audioRemoteTrackAdded,
+            videoRemoteTrackAdded,
+          ])
+          .flat()
+      );
+    });
+
+    const waitForConnectionStateSequence = (
+      mc: RoapMediaConnection,
+      expectedConnectionStatesSequence: Array<ConnectionState>
+    ) => {
+      console.log(
+        `TEST: expecting connection state sequence: ${JSON.stringify(
+          expectedConnectionStatesSequence
+        )}`
+      );
+
+      return new Promise((resolve) => {
+        let expectedConnectionStateIdx = 0;
+
+        mc.on(Event.CONNECTION_STATE_CHANGED, (event: ConnectionStateChangedEvent) => {
+          console.log(`TEST: connection state: ${event.state}`);
+          expect(event.state).to.equal(
+            expectedConnectionStatesSequence[expectedConnectionStateIdx]
+          );
+          expectedConnectionStateIdx += 1;
+          if (expectedConnectionStateIdx === expectedConnectionStatesSequence.length) {
+            resolve({});
+          }
+        });
+      });
+    };
+
+    it('starts a new ICE connection with increased Roap seq', async () => {
+      const before = {
+        ice: getIceDetails(lastRoapOfferMessage?.sdp),
+        seq: lastRoapOfferMessage?.seq || 0,
+      };
+
+      // now trigger a reconnection
+      console.log('TEST: triggering reconnection...');
+      await testConnections[0].mc.reconnect();
+
+      await waitForConnectionStateSequence(testConnections[0].mc, [
+        ConnectionState.CONNECTING,
+        ConnectionState.CONNECTED,
+      ]);
+
+      const after = {
+        ice: getIceDetails(lastRoapOfferMessage?.sdp),
+        seq: lastRoapOfferMessage?.seq || 0,
+      };
+
+      // check that Roap seq has continued and has not been reset
+      expect(before.seq).lessThan(after.seq);
+
+      // verify that a new ICE connection has been established (ICE username and password changed)
+      checkIceDetailsChanged(before.ice, after.ice);
+    });
+
+    it('starts a new ICE connection with increased Roap seq (incoming call)', async () => {
+      // now trigger a reconnection without automatic new offer creation
+      console.log('TEST: triggering reconnection...');
+      await testConnections[0].mc.reconnect(false);
+
+      // trigger the offer from the other side (the 2nd RoapMediaConnection)
+      // we do this by calling reconnect() as calling initiateOffer() more than once is not allowed
+      testConnections[1].mc.reconnect(true);
+
+      // check that we've reconnected succesfully
+      await waitForConnectionStateSequence(testConnections[0].mc, [
+        ConnectionState.CONNECTING,
+        ConnectionState.CONNECTED,
+      ]);
+    });
   });
 });
 

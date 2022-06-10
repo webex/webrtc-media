@@ -32,6 +32,7 @@ describe('MediaConnection', () => {
     iceGatheringState: 'complete',
     localDescription: {sdp: 'fake'},
     getStats: jest.fn(),
+    close: jest.fn(),
   };
 
   beforeEach(() => {
@@ -298,5 +299,20 @@ describe('MediaConnection', () => {
         direction: 'inactive',
       });
     });
+  });
+
+  it('close() closes the RTCPeerConnection', () => {
+    const mediaConnection = new MediaConnection(DEFAULT_CONFIG, {
+      send: {},
+      receive: {
+        audio: true,
+        video: true,
+        screenShareVideo: true,
+      },
+    });
+
+    mediaConnection.close();
+
+    expect(FAKE_PC.close).toBeCalledOnceWith();
   });
 });

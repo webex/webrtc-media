@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 
 import logger from '../Logger';
 import {ROAP_MEDIA_CONNECTION} from '../constants';
-import {MediaConnection} from './MediaConnection';
+import {MediaConnection, LocalTracks, ReceiveOptions} from './MediaConnection';
 import {Roap} from './roap';
 import {
   Event,
@@ -15,66 +15,44 @@ import {
 
 import {MediaConnectionConfig} from './config';
 
-interface LocalTracks {
-  audio?: MediaStreamTrack | null;
-  video?: MediaStreamTrack | null;
-  screenShareVideo?: MediaStreamTrack | null;
-}
-
 // eslint-disable-next-line import/prefer-default-export
 export class RoapMediaConnection extends EventEmitter {
-  private id?: string; // used just for logging
+  private id: string; // used just for logging
+
+  private debugId?: string;
 
   private mediaConnection: MediaConnection;
 
   private roap: Roap;
 
-  private sdpNegotiationStarted = false;
+  private sdpNegotiationStarted: boolean;
 
   /**
    * Class that provides a simple high level API for creating
    * and managing a media connection (using webrtc RTCPeerConnection).
    *
    * @param MediaConnectionConfig - configuration for the media connection
-   * @param send - local tracks that are going to be sent our
+   * @param send - local tracks that are going to be sent out
    * @param receive - options choosing which remote tracks will be received
    * @param debugId - optional string to identify the media connection in the logs
    */
   constructor(
     mediaConnectionConfig: MediaConnectionConfig,
     options: {
-      send: {
-        audio?: MediaStreamTrack;
-        video?: MediaStreamTrack;
-        screenShareVideo?: MediaStreamTrack;
-      };
-      receive: {
-        audio: boolean;
-        video: boolean;
-        screenShareVideo: boolean;
-      };
+      send: LocalTracks;
+      receive: ReceiveOptions;
     },
     debugId?: string
   ) {
     super();
 
+    this.debugId = debugId;
     this.id = debugId || 'RoapMediaConnection';
+    this.sdpNegotiationStarted = false;
 
-    this.mediaConnection = new MediaConnection(mediaConnectionConfig, options, debugId);
-    this.mediaConnection.on(Event.REMOTE_TRACK_ADDED, this.onRemoteTrack.bind(this));
-    this.mediaConnection.on(
-      Event.CONNECTION_STATE_CHANGED,
-      this.onConnectionStateChanged.bind(this)
-    );
+    this.mediaConnection = this.createMediaConnection(mediaConnectionConfig, options, debugId);
 
-    this.roap = new Roap(
-      this.createLocalOffer.bind(this),
-      this.handleRemoteOffer.bind(this),
-      this.handleRemoteAnswer.bind(this),
-      debugId
-    );
-    this.roap.on(Event.ROAP_MESSAGE_TO_SEND, this.onRoapMessageToSend.bind(this));
-    this.roap.on(Event.ROAP_FAILURE, this.onRoapFailure.bind(this));
+    this.roap = this.createRoap(debugId);
 
     this.log(
       'constructor()',
@@ -98,6 +76,37 @@ export class RoapMediaConnection extends EventEmitter {
       action,
       description,
     });
+  }
+
+  private createMediaConnection(
+    mediaConnectionConfig: MediaConnectionConfig,
+    options: {
+      send: LocalTracks;
+      receive: ReceiveOptions;
+    },
+    debugId?: string
+  ): MediaConnection {
+    const mediaConnection = new MediaConnection(mediaConnectionConfig, options, debugId);
+
+    mediaConnection.on(Event.REMOTE_TRACK_ADDED, this.onRemoteTrack.bind(this));
+    mediaConnection.on(Event.CONNECTION_STATE_CHANGED, this.onConnectionStateChanged.bind(this));
+
+    return mediaConnection;
+  }
+
+  private createRoap(debugId?: string, seq?: number) {
+    const roap = new Roap(
+      this.createLocalOffer.bind(this),
+      this.handleRemoteOffer.bind(this),
+      this.handleRemoteAnswer.bind(this),
+      debugId,
+      seq
+    );
+
+    roap.on(Event.ROAP_MESSAGE_TO_SEND, this.onRoapMessageToSend.bind(this));
+    roap.on(Event.ROAP_FAILURE, this.onRoapFailure.bind(this));
+
+    return roap;
   }
 
   /**
@@ -131,19 +140,53 @@ export class RoapMediaConnection extends EventEmitter {
   public close(): void {
     this.log('close()', 'called');
 
+    this.closeMediaConnection();
+    this.stopRoapSession();
+  }
+
+  private closeMediaConnection() {
     this.mediaConnection.close();
-    // todo
+    this.mediaConnection.removeAllListeners();
+  }
+
+  private stopRoapSession() {
+    this.roap.stop();
+    this.roap.removeAllListeners();
   }
 
   /**
-   * Restarts the ICE connection.
+   * Restarts the media connection. It retains the Roap session seq value.
+   * New ICE connection is only established when a new SDP negotiation is done.
+   * This is done automatically as part of the reconnection, unless the
+   * initiateOffer argument is set to false.
+   *
+   * @param initiateOffer - if false, the client has to manually call initiateOffer()
+   *                        or roapMessageReceived() with an offer or offer request
+   *                        in order to trigger SDP negotiation.
+   *
    */
-  // eslint-disable-next-line class-methods-use-this
-  public reconnect(): void {
+  public reconnect(initiateOffer = true): Promise<void> {
     this.log('reconnect()', 'called');
 
-    this.mediaConnection.reconnect();
-    // todo
+    const config = this.mediaConnection.getConfig();
+    const options = this.mediaConnection.getSendReceiveOptions();
+    const seq = this.roap.getSeq();
+
+    // stop and close everything
+    this.stopRoapSession();
+    this.closeMediaConnection();
+
+    this.sdpNegotiationStarted = false;
+
+    // recreate the media connection and roap session (use the saved seq)
+    this.mediaConnection = this.createMediaConnection(config, options, this.debugId);
+    this.roap = this.createRoap(this.debugId, seq);
+
+    if (initiateOffer) {
+      return this.initiateOffer();
+    }
+
+    return Promise.resolve();
   }
 
   /**
@@ -177,16 +220,12 @@ export class RoapMediaConnection extends EventEmitter {
   /**
    * Updates the choice of which tracks we want to receive
    *
-   * @param options - specifies which remote tracks to receieve (audio, video, screenShareVideo)
+   * @param options - specifies which remote tracks to receive (audio, video, screenShareVideo)
    *
    * @returns Promise - promise that's resolved once the new SDP exchange is initiated
    *                    or immediately if no new SDP exchange is needed
    */
-  public updateReceiveOptions(options: {
-    audio: boolean;
-    video: boolean;
-    screenShareVideo: boolean;
-  }): Promise<void> {
+  public updateReceiveOptions(options: ReceiveOptions): Promise<void> {
     this.log('updateReceiveOptions()', `called with ${JSON.stringify(options)}`);
 
     const newOfferNeeded = this.mediaConnection.updateReceiveOptions(options);
@@ -204,7 +243,7 @@ export class RoapMediaConnection extends EventEmitter {
    * Updates the choice of which tracks we want to receive
    * and the local tracks to be sent by the RTCPeerConnection
    *
-   * @param options - specifies which remote tracks to receieve (audio, video, screenShareVideo)
+   * @param options - specifies which remote tracks to receive (audio, video, screenShareVideo)
    *                  and which local tracks to update:
    *                  each local track (audio, video, screenShareVideo) can have one of these values:
    *                  - undefined - means "no change"
@@ -216,11 +255,7 @@ export class RoapMediaConnection extends EventEmitter {
    */
   public updateSendReceiveOptions(options: {
     send: LocalTracks;
-    receive: {
-      audio: boolean;
-      video: boolean;
-      screenShareVideo: boolean;
-    };
+    receive: ReceiveOptions;
   }): Promise<void> {
     this.log('updateSendReceiveOptions()', `called with ${JSON.stringify(options)}`);
 

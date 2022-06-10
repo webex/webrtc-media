@@ -1321,4 +1321,67 @@ describe('Roap', () => {
       await checkRemoteAnswerOkFlow(1);
     });
   });
+
+  describe('stop() method', () => {
+    it('calls stop() on the state machine interpreter', () => {
+      const stateMachineInterpreter = roap.getStateMachine();
+
+      const stopSpy = jest.spyOn(stateMachineInterpreter, 'stop');
+
+      roap.stop();
+
+      expect(stopSpy).toBeCalledOnceWith();
+    });
+
+    it('stops events that are sent from service onDone handler from firing', async () => {
+      const createLocalOfferPromise = createControlledPromise();
+
+      // make sure offer creation doesn't complete
+      createLocalOffer = jest.fn().mockReturnValue(createLocalOfferPromise);
+
+      // start the process of creating a local offer
+      roap.initiateOffer();
+      await flushPromises();
+
+      // stop it before it fully completed
+      roap.stop();
+
+      // now let it complete
+      createLocalOfferPromise.resolve({sdp: 'fake sdp'});
+      await flushPromises();
+
+      // check that we didn't get any ROAP_MESSAGE_TO_SEND event
+      expect(receivedRoapMessages.length).toEqual(0);
+
+      await new Promise((resolve) => {
+        setTimeout(() => resolve({}), 2000);
+      });
+    });
+
+    it('stops the state machine from handling any more requests', async () => {
+      roap.stop();
+
+      // now try to initiate an offer, it should do nothing
+      roap.initiateOffer();
+      await flushPromises();
+
+      expect(receivedRoapMessages.length).toEqual(0);
+    });
+
+    it('stops handling any more remote messages', async () => {
+      roap.stop();
+
+      roap.roapMessageReceived({
+        messageType: 'OFFER',
+        seq: 1,
+        sdp: FAKE_REMOTE_SDP,
+        tieBreaker: 0x100,
+      });
+
+      await flushPromises();
+
+      expect(handleRemoteOffer).not.toBeCalled();
+      expect(receivedRoapMessages.length).toEqual(0);
+    });
+  });
 });

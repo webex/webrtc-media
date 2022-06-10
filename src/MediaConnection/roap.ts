@@ -105,7 +105,8 @@ export class Roap extends EventEmitter {
     createLocalOfferCallback: CreateLocalOfferCallback,
     handleRemoteOfferCallback: HandleRemoteOfferCallback,
     handleRemoteAnswerCallback: HandleRemoteAnswerCallback,
-    debugId?: string
+    debugId?: string,
+    initialSeq?: number
   ) {
     super();
 
@@ -132,7 +133,7 @@ export class Roap extends EventEmitter {
         initial: 'idle', // initial state
         context: {
           // initial context value
-          seq: 0,
+          seq: initialSeq || 0,
           pendingLocalOffer: false,
           isHandlingOfferRequest: false,
           retryCounter: 0,
@@ -656,5 +657,13 @@ export class Roap extends EventEmitter {
 
         throw new Error('unhandled messageType');
     }
+  }
+
+  public stop() {
+    this.stateMachine.stop();
+  }
+
+  public getSeq() {
+    return this.stateMachine.state.context.seq;
   }
 }

@@ -7,12 +7,17 @@ import {Event, ConnectionState, RemoteTrackType} from './eventTypes';
 
 import {MediaConnectionConfig} from './config';
 
-interface LocalTracks {
+export interface LocalTracks {
   audio?: MediaStreamTrack | null;
   video?: MediaStreamTrack | null;
   screenShareVideo?: MediaStreamTrack | null;
 }
 
+export interface ReceiveOptions {
+  audio: boolean;
+  video: boolean;
+  screenShareVideo: boolean;
+}
 interface Transceivers {
   audio?: RTCRtpTransceiver;
   video?: RTCRtpTransceiver;
@@ -37,13 +42,11 @@ export class MediaConnection extends EventEmitter {
 
   private transceivers: Transceivers;
 
-  private receiveOptions: {
-    audio: boolean;
-    video: boolean;
-    screenShareVideo: boolean;
-  };
+  private receiveOptions: ReceiveOptions;
 
   private mediaConnectionState: ConnectionState;
+
+  private lastEmittedMediaConnectionState?: ConnectionState;
 
   /**
    * Class that provides a simple high level API for creating
@@ -57,16 +60,8 @@ export class MediaConnection extends EventEmitter {
   constructor(
     mediaConnectionConfig: MediaConnectionConfig,
     options: {
-      send: {
-        audio?: MediaStreamTrack;
-        video?: MediaStreamTrack;
-        screenShareVideo?: MediaStreamTrack;
-      };
-      receive: {
-        audio: boolean;
-        video: boolean;
-        screenShareVideo: boolean;
-      };
+      send: LocalTracks;
+      receive: ReceiveOptions;
     },
     debugId?: string
   ) {
@@ -157,15 +152,24 @@ export class MediaConnection extends EventEmitter {
   // eslint-disable-next-line class-methods-use-this
   public close(): void {
     this.pc.close();
-    // todo
+
+    // clear all the listeners (just in case if we get called on any of them)
+    this.pc.ontrack = null;
+    this.pc.oniceconnectionstatechange = null;
+    this.pc.onconnectionstatechange = null;
+    this.pc.onicegatheringstatechange = null;
+    this.pc.onicecandidate = null;
+    this.pc.onicecandidateerror = null;
   }
 
-  /**
-   * Restarts the ICE connection.
-   */
-  // eslint-disable-next-line class-methods-use-this
-  public reconnect(): void {
-    // todo
+  /** Gets the configuration */
+  public getConfig(): MediaConnectionConfig {
+    return this.config;
+  }
+
+  /** Gets the current send and receive options */
+  public getSendReceiveOptions() {
+    return {send: this.localTracks, receive: this.receiveOptions};
   }
 
   /**
@@ -173,14 +177,7 @@ export class MediaConnection extends EventEmitter {
    *
    * @returns true if a new local SDP offer is needed for the changes to take effect
    */
-  private updateTransceivers(options: {
-    send: LocalTracks;
-    receive: {
-      audio: boolean;
-      video: boolean;
-      screenShareVideo: boolean;
-    };
-  }): boolean {
+  private updateTransceivers(options: {send: LocalTracks; receive: ReceiveOptions}): boolean {
     let newOfferNeeded = false;
 
     this.receiveOptions = options.receive;
@@ -247,15 +244,11 @@ export class MediaConnection extends EventEmitter {
   /**
    * Updates the choice of which tracks we want to receive
    *
-   * @param options - specifies which remote tracks to receieve (audio, video, screenShareVideo)
+   * @param options - specifies which remote tracks to receive (audio, video, screenShareVideo)
    *
    * @returns boolean - true if a new SDP negotiation is required as a result of the update
    */
-  public updateReceiveOptions(options: {
-    audio: boolean;
-    video: boolean;
-    screenShareVideo: boolean;
-  }): boolean {
+  public updateReceiveOptions(options: ReceiveOptions): boolean {
     return this.updateTransceivers({
       send: this.localTracks,
       receive: options,
@@ -266,7 +259,7 @@ export class MediaConnection extends EventEmitter {
    * Updates the choice of which tracks we want to receive
    * and the local tracks to be sent by the RTCPeerConnection
    *
-   * @param options - specifies which remote tracks to receieve (audio, video, screenShareVideo)
+   * @param options - specifies which remote tracks to receive (audio, video, screenShareVideo)
    *                  and which local tracks to update:
    *                  each local track (audio, video, screenShareVideo) can have one of these values:
    *                  - undefined - means "no change"
@@ -275,14 +268,7 @@ export class MediaConnection extends EventEmitter {
    *
    * @returns boolean - true if a new SDP negotiation is required as a result of the update
    */
-  public updateSendReceiveOptions(options: {
-    send: LocalTracks;
-    receive: {
-      audio: boolean;
-      video: boolean;
-      screenShareVideo: boolean;
-    };
-  }): boolean {
+  public updateSendReceiveOptions(options: {send: LocalTracks; receive: ReceiveOptions}): boolean {
     return this.updateTransceivers(options);
   }
 
@@ -438,7 +424,11 @@ export class MediaConnection extends EventEmitter {
       'evaluateConnectionState',
       `iceConnectionState=${iceState} rtcPcConnectionState=${rtcPcConnectionState} => mediaConnectionState=${this.mediaConnectionState}`
     );
-    this.emit(Event.CONNECTION_STATE_CHANGED, {state: this.mediaConnectionState});
+
+    if (this.lastEmittedMediaConnectionState !== this.mediaConnectionState) {
+      this.emit(Event.CONNECTION_STATE_CHANGED, {state: this.mediaConnectionState});
+      this.lastEmittedMediaConnectionState = this.mediaConnectionState;
+    }
   }
 
   public createLocalOffer(): Promise<{sdp: string}> {
@@ -449,7 +439,7 @@ export class MediaConnection extends EventEmitter {
 
         return this.pc.setLocalDescription(description);
       })
-      .then(() => this.checkIceCandidates())
+      .then(() => this.waitForIceCandidates())
       .then(() => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
@@ -474,7 +464,7 @@ export class MediaConnection extends EventEmitter {
       )
       .then(() => this.pc.createAnswer())
       .then((answer: RTCSessionDescriptionInit) => this.pc.setLocalDescription(answer))
-      .then(() => this.checkIceCandidates())
+      .then(() => this.waitForIceCandidates())
       .then(() => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
@@ -498,51 +488,60 @@ export class MediaConnection extends EventEmitter {
     );
   }
 
-  private checkIceCandidates(): Promise<void> {
+  private waitForIceCandidates(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const startTime = performance.now();
 
       let done = false;
 
+      const isLocalSdpValid = () =>
+        !isSdpInvalid(
+          {
+            allowPort0: !!this.config.sdpMunging.convertPort9to0,
+          },
+          this.error.bind(this),
+          this.pc.localDescription?.sdp
+        );
+
       const doneGatheringIceCandidates = () => {
         if (!done) {
           const miliseconds = performance.now() - startTime;
 
-          this.log('checkIceCandidates()', 'checking SDP...');
+          this.log('waitForIceCandidates()', `checking SDP... ${this.pc.localDescription?.sdp}`);
 
-          const invalidSdpPresent = isSdpInvalid(
-            {
-              allowPort0: !!this.config.sdpMunging.convertPort9to0,
-            },
-            this.error.bind(this),
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            this.pc.localDescription!.sdp
-          );
-
-          if (invalidSdpPresent) {
-            this.error('checkIceCandidates()', 'SDP not valid after waiting.');
+          if (!isLocalSdpValid()) {
+            this.error('waitForIceCandidates()', 'SDP not valid after waiting.');
             reject(new Error('SDP not valid'));
           }
-          // todo: show this log only the first time:
           this.log(
-            'checkIceCandidates()',
+            'waitForIceCandidates()',
             `It took ${miliseconds} miliseconds to gather ice candidates`
           );
 
           done = true;
-          // todo: clear the callbacks like this.pc.onicecandidate
+          // clear the callbacks, as we don't need them anymore
+          this.pc.onicegatheringstatechange = null;
+          this.pc.onicecandidate = null;
+          this.pc.onicecandidateerror = null;
           resolve();
         }
       };
 
-      if (this.pc.iceGatheringState === 'complete') {
-        this.log('checkIceCandidates()', 'iceGatheringState is already "complete"');
-        doneGatheringIceCandidates();
+      // even if gathering state says "complete", the SDP might be missing candidates,
+      // this can happen when ICE restart is being done (triggered by us or the far end)
+      if (this.pc.iceGatheringState === 'complete' && isLocalSdpValid()) {
+        this.log(
+          'waitForIceCandidates()',
+          'iceGatheringState is already "complete" and local SDP is valid'
+        );
+        resolve();
       }
+
+      this.log('waitForIceCandidates()', 'waiting for ICE candidates to be gathered...');
 
       this.pc.onicegatheringstatechange = () => {
         this.log(
-          'checkIceCandidates()',
+          'waitForIceCandidates()',
           `iceGatheringState changed to ${this.pc.iceGatheringState}`
         );
         if (this.pc.iceGatheringState === 'complete') {
@@ -552,18 +551,18 @@ export class MediaConnection extends EventEmitter {
 
       this.pc.onicecandidate = (evt) => {
         if (evt.candidate === null) {
-          this.log('checkIceCandidates()', 'evt.candidate === null received');
+          this.log('waitForIceCandidates()', 'evt.candidate === null received');
           doneGatheringIceCandidates();
         } else {
           this.log(
-            'checkIceCandidates()',
+            'waitForIceCandidates()',
             `ICE Candidate(${evt.candidate?.sdpMLineIndex}): ${evt.candidate?.candidate}`
           );
         }
       };
 
       this.pc.onicecandidateerror = (event) => {
-        this.error('checkIceCandidates()', `onicecandidateerror: ${event}`);
+        this.error('waitForIceCandidates()', `onicecandidateerror: ${event}`);
         reject(new Error('Error gathering ICE candidates'));
       };
     });
