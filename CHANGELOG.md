@@ -1,3 +1,10 @@
+# [1.21.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.20.1...v1.21.0) (2022-06-13)
+
+
+### Features
+
+* **MediaConnection:** added getStats() method ([24ac6b4](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/24ac6b4ea4788bbe19f412bcafa7f5e47310f4de))
+
 ## [1.20.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.20.0...v1.20.1) (2022-06-09)
 
 
