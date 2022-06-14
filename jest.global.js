@@ -13,11 +13,13 @@ const mediConstraints = {
   width: true,
   height: true,
   deviceId: true,
+  sampleRate: true
 };
 
 window.navigator.mediaDevices = {
   getUserMedia: jest.fn().mockResolvedValue({
     getVideoTracks: () => [mockMediaStreamTrack],
+    getAudioTracks: () => [mockMediaStreamTrack],
   }),
   getDisplayMedia: jest.fn().mockResolvedValue({
     getVideoTracks: () => [mockMediaStreamTrack],

@@ -61,6 +61,7 @@ export const mockMediaStreamTrack = {
       frameRate: 10,
       width: 320,
       height: 180,
+      sampleRate: 48000,
     };
   },
 };
