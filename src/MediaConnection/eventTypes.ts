@@ -61,3 +61,5 @@ export interface RoapMessage {
 export interface RoapMessageEvent {
   roapMessage: RoapMessage; // roap message that needs to be sent to the backend as soon as possible
 }
+
+export type AnyEvent = ConnectionStateChangedEvent | RemoteTrackAddedEvent | RoapMessageEvent;

@@ -59,7 +59,7 @@ module.exports = {
     'import/no-extraneous-dependencies': [
       'error',
       {
-        devDependencies: ['*.config*.*', '**/*test.*'],
+        devDependencies: ['*.config*.*', '**/*test.*', '**/testUtils/*.*'],
       },
     ],
     'no-console': [

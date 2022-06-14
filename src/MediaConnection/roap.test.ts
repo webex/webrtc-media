@@ -1,8 +1,13 @@
 import {CustomConsole, LogType, LogMessage} from '@jest/console';
 import {StateValue} from 'xstate';
 import {Roap} from './roap';
-import {Event, ErrorType, RoapMessage} from './eventTypes';
-import {createControlledPromise, IControlledPromise, flushPromises} from './testUtils';
+import {Event, ErrorType} from './eventTypes';
+import {
+  createControlledPromise,
+  IControlledPromise,
+  flushPromises,
+  RoapListener,
+} from './testUtils';
 import logger from '../Logger';
 
 describe('Roap', () => {
@@ -25,13 +30,7 @@ describe('Roap', () => {
     handleRemoteAnswer.mockClear();
   };
 
-  let receivedRoapMessages: Array<RoapMessage>;
-  let expectedNextRoap: {
-    message?: RoapMessage;
-    resolve?: () => void;
-    reject?: (e: unknown) => void;
-  };
-
+  let roapListener: RoapListener;
   let roapStateMachineState: string;
   let waitingForState: {
     state?: string;
@@ -54,8 +53,6 @@ describe('Roap', () => {
 
   beforeEach(() => {
     // reset all the variables, so that each test is independent from previous test runs
-    receivedRoapMessages = [];
-    expectedNextRoap = {};
     roapStateMachineState = '';
     waitingForState = {};
 
@@ -70,24 +67,8 @@ describe('Roap', () => {
       (sdp: string | undefined) => handleRemoteOffer(sdp),
       (sdp: string | undefined) => handleRemoteAnswer(sdp)
     );
-    roap.on(Event.ROAP_MESSAGE_TO_SEND, ({roapMessage}) => {
-      log('Event.ROAP_MESSAGE_TO_SEND', `${JSON.stringify(roapMessage)}`);
 
-      if (expectedNextRoap.resolve && expectedNextRoap.reject) {
-        try {
-          // we were already waiting for a message, so check if it matches what we're waiting for
-          expect(roapMessage).toEqual(expectedNextRoap.message);
-          log('waitForRoapMessage()', 'expected roapMessage received');
-          expectedNextRoap.resolve();
-        } catch (e) {
-          expectedNextRoap.reject(e);
-        }
-        expectedNextRoap.resolve = undefined;
-        expectedNextRoap.reject = undefined;
-      } else {
-        receivedRoapMessages.push(roapMessage);
-      }
-    });
+    roapListener = new RoapListener(roap, log);
 
     roap.getStateMachine().onTransition((state: {value: StateValue}) => {
       roapStateMachineState = state.value as string;
@@ -102,27 +83,6 @@ describe('Roap', () => {
     // eslint-disable-next-line no-console
     console.log(`======================== TEST: ${expect.getState().currentTestName}`);
   });
-
-  const waitForRoapMessage = (expectedMessage: RoapMessage): Promise<void> => {
-    log('waitForRoapMessage()', `test expecting roapMessage ${JSON.stringify(expectedMessage)}`);
-
-    return new Promise((resolve, reject) => {
-      if (receivedRoapMessages.length > 0) {
-        // we've already received some messages, so check the first one
-        expect(receivedRoapMessages[0]).toEqual(expectedMessage);
-
-        // it matched the expected one so we can remove it from receivedRoapMessages
-        receivedRoapMessages.shift();
-        log('waitForRoapMessage()', 'expected roapMessage has already been received');
-        resolve();
-      } else {
-        // we will wait for the message...
-        expectedNextRoap.message = expectedMessage;
-        expectedNextRoap.resolve = resolve;
-        expectedNextRoap.reject = reject;
-      }
-    });
-  };
 
   const waitForState = (expectedState: string): Promise<void> => {
     if (roapStateMachineState === expectedState) {
@@ -146,7 +106,7 @@ describe('Roap', () => {
       sdp: FAKE_REMOTE_SDP,
     });
 
-    await waitForRoapMessage({
+    await roapListener.waitForMessage({
       messageType: 'OK',
       seq,
     });
@@ -158,7 +118,7 @@ describe('Roap', () => {
   // followed by remote ANSWER simulated, then local OK generated
   // and finally state machine going to idle state
   const checkLocalOfferAnswerOkFlow = async (seq: number) => {
-    await waitForRoapMessage({
+    await roapListener.waitForMessage({
       messageType: 'OFFER',
       seq,
       sdp: MUNGED_LOCAL_SDP,
@@ -199,7 +159,7 @@ describe('Roap', () => {
       seq: FAKE_SEQ,
     });
 
-    await waitForRoapMessage({
+    await roapListener.waitForMessage({
       messageType: 'OFFER_RESPONSE',
       seq: FAKE_SEQ,
       sdp: MUNGED_LOCAL_SDP,
@@ -214,7 +174,7 @@ describe('Roap', () => {
       sdp: FAKE_REMOTE_SDP,
     });
 
-    await waitForRoapMessage({
+    await roapListener.waitForMessage({
       messageType: 'OK',
       seq: FAKE_SEQ,
     });
@@ -227,7 +187,7 @@ describe('Roap', () => {
   it('works correctly when client initiates the offer', async () => {
     roap.initiateOffer();
 
-    await waitForRoapMessage({
+    await roapListener.waitForMessage({
       messageType: 'OFFER',
       seq: 1,
       sdp: MUNGED_LOCAL_SDP,
@@ -243,7 +203,7 @@ describe('Roap', () => {
       sdp: FAKE_REMOTE_SDP,
     });
 
-    await waitForRoapMessage({
+    await roapListener.waitForMessage({
       messageType: 'OK',
       seq: 1,
     });
@@ -260,7 +220,7 @@ describe('Roap', () => {
       tieBreaker: 0x100,
     });
 
-    await waitForRoapMessage({
+    await roapListener.waitForMessage({
       messageType: 'ANSWER',
       seq: 1,
       sdp: MUNGED_LOCAL_SDP,
@@ -303,14 +263,14 @@ describe('Roap', () => {
         createLocalOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
         // glare has happened - this should trigger an ERROR CONFLICT
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'ERROR',
           errorType: ErrorType.CONFLICT,
           seq: 1,
         });
 
         // eventually our offer is ready to be sent out
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 1,
           sdp: MUNGED_LOCAL_SDP,
@@ -318,7 +278,7 @@ describe('Roap', () => {
         });
       } else {
         // wait for our local offer to be created
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 1,
           sdp: MUNGED_LOCAL_SDP,
@@ -334,7 +294,7 @@ describe('Roap', () => {
         });
 
         // glare has happened - this should trigger an ERROR CONFLICT
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'ERROR',
           errorType: ErrorType.CONFLICT,
           seq: 1,
@@ -382,7 +342,7 @@ describe('Roap', () => {
 
         handleRemoteOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'ANSWER',
           seq: 1,
           sdp: MUNGED_LOCAL_SDP,
@@ -410,7 +370,7 @@ describe('Roap', () => {
         });
 
         // now instead of just staying in "idle" state, we should proceed to create a new local offer (with increased seq)
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 2,
           sdp: MUNGED_LOCAL_SDP,
@@ -458,7 +418,7 @@ describe('Roap', () => {
         // now let setting of local offer to complete
         createLocalOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 1,
           sdp: MUNGED_LOCAL_SDP,
@@ -504,7 +464,7 @@ describe('Roap', () => {
         // now let setting of local offer to complete
         createLocalOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER_RESPONSE',
           seq: 1,
           sdp: MUNGED_LOCAL_SDP,
@@ -529,7 +489,7 @@ describe('Roap', () => {
           initiateOfferResolved[0] = true;
         });
 
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 1,
           sdp: MUNGED_LOCAL_SDP,
@@ -553,13 +513,13 @@ describe('Roap', () => {
           sdp: FAKE_REMOTE_SDP,
         });
 
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OK',
           seq: 1,
         });
 
         // now instead of just staying in "idle" state, we should proceed to create a new local offer (with increased seq)
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 2,
           sdp: MUNGED_LOCAL_SDP,
@@ -585,7 +545,7 @@ describe('Roap', () => {
           initiateOfferResolved[0] = true;
         });
 
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 1,
           sdp: MUNGED_LOCAL_SDP,
@@ -617,13 +577,13 @@ describe('Roap', () => {
         // now let the answer processing finish
         handleRemoteAnswerPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OK',
           seq: 1,
         });
 
         // now instead of just staying in "idle" state, we should proceed to create a new local offer (with increased seq)
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 2,
           sdp: MUNGED_LOCAL_SDP,
@@ -656,7 +616,7 @@ describe('Roap', () => {
     it('DOUBLECONFLICT handled correctly when received after initiating an offer', async () => {
       roap.initiateOffer();
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OFFER',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -675,7 +635,7 @@ describe('Roap', () => {
       });
 
       // it should trigger a new offer with increased seq and same sdp and tieBreaker
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OFFER',
         seq: 2,
         sdp: MUNGED_LOCAL_SDP,
@@ -699,7 +659,7 @@ describe('Roap', () => {
       it(`${errorType} triggers no more than 2 offer retries`, async () => {
         roap.initiateOffer();
 
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 1,
           sdp: MUNGED_LOCAL_SDP,
@@ -717,7 +677,7 @@ describe('Roap', () => {
         });
 
         // it should trigger a new offer with increased seq and same sdp and tieBreaker
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 2,
           sdp: MUNGED_LOCAL_SDP,
@@ -735,7 +695,7 @@ describe('Roap', () => {
         });
 
         // it should trigger a second retry of the offer with increased seq and same sdp and tieBreaker
-        await waitForRoapMessage({
+        await roapListener.waitForMessage({
           messageType: 'OFFER',
           seq: 3,
           sdp: MUNGED_LOCAL_SDP,
@@ -761,7 +721,7 @@ describe('Roap', () => {
     it('fails if unrecoverable error is received while waiting for SDP answer', async () => {
       roap.initiateOffer();
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OFFER',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -789,7 +749,7 @@ describe('Roap', () => {
         tieBreaker: 0x100,
       });
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'ANSWER',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -814,7 +774,7 @@ describe('Roap', () => {
         sdp: FAKE_REMOTE_SDP,
       });
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'ERROR',
         errorType: ErrorType.FAILED,
         seq: 1,
@@ -829,7 +789,7 @@ describe('Roap', () => {
 
       roap.initiateOffer();
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OFFER',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -842,7 +802,7 @@ describe('Roap', () => {
         sdp: FAKE_REMOTE_SDP,
       });
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'ERROR',
         errorType: ErrorType.FAILED,
         seq: 1,
@@ -875,12 +835,16 @@ describe('Roap', () => {
       // simulate message arriving with the correct seq
       roap.roapMessageReceived({messageType, seq, sdp: FAKE_REMOTE_SDP});
 
-      await waitForRoapMessage({messageType: 'ERROR', errorType: ErrorType.INVALID_STATE, seq});
+      await roapListener.waitForMessage({
+        messageType: 'ERROR',
+        errorType: ErrorType.INVALID_STATE,
+        seq,
+      });
 
       // and with a higher seq
       roap.roapMessageReceived({messageType, seq: seq + 10, sdp: FAKE_REMOTE_SDP});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'ERROR',
         errorType: ErrorType.INVALID_STATE,
         seq: seq + 10,
@@ -909,7 +873,7 @@ describe('Roap', () => {
       // now let setting of local offer to complete
       createLocalOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OFFER',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -936,7 +900,7 @@ describe('Roap', () => {
       // now let the answer processing finish
       handleRemoteAnswerPromise.resolve({});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OK',
         seq: 1,
       });
@@ -969,7 +933,7 @@ describe('Roap', () => {
       // now let the offer processing finish
       handleRemoteOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'ANSWER',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -1007,7 +971,7 @@ describe('Roap', () => {
       await flushPromises();
 
       // there should be no new notification as the message was ignored
-      expect(receivedRoapMessages.length).toEqual(0);
+      expect(roapListener.getReceivedMessages().length).toEqual(0);
       // and the state should not have changed either
       expect(stateBeforeMessageReceived).toEqual(roapStateMachineState);
     };
@@ -1019,7 +983,7 @@ describe('Roap', () => {
 
       roap.initiateOffer();
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OFFER',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -1041,7 +1005,7 @@ describe('Roap', () => {
       // now let the answer processing finish
       handleRemoteAnswerPromise.resolve({});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OK',
         seq: 1,
       });
@@ -1072,7 +1036,7 @@ describe('Roap', () => {
       // now let the offer processing finish
       handleRemoteOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'ANSWER',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -1106,7 +1070,7 @@ describe('Roap', () => {
 
       createLocalOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OFFER_RESPONSE',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -1131,7 +1095,11 @@ describe('Roap', () => {
       // simulate message arriving with the correct seq
       roap.roapMessageReceived({messageType, seq, sdp: FAKE_REMOTE_SDP});
 
-      await waitForRoapMessage({messageType: 'ERROR', errorType: ErrorType.OUT_OF_ORDER, seq});
+      await roapListener.waitForMessage({
+        messageType: 'ERROR',
+        errorType: ErrorType.OUT_OF_ORDER,
+        seq,
+      });
     };
 
     /** Sends ERROR messages with old seq (0) and checks that
@@ -1153,7 +1121,7 @@ describe('Roap', () => {
         await flushPromises();
 
         // there should be no new notification as the message was ignored
-        expect(receivedRoapMessages.length).toEqual(0);
+        expect(roapListener.getReceivedMessages().length).toEqual(0);
         // and the state should not have changed either
         expect(stateBeforeMessageReceived).toEqual(roapStateMachineState);
       }
@@ -1195,7 +1163,7 @@ describe('Roap', () => {
       // now let setting of local offer to complete
       createLocalOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OFFER',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -1228,7 +1196,7 @@ describe('Roap', () => {
       // now let the answer processing finish
       handleRemoteAnswerPromise.resolve({});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OK',
         seq: 1,
       });
@@ -1259,7 +1227,7 @@ describe('Roap', () => {
       // now let the offer processing finish
       handleRemoteOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'ANSWER',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -1302,7 +1270,7 @@ describe('Roap', () => {
 
       createLocalOfferPromise.resolve({sdp: MUNGED_LOCAL_SDP});
 
-      await waitForRoapMessage({
+      await roapListener.waitForMessage({
         messageType: 'OFFER_RESPONSE',
         seq: 1,
         sdp: MUNGED_LOCAL_SDP,
@@ -1351,7 +1319,7 @@ describe('Roap', () => {
       await flushPromises();
 
       // check that we didn't get any ROAP_MESSAGE_TO_SEND event
-      expect(receivedRoapMessages.length).toEqual(0);
+      expect(roapListener.getReceivedMessages().length).toEqual(0);
 
       await new Promise((resolve) => {
         setTimeout(() => resolve({}), 2000);
@@ -1365,7 +1333,7 @@ describe('Roap', () => {
       roap.initiateOffer();
       await flushPromises();
 
-      expect(receivedRoapMessages.length).toEqual(0);
+      expect(roapListener.getReceivedMessages().length).toEqual(0);
     });
 
     it('stops handling any more remote messages', async () => {
@@ -1381,7 +1349,7 @@ describe('Roap', () => {
       await flushPromises();
 
       expect(handleRemoteOffer).not.toBeCalled();
-      expect(receivedRoapMessages.length).toEqual(0);
+      expect(roapListener.getReceivedMessages().length).toEqual(0);
     });
   });
 });

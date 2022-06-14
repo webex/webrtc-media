@@ -12,7 +12,7 @@ import {
   RoapMessageEvent,
 } from './index';
 
-import {createControlledPromise, IControlledPromise} from './testUtils';
+import {createControlledPromise, IControlledPromise, EventListener} from './testUtils';
 
 describe('2 RoapMediaConnections connected to each other', () => {
   let localStream: MediaStream;
@@ -253,6 +253,8 @@ describe('2 RoapMediaConnections connected to each other', () => {
   });
 
   describe('reconnect() method', () => {
+    let connectionStateListener: EventListener;
+
     const getIceDetails = (sdp?: string) => {
       return {
         ufrag: sdp?.match(/^a=ice-ufrag:.*$/gm),
@@ -304,33 +306,14 @@ describe('2 RoapMediaConnections connected to each other', () => {
           ])
           .flat()
       );
-    });
 
-    const waitForConnectionStateSequence = (
-      mc: RoapMediaConnection,
-      expectedConnectionStatesSequence: Array<ConnectionState>
-    ) => {
-      console.log(
-        `TEST: expecting connection state sequence: ${JSON.stringify(
-          expectedConnectionStatesSequence
-        )}`
+      connectionStateListener = new EventListener(
+        testConnections[0].mc,
+        Event.CONNECTION_STATE_CHANGED,
+        (action, message) => console.log(`TEST: ${action}: ${message}`),
+        {useChaiExpect: true}
       );
-
-      return new Promise((resolve) => {
-        let expectedConnectionStateIdx = 0;
-
-        mc.on(Event.CONNECTION_STATE_CHANGED, (event: ConnectionStateChangedEvent) => {
-          console.log(`TEST: connection state: ${event.state}`);
-          expect(event.state).to.equal(
-            expectedConnectionStatesSequence[expectedConnectionStateIdx]
-          );
-          expectedConnectionStateIdx += 1;
-          if (expectedConnectionStateIdx === expectedConnectionStatesSequence.length) {
-            resolve({});
-          }
-        });
-      });
-    };
+    });
 
     it('starts a new ICE connection with increased Roap seq', async () => {
       const before = {
@@ -342,10 +325,8 @@ describe('2 RoapMediaConnections connected to each other', () => {
       console.log('TEST: triggering reconnection...');
       await testConnections[0].mc.reconnect();
 
-      await waitForConnectionStateSequence(testConnections[0].mc, [
-        ConnectionState.CONNECTING,
-        ConnectionState.CONNECTED,
-      ]);
+      await connectionStateListener.waitForEvent({state: ConnectionState.CONNECTING});
+      await connectionStateListener.waitForEvent({state: ConnectionState.CONNECTED});
 
       const after = {
         ice: getIceDetails(lastRoapOfferMessage?.sdp),
@@ -360,7 +341,7 @@ describe('2 RoapMediaConnections connected to each other', () => {
     });
 
     it('starts a new ICE connection with increased Roap seq (incoming call)', async () => {
-      // now trigger a reconnection without automatic new offer creation
+      // now trigger a reconnection without automatic new offer creation (that's how it is for incoming calls)
       console.log('TEST: triggering reconnection...');
       await testConnections[0].mc.reconnect(false);
 
@@ -368,11 +349,8 @@ describe('2 RoapMediaConnections connected to each other', () => {
       // we do this by calling reconnect() as calling initiateOffer() more than once is not allowed
       testConnections[1].mc.reconnect(true);
 
-      // check that we've reconnected succesfully
-      await waitForConnectionStateSequence(testConnections[0].mc, [
-        ConnectionState.CONNECTING,
-        ConnectionState.CONNECTED,
-      ]);
+      await connectionStateListener.waitForEvent({state: ConnectionState.CONNECTING});
+      await connectionStateListener.waitForEvent({state: ConnectionState.CONNECTED});
     });
   });
 });
