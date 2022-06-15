@@ -4,11 +4,7 @@ export interface Typegen0 {
   '@@xstate/typegen': true;
   eventsCausingActions: {
     increaseSeq: 'INITIATE_OFFER' | '' | 'ERROR_ARRIVED';
-    sendOutOfOrderError:
-      | 'REMOTE_OFFER_ARRIVED'
-      | 'REMOTE_OFFER_REQUEST_ARRIVED'
-      | 'REMOTE_ANSWER_ARRIVED'
-      | 'REMOTE_OK_ARRIVED';
+    sendOutOfOrderError: 'REMOTE_OFFER_ARRIVED' | 'REMOTE_OFFER_REQUEST_ARRIVED';
     updateSeq:
       | 'REMOTE_OFFER_ARRIVED'
       | 'REMOTE_OFFER_REQUEST_ARRIVED'
@@ -99,13 +95,11 @@ export interface Typegen0 {
     handleRemoteAnswer: 'REMOTE_ANSWER_ARRIVED';
   };
   eventsCausingGuards: {
-    isLowerOrEqualSeq: 'REMOTE_OFFER_ARRIVED' | 'REMOTE_OFFER_REQUEST_ARRIVED';
-    isLowerSeq:
-      | 'REMOTE_ANSWER_ARRIVED'
-      | 'REMOTE_OK_ARRIVED'
+    isSameSeq:
       | 'REMOTE_OFFER_ARRIVED'
-      | 'REMOTE_OFFER_REQUEST_ARRIVED';
-    isSameSeq: 'REMOTE_ANSWER_ARRIVED' | 'ERROR_ARRIVED' | 'REMOTE_OFFER_ARRIVED';
+      | 'REMOTE_OFFER_REQUEST_ARRIVED'
+      | 'REMOTE_ANSWER_ARRIVED'
+      | 'ERROR_ARRIVED';
     isPendingLocalOffer: '' | 'done.invoke.roap.creatingLocalOffer:invocation[0]';
     isHandlingOfferRequest:
       | 'done.invoke.roap.creatingLocalOffer:invocation[0]'

@@ -88,7 +88,7 @@ type HandleRemoteAnswerCallback = (sdp?: string) => Promise<void>;
 
 // eslint-disable-next-line import/prefer-default-export
 export class Roap extends EventEmitter {
-  private id: string; // used just for logging
+  private id?: string; // used just for logging
 
   private createLocalOfferCallback: CreateLocalOfferCallback;
 
@@ -110,7 +110,7 @@ export class Roap extends EventEmitter {
   ) {
     super();
 
-    this.id = debugId || 'ROAP';
+    this.id = debugId;
     this.createLocalOfferCallback = createLocalOfferCallback;
     this.handleRemoteOfferCallback = handleRemoteOfferCallback;
     this.handleRemoteAnswerCallback = handleRemoteAnswerCallback;
@@ -176,23 +176,19 @@ export class Roap extends EventEmitter {
             on: {
               INITIATE_OFFER: {actions: 'increaseSeq', target: 'creatingLocalOffer'},
               REMOTE_OFFER_ARRIVED: [
-                {cond: 'isLowerOrEqualSeq', actions: 'sendOutOfOrderError'},
+                {cond: 'isSameSeq', actions: 'sendOutOfOrderError'},
                 {actions: 'updateSeq', target: 'settingRemoteOffer'},
               ],
               REMOTE_OFFER_REQUEST_ARRIVED: [
-                {cond: 'isLowerOrEqualSeq', actions: 'sendOutOfOrderError'},
+                {cond: 'isSameSeq', actions: 'sendOutOfOrderError'},
                 {actions: ['updateSeq', 'setOfferRequestFlag'], target: 'creatingLocalOffer'},
               ],
               // unexpected events:
               REMOTE_ANSWER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {cond: 'isSameSeq', actions: 'ignoreDuplicate'},
                 {actions: 'sendInvalidStateError'},
               ],
-              REMOTE_OK_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
+              REMOTE_OK_ARRIVED: {actions: 'sendInvalidStateError'},
               // error messages are ignored as we don't expect any in this state and there is nothing we need to do in response to them
             },
           },
@@ -220,46 +216,30 @@ export class Roap extends EventEmitter {
               // unexpected events:
               INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
               REMOTE_OFFER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {actions: 'handleGlare'}, // if this results in us sending DOUBLECONFLICT, we continue as normal and rely on the other side to send us DOUBLECONFLICT too
               ],
               REMOTE_OFFER_REQUEST_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {cond: 'isHandlingOfferRequest', actions: 'ignoreDuplicate'}, // todo: in theory we should ignore only if seq is same and do sendInvalidStateError otherwise, but for now we don't bother
                 {actions: 'handleGlare'}, // if this results in us sending DOUBLECONFLICT, we continue as normal and rely on the other side to send us DOUBLECONFLICT too
               ],
-              REMOTE_ANSWER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
-              REMOTE_OK_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
+              REMOTE_ANSWER_ARRIVED: {actions: 'sendInvalidStateError'},
+              REMOTE_OK_ARRIVED: {actions: 'sendInvalidStateError'},
               // error messages are ignored as we don't expect any in this state
             },
           },
           waitingForAnswer: {
             on: {
               REMOTE_ANSWER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {actions: ['resetRetryCounter', 'updateSeq'], target: 'settingRemoteAnswer'}, // if we get ANSWER with higher seq, we just update our seq (this is what Edonus seems to be doing in such case)
               ],
               // unexpected events:
               INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
-              REMOTE_OFFER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'handleGlare'},
-              ],
+              REMOTE_OFFER_ARRIVED: {actions: 'handleGlare'},
               REMOTE_OFFER_REQUEST_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {cond: 'isHandlingOfferRequest', actions: 'ignoreDuplicate'}, // todo: in theory we should ignore only if seq is same and do sendInvalidStateError otherwise, but for now we don't bother
                 {actions: 'handleGlare'},
               ],
-              REMOTE_OK_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
+              REMOTE_OK_ARRIVED: {actions: 'sendInvalidStateError'},
               ERROR_ARRIVED: [
                 {
                   cond: 'shouldErrorTriggerOfferRetry',
@@ -279,23 +259,13 @@ export class Roap extends EventEmitter {
             on: {
               // unexpected events:
               INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
-              REMOTE_OFFER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
-              REMOTE_OFFER_REQUEST_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
+              REMOTE_OFFER_ARRIVED: {actions: 'sendInvalidStateError'},
+              REMOTE_OFFER_REQUEST_ARRIVED: {actions: 'sendInvalidStateError'},
               REMOTE_ANSWER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {cond: 'isSameSeq', actions: 'ignoreDuplicate'},
                 {actions: 'sendInvalidStateError'},
               ],
-              REMOTE_OK_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
+              REMOTE_OK_ARRIVED: {actions: 'sendInvalidStateError'},
               // error messages are ignored as we don't expect any in this state
             },
           },
@@ -312,46 +282,28 @@ export class Roap extends EventEmitter {
               // unexpected events:
               INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
               REMOTE_OFFER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {cond: 'isSameSeq', actions: 'ignoreDuplicate'},
                 {actions: 'sendRetryAfterError'},
               ],
-              REMOTE_OFFER_REQUEST_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
-              REMOTE_ANSWER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
-              REMOTE_OK_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
+              REMOTE_OFFER_REQUEST_ARRIVED: {actions: 'sendInvalidStateError'},
+              REMOTE_ANSWER_ARRIVED: {actions: 'sendInvalidStateError'},
+              REMOTE_OK_ARRIVED: {actions: 'sendInvalidStateError'},
               // error messages are ignored as we don't expect any in this state
             },
           },
           waitingForOK: {
             on: {
               REMOTE_OK_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {actions: 'updateSeq', target: 'idle'}, // if we get OK with higher seq, we just update our seq (this is what Edonus seems to be doing in such case)
               ],
               // unexpected events:
               INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
               REMOTE_OFFER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
                 {cond: 'isSameSeq', actions: 'ignoreDuplicate'}, // if seq is the same it means they haven't received our answer yet and are just resending the offer
                 {actions: 'sendInvalidStateError'}, // todo: we could assume here that OK was lost and just process this new offer
               ],
-              REMOTE_OFFER_REQUEST_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'}, // todo: we could assume here that if seq is new, then OK was lost and just process this new offer request (only send invalid state error for same seq)
-              ],
-              REMOTE_ANSWER_ARRIVED: [
-                {cond: 'isLowerSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'sendInvalidStateError'},
-              ],
+              REMOTE_OFFER_REQUEST_ARRIVED: {actions: 'sendInvalidStateError'}, // todo: we could assume here that if seq is new, then OK was lost and just process this new offer request (only send invalid state error for same seq)
+              REMOTE_ANSWER_ARRIVED: {actions: 'sendInvalidStateError'},
               ERROR_ARRIVED: {cond: 'isSameSeq', target: 'remoteError'},
             },
           },
@@ -423,32 +375,11 @@ export class Roap extends EventEmitter {
 
           isHandlingOfferRequest: (context) => context.isHandlingOfferRequest,
 
-          isLowerSeq: (context, event) => {
-            if (event.seq < context.seq) {
-              this.log('FSM', `incoming roap message seq too small: ${event.seq} < ${context.seq}`);
-
-              return true;
-            }
-
-            return false;
-          },
           isSameSeq: (context, event) => {
             if (event.seq === context.seq) {
               this.log(
                 'FSM',
                 `incoming roap message seq is same as current context seq: ${event.seq}`
-              );
-
-              return true;
-            }
-
-            return false;
-          },
-          isLowerOrEqualSeq: (context, event) => {
-            if (event.seq <= context.seq) {
-              this.log(
-                'FSM',
-                `incoming roap message seq too small: ${event.seq} <= ${context.seq}`
               );
 
               return true;
@@ -609,6 +540,36 @@ export class Roap extends EventEmitter {
     }
   }
 
+  private validateIncomingRoapMessage(roapMessage: RoapMessage): {
+    isValid: boolean;
+    errorToSend?: string;
+  } {
+    const {errorType, messageType, seq} = roapMessage;
+    let isValid = true;
+    let errorToSend;
+
+    if (seq < this.stateMachine.state.context.seq) {
+      isValid = false;
+
+      // we don't want to send an error response to an error
+      if (messageType !== 'ERROR') {
+        errorToSend = 'OUT_OF_ORDER';
+
+        this.error(
+          'validateIncomingRoapMessage',
+          `received roap message ${messageType} with seq too low: ${seq} < ${this.stateMachine.state.context.seq}`
+        );
+      } else {
+        this.error(
+          'validateIncomingRoapMessage',
+          `received ERROR message ${errorType} with seq too low: ${seq} < ${this.stateMachine.state.context.seq}, ignoring it`
+        );
+      }
+    }
+
+    return {isValid, errorToSend};
+  }
+
   /**
    * This function should be called whenever a ROAP message is received from the backend.
    *
@@ -616,6 +577,18 @@ export class Roap extends EventEmitter {
    */
   public roapMessageReceived(roapMessage: RoapMessage): void {
     const {errorType, messageType, sdp, seq, tieBreaker} = roapMessage;
+
+    // do initial validation on the message before we send it to the state machine
+    const {isValid, errorToSend} = this.validateIncomingRoapMessage(roapMessage);
+
+    if (!isValid) {
+      if (errorToSend) {
+        this.sendErrorMessage(seq, errorToSend);
+      }
+
+      // message not valid, so stop any further processing
+      return;
+    }
 
     switch (messageType) {
       case 'ANSWER':
