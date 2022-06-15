@@ -1,18 +1,13 @@
 /* eslint-disable no-console */
 import {expect} from 'chai';
+
 import {RemoteTrackType} from './eventTypes';
 
-import {
-  ConnectionState,
-  ConnectionStateChangedEvent,
-  Event,
-  RoapMediaConnection,
-  RemoteTrackAddedEvent,
-  RoapMessage,
-  RoapMessageEvent,
-} from './index';
+import {ConnectionState, Event, RoapMediaConnection, RoapMessage, RoapMessageEvent} from './index';
 
-import {createControlledPromise, IControlledPromise, EventListener} from './testUtils';
+import {createControlledPromise, AnyValue, EventListener} from './testUtils';
+
+const logFn = (action: string, message: string) => console.log(`TEST: ${action}: ${message}`);
 
 describe('2 RoapMediaConnections connected to each other', () => {
   let localStream: MediaStream;
@@ -21,9 +16,8 @@ describe('2 RoapMediaConnections connected to each other', () => {
   let testConnections: Array<{
     mc: RoapMediaConnection;
     debug: string;
-    connectionEstablished: IControlledPromise<unknown>;
-    audioRemoteTrackAdded: IControlledPromise<unknown>;
-    videoRemoteTrackAdded: IControlledPromise<unknown>;
+    connectionListener: EventListener;
+    remoteTrackAddedListener: EventListener;
   }>;
 
   const setupConnectionEventHandlers = () => {
@@ -33,47 +27,28 @@ describe('2 RoapMediaConnections connected to each other', () => {
       return connection === testConnections[0].mc ? testConnections[1].mc : testConnections[0].mc;
     };
 
-    testConnections.forEach(
-      ({mc, debug, connectionEstablished, audioRemoteTrackAdded, videoRemoteTrackAdded}) => {
-        if (mc) {
-          mc.on(Event.CONNECTION_STATE_CHANGED, (e: ConnectionStateChangedEvent) => {
-            console.log(`TEST: got CONNECTION_STATE_CHANGED from ${debug}:`, e);
-            if (e.state === ConnectionState.CONNECTED) {
-              connectionEstablished.resolve(undefined);
-            }
-          });
+    testConnections.forEach(({mc, debug}) => {
+      if (mc) {
+        // setup roap message event handlers so that we pass the SDPs between the 2 media connections
+        mc.on(Event.ROAP_MESSAGE_TO_SEND, (e: RoapMessageEvent) => {
+          console.log(`TEST: got ROAP_MESSAGE_TO_SEND from ${debug}: ${e.roapMessage.sdp}`);
 
-          mc.on(Event.REMOTE_TRACK_ADDED, (e: RemoteTrackAddedEvent) => {
-            console.log(`TEST: got REMOTE_TRACK_ADDED from ${debug}:`, JSON.stringify(e));
-            if (e.type === RemoteTrackType.AUDIO) {
-              audioRemoteTrackAdded.resolve(undefined);
-            }
-            if (e.type === RemoteTrackType.VIDEO) {
-              videoRemoteTrackAdded.resolve(undefined);
-            }
-          });
+          if (e.roapMessage.messageType === 'OFFER') {
+            const message = e.roapMessage;
 
-          // setup roap message event handlers so that we pass the SDPs between the 2 media connections
-          mc.on(Event.ROAP_MESSAGE_TO_SEND, (e: RoapMessageEvent) => {
-            console.log(`TEST: got ROAP_MESSAGE_TO_SEND from ${debug}: ${e.roapMessage.sdp}`);
+            // store the offer so that tests can do some further checks on it
+            lastRoapOfferMessage = message;
 
-            if (e.roapMessage.messageType === 'OFFER') {
-              const message = e.roapMessage;
+            // we need to remove the bundling, otherwise browser puts ICE candidates only in 1 m-line and the checks in isSdpInvalid() fail
+            message.sdp = message.sdp?.replace(/\r\na=group:BUNDLE 0 1 2/gi, '');
 
-              // store the offer so that tests can do some further checks on it
-              lastRoapOfferMessage = message;
-
-              // we need to remove the bundling, otherwise browser puts ICE candidates only in 1 m-line and the checks in isSdpInvalid() fail
-              message.sdp = message.sdp?.replace(/\r\na=group:BUNDLE 0 1 2/gi, '');
-
-              getOtherConnection(mc).roapMessageReceived(message);
-            } else {
-              getOtherConnection(mc).roapMessageReceived(e.roapMessage);
-            }
-          });
-        }
+            getOtherConnection(mc).roapMessageReceived(message);
+          } else {
+            getOtherConnection(mc).roapMessageReceived(e.roapMessage);
+          }
+        });
       }
-    );
+    });
   };
 
   const createTestConnections = (
@@ -94,27 +69,49 @@ describe('2 RoapMediaConnections connected to each other', () => {
     const {send, receive} = options;
 
     const createTestConnection = (debug: string) => {
+      const mc = new RoapMediaConnection(
+        {
+          iceServers: [],
+          skipInactiveTransceivers: false,
+          sdpMunging: {convertPort9to0: false},
+          ...configOverrides,
+        },
+        {send, receive},
+        debug
+      );
+
       return {
-        mc: new RoapMediaConnection(
-          {
-            iceServers: [],
-            skipInactiveTransceivers: false,
-            sdpMunging: {convertPort9to0: false},
-            ...configOverrides,
-          },
-          {send, receive},
-          debug
-        ),
+        mc,
         debug,
-        connectionEstablished: createControlledPromise(),
-        audioRemoteTrackAdded: createControlledPromise(),
-        videoRemoteTrackAdded: createControlledPromise(),
+        connectionListener: new EventListener(mc, Event.CONNECTION_STATE_CHANGED, logFn, {
+          useChaiExpect: true,
+          strict: true,
+          debug,
+        }),
+        remoteTrackAddedListener: new EventListener(mc, Event.REMOTE_TRACK_ADDED, logFn, {
+          useChaiExpect: true,
+          strict: false,
+          debug,
+        }),
       };
     };
 
     testConnections = [createTestConnection('mc1'), createTestConnection('mc2')];
 
     setupConnectionEventHandlers();
+  };
+
+  const waitForConnectionsEstablished = async () => {
+    await testConnections[0].connectionListener.waitForEvent({state: ConnectionState.CONNECTING});
+    await testConnections[1].connectionListener.waitForEvent({state: ConnectionState.CONNECTING});
+
+    await testConnections[0].connectionListener.waitForEvent({state: ConnectionState.CONNECTED});
+    await testConnections[1].connectionListener.waitForEvent({state: ConnectionState.CONNECTED});
+  };
+
+  const waitForRemoteTracksAdded = async (type: RemoteTrackType) => {
+    await testConnections[0].remoteTrackAddedListener.waitForEvent({type, track: AnyValue});
+    await testConnections[1].remoteTrackAddedListener.waitForEvent({type, track: AnyValue});
   };
 
   beforeEach(async () => {
@@ -144,14 +141,8 @@ describe('2 RoapMediaConnections connected to each other', () => {
 
     await testConnections[0].mc.initiateOffer();
 
-    await Promise.all(
-      testConnections
-        .map(({connectionEstablished, audioRemoteTrackAdded}) => [
-          connectionEstablished,
-          audioRemoteTrackAdded,
-        ])
-        .flat()
-    );
+    await waitForConnectionsEstablished();
+    await waitForRemoteTracksAdded(RemoteTrackType.AUDIO);
 
     // because the test connections are configured with skipInactiveTransceivers=false, we should still see 3 m-lines in the SDP
     expect(lastRoapOfferMessage?.sdp?.match(/^m=audio/gm)?.length).to.equal(1);
@@ -173,14 +164,8 @@ describe('2 RoapMediaConnections connected to each other', () => {
 
     await testConnections[0].mc.initiateOffer();
 
-    await Promise.all(
-      testConnections
-        .map(({connectionEstablished, audioRemoteTrackAdded}) => [
-          connectionEstablished,
-          audioRemoteTrackAdded,
-        ])
-        .flat()
-    );
+    await waitForConnectionsEstablished();
+    await waitForRemoteTracksAdded(RemoteTrackType.AUDIO);
 
     // only 1 audio m-line should have been put into the SDP offer
     expect(lastRoapOfferMessage?.sdp?.match(/^m=audio/gm)?.length).to.equal(1);
@@ -201,15 +186,9 @@ describe('2 RoapMediaConnections connected to each other', () => {
 
     await testConnections[0].mc.initiateOffer();
 
-    await Promise.all(
-      testConnections
-        .map(({connectionEstablished, audioRemoteTrackAdded, videoRemoteTrackAdded}) => [
-          connectionEstablished,
-          audioRemoteTrackAdded,
-          videoRemoteTrackAdded,
-        ])
-        .flat()
-    );
+    await waitForConnectionsEstablished();
+    await waitForRemoteTracksAdded(RemoteTrackType.VIDEO);
+    await waitForRemoteTracksAdded(RemoteTrackType.AUDIO);
   });
 
   it('updateLocalTracks() should add an audio track (outgoing call)', async () => {
@@ -221,15 +200,16 @@ describe('2 RoapMediaConnections connected to each other', () => {
 
     await testConnections[0].mc.initiateOffer();
 
-    await Promise.all(
-      testConnections.map(({connectionEstablished}) => [connectionEstablished]).flat()
-    );
+    await waitForConnectionsEstablished();
 
     // add audio track to the first connection (that's the outgoing one)
     testConnections[0].mc.updateSendOptions({audio: localStream.getAudioTracks()[0]});
 
     // we should receive that track in the second connection
-    await testConnections[1].audioRemoteTrackAdded;
+    await testConnections[1].remoteTrackAddedListener.waitForEvent({
+      type: RemoteTrackType.AUDIO,
+      track: AnyValue,
+    });
   });
 
   it('updateLocalTracks() should add an audio track (incoming call)', async () => {
@@ -241,15 +221,16 @@ describe('2 RoapMediaConnections connected to each other', () => {
 
     await testConnections[0].mc.initiateOffer();
 
-    await Promise.all(
-      testConnections.map(({connectionEstablished}) => [connectionEstablished]).flat()
-    );
+    await waitForConnectionsEstablished();
 
     // add audio track to the second connection (the incoming one)
     testConnections[1].mc.updateSendOptions({audio: localStream.getAudioTracks()[0]});
 
     // we should receive that track in the first connection
-    await testConnections[0].audioRemoteTrackAdded;
+    await testConnections[0].remoteTrackAddedListener.waitForEvent({
+      type: RemoteTrackType.AUDIO,
+      track: AnyValue,
+    });
   });
 
   describe('reconnect() method', () => {
@@ -297,21 +278,15 @@ describe('2 RoapMediaConnections connected to each other', () => {
 
       await testConnections[0].mc.initiateOffer();
 
-      await Promise.all(
-        testConnections
-          .map(({connectionEstablished, audioRemoteTrackAdded, videoRemoteTrackAdded}) => [
-            connectionEstablished,
-            audioRemoteTrackAdded,
-            videoRemoteTrackAdded,
-          ])
-          .flat()
-      );
+      await waitForConnectionsEstablished();
+      await waitForRemoteTracksAdded(RemoteTrackType.AUDIO);
+      await waitForRemoteTracksAdded(RemoteTrackType.VIDEO);
 
       connectionStateListener = new EventListener(
         testConnections[0].mc,
         Event.CONNECTION_STATE_CHANGED,
-        (action, message) => console.log(`TEST: ${action}: ${message}`),
-        {useChaiExpect: true}
+        logFn,
+        {useChaiExpect: true, debug: testConnections[0].debug}
       );
     });
 
@@ -399,26 +374,18 @@ describe('1 RoapMediaConnection connected to a raw RTCPeerConnection', () => {
       ERROR: false,
     };
 
-    // setup the RoapMediaConnection callbacks
-    const connectionEstablished = createControlledPromise();
-    const audioRemoteTrackAdded = createControlledPromise();
+    // setup the test helpers
+    const connectionStateListener = new EventListener(mc, Event.CONNECTION_STATE_CHANGED, logFn, {
+      useChaiExpect: true,
+    });
+    const remoteTrackAddedListener = new EventListener(mc, Event.REMOTE_TRACK_ADDED, logFn, {
+      useChaiExpect: true,
+      strict: false,
+    });
 
     const roapOkSent = createControlledPromise();
 
-    mc.on(Event.CONNECTION_STATE_CHANGED, (e: ConnectionStateChangedEvent) => {
-      console.log('TEST: got CONNECTION_STATE_CHANGED:', e);
-      if (e.state === ConnectionState.CONNECTED) {
-        connectionEstablished.resolve({});
-      }
-    });
-
-    mc.on(Event.REMOTE_TRACK_ADDED, (e: RemoteTrackAddedEvent) => {
-      console.log('TEST: got REMOTE_TRACK_ADDED:', JSON.stringify(e));
-      if (e.type === RemoteTrackType.AUDIO) {
-        audioRemoteTrackAdded.resolve({});
-      }
-    });
-
+    // setup the roap message handler so that the SDPs are exchanged between mc and pc
     mc.on(Event.ROAP_MESSAGE_TO_SEND, async (e: RoapMessageEvent) => {
       console.log(
         `TEST: got ROAP_MESSAGE_TO_SEND: ${e.roapMessage.messageType}, ${e.roapMessage.sdp}`
@@ -463,7 +430,14 @@ describe('1 RoapMediaConnection connected to a raw RTCPeerConnection', () => {
       sdp,
     });
 
-    await Promise.all([connectionEstablished, audioRemoteTrackAdded]);
+    await connectionStateListener.waitForEvent({state: ConnectionState.CONNECTING});
+    await connectionStateListener.waitForEvent({state: ConnectionState.CONNECTED});
+
+    await remoteTrackAddedListener.waitForEvent({
+      type: RemoteTrackType.AUDIO,
+      track: AnyValue,
+    });
+
     expect(failMessage).to.equal(undefined);
 
     // now check also that updates work
