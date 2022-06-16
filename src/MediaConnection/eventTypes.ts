@@ -50,8 +50,6 @@ export enum ErrorType {
 export interface RoapMessage {
   seq: number;
   messageType: 'OFFER' | 'OFFER_REQUEST' | 'OFFER_RESPONSE' | 'ANSWER' | 'OK' | 'ERROR';
-  offererSessionId?: string;
-  answererSessionId?: string;
   sdp?: string;
   tieBreaker?: number;
   errorType?: ErrorType; // used only if messageType==='ERROR'
