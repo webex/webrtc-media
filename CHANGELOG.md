@@ -1,3 +1,15 @@
+# [1.22.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.21.0...v1.22.0) (2022-06-20)
+
+
+### Bug Fixes
+
+* **MediaConnection:** removed unused fields from RoapMessage ([c269fc2](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/c269fc28d57f7002bc5d3fcf6417fd51ae79c1a0))
+
+
+### Features
+
+* **MediaConnection:** reconnect() implemented ([9b2ad2d](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/9b2ad2df720dca202d5e0d543449b727d26928dc))
+
 # [1.21.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.20.1...v1.21.0) (2022-06-13)
 
 
