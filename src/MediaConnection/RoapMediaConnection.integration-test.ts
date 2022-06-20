@@ -328,6 +328,120 @@ describe('2 RoapMediaConnections connected to each other', () => {
       await connectionStateListener.waitForEvent({state: ConnectionState.CONNECTED});
     });
   });
+
+  describe('DTMF', () => {
+    let dtmfToneChangeListeners: Array<EventListener>;
+    let newAudioTrack: MediaStreamTrack;
+
+    beforeEach(async () => {
+      const audioTrack = localStream.getAudioTracks()[0];
+
+      newAudioTrack = audioTrack.clone();
+
+      createTestConnections({
+        send: {
+          audio: audioTrack,
+        },
+        receive: {audio: true, video: false, screenShareVideo: false},
+      });
+
+      // clear the array
+      dtmfToneChangeListeners = [];
+
+      // setup dtmf tone listeners
+      testConnections.forEach((testConn) => {
+        dtmfToneChangeListeners.push(
+          new EventListener(testConn.mc, Event.DTMF_TONE_CHANGED, logFn, {
+            debug: testConn.debug,
+            strict: true,
+            useChaiExpect: true,
+          })
+        );
+      });
+
+      // start the connection
+      await testConnections[0].mc.initiateOffer();
+
+      await waitForConnectionsEstablished();
+      await waitForRemoteTracksAdded(RemoteTrackType.AUDIO);
+    });
+
+    const checkDtmf = async (testConnectionIndex: number, dtmfSequence: string) => {
+      const idx = testConnectionIndex;
+
+      testConnections[idx].mc.insertDTMF(dtmfSequence);
+
+      for (const expectedTone of dtmfSequence) {
+        // eslint-disable-next-line no-await-in-loop
+        await dtmfToneChangeListeners[idx].waitForEvent({
+          tone: expectedTone.toUpperCase(), // events we receive from browsers always have letters changed to upper case
+        });
+      }
+
+      await dtmfToneChangeListeners[idx].waitForEvent({tone: ''});
+    };
+
+    it('sends DTMF signals when insertDTMF() is called', async () => {
+      // check a sequence that contains all possible dtmf characters
+      const TEST_DTMF_SEQUENCE = '0123456789ABCD*,#';
+
+      // try to send DTMF from the outgoing call
+      await checkDtmf(0, TEST_DTMF_SEQUENCE);
+
+      // now the same on the incoming call
+      await checkDtmf(1, TEST_DTMF_SEQUENCE);
+    });
+
+    it('sends DTMF signals when insertDTMF() is called after audio track is replaced', async () => {
+      await testConnections[0].mc.updateSendOptions({audio: newAudioTrack});
+
+      await checkDtmf(0, '987');
+    });
+
+    it('sends DTMF signals when insertDTMF() is called after transceiver was inactive', async () => {
+      const roapListener = new EventListener(
+        testConnections[0].mc,
+        Event.ROAP_MESSAGE_TO_SEND,
+        logFn,
+        {
+          debug: testConnections[0].debug,
+          strict: false,
+          useChaiExpect: true,
+        }
+      );
+
+      // disable audio both ways
+      await testConnections[0].mc.updateSendReceiveOptions({
+        send: {audio: null},
+        receive: {
+          audio: false,
+          video: false,
+          screenShareVideo: false,
+        },
+      });
+
+      // wait for SDP exchange to be completed
+      await roapListener.waitForEvent({roapMessage: {messageType: 'OK', seq: 2}});
+
+      // now the audio transceiver is inactive, so it should fail to send DTMF
+      expect(() => testConnections[0].mc.insertDTMF('123')).to.throw();
+
+      await testConnections[0].mc.updateSendReceiveOptions({
+        send: {audio: newAudioTrack},
+        receive: {
+          audio: true,
+          video: false,
+          screenShareVideo: false,
+        },
+      });
+
+      // wait for SDP exchange to be completed
+      await roapListener.waitForEvent({roapMessage: {messageType: 'OK', seq: 3}});
+
+      // now DTMF should work again
+      await checkDtmf(0, '#5');
+    });
+  });
 });
 
 describe('1 RoapMediaConnection connected to a raw RTCPeerConnection', () => {

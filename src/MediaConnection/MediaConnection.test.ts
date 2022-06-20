@@ -1,5 +1,6 @@
 import {ConnectionState, MediaConnectionConfig} from './index';
 import {MediaConnection} from './MediaConnection';
+import {AnyEvent, Event} from './eventTypes';
 
 describe('MediaConnection', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,6 +34,7 @@ describe('MediaConnection', () => {
     localDescription: {sdp: 'fake'},
     getStats: jest.fn(),
     close: jest.fn(),
+    ontrack: null,
   };
 
   beforeEach(() => {
@@ -314,5 +316,240 @@ describe('MediaConnection', () => {
     mediaConnection.close();
 
     expect(FAKE_PC.close).toBeCalledOnceWith();
+  });
+
+  describe('insertDTMF', () => {
+    beforeEach(() => {
+      FAKE_PC.addTransceiver.mockReturnValue({});
+    });
+
+    afterEach(() => {
+      FAKE_PC.addTransceiver.mockReset();
+    });
+
+    it('fails if audio transceivers are not initialised', async () => {
+      const mc = new MediaConnection(DEFAULT_CONFIG, {
+        send: {audio: FAKE_AUDIO_TRACK},
+        receive: {
+          audio: true,
+          video: true,
+          screenShareVideo: true,
+        },
+      });
+
+      // we're not calling mc.initializeTransceivers()
+
+      expect(() => mc.insertDTMF('000')).toThrow(new Error('audio transceiver missing'));
+    });
+
+    it('fails if audio transceiver is missing', async () => {
+      const mc = new MediaConnection(
+        {...DEFAULT_CONFIG, skipInactiveTransceivers: true},
+        {
+          send: {},
+          receive: {
+            audio: false,
+            video: true,
+            screenShareVideo: true,
+          },
+        }
+      );
+
+      mc.initializeTransceivers(false);
+
+      expect(() => mc.insertDTMF('000')).toThrow(new Error('audio transceiver missing'));
+    });
+
+    const setupMediaConnWithFakeAudioTransceiver = (fakeTransceiver: unknown) => {
+      FAKE_PC.addTransceiver.mockImplementation((trackOrKind) => {
+        if (trackOrKind === 'audio') {
+          return fakeTransceiver;
+        }
+
+        // return a transceiver with insertDTMF() method
+        return {sender: {dtmf: {insertDTMF: jest.fn()}}};
+      });
+
+      const mc = new MediaConnection(DEFAULT_CONFIG, {
+        send: {},
+        receive: {
+          audio: true,
+          video: true,
+          screenShareVideo: true,
+        },
+      });
+
+      return mc;
+    };
+
+    it('fails if audio transceiver is missing sender', async () => {
+      // use a fake transceiver with no sender
+      const mc = setupMediaConnWithFakeAudioTransceiver({sender: null});
+
+      mc.initializeTransceivers(false);
+
+      expect(() => mc.insertDTMF('000')).toThrow(
+        new Error('this.transceivers.audio.sender is null')
+      );
+    });
+
+    it('fails if audio transceiver is missing sender.dtmf', async () => {
+      // use a fake transceiver with no sender.dtmf
+      const mc = setupMediaConnWithFakeAudioTransceiver({sender: {dtmf: null}});
+
+      mc.initializeTransceivers(false);
+
+      expect(() => mc.insertDTMF('000')).toThrow(
+        new Error('this.transceivers.audio.sender.dtmf is null')
+      );
+    });
+
+    describe('calls insertDTMF() with the right arguments', () => {
+      let mc: MediaConnection;
+      const insertDtmfSpy = jest.fn();
+
+      beforeEach(() => {
+        FAKE_PC.addTransceiver.mockImplementation((trackOrKind, {direction}) => {
+          if (trackOrKind === FAKE_AUDIO_TRACK && direction === 'sendrecv') {
+            return {
+              sender: {
+                dtmf: {
+                  insertDTMF: insertDtmfSpy,
+                },
+              },
+            };
+          }
+
+          return {};
+        });
+
+        mc = new MediaConnection(DEFAULT_CONFIG, {
+          send: {audio: FAKE_AUDIO_TRACK},
+          receive: {
+            audio: true,
+            video: false,
+            screenShareVideo: false,
+          },
+        });
+
+        mc.initializeTransceivers(false);
+      });
+
+      it('without optional parameters', () => {
+        mc.insertDTMF('123');
+        expect(insertDtmfSpy).toBeCalledOnceWith('123', undefined, undefined);
+      });
+
+      it('with only the 1st optional parameter', () => {
+        mc.insertDTMF('ABC', 100);
+        expect(insertDtmfSpy).toBeCalledOnceWith('ABC', 100, undefined);
+      });
+
+      it('with all parameters', () => {
+        mc.insertDTMF('#0A*', 200, 500);
+        expect(insertDtmfSpy).toBeCalledOnceWith('#0A*', 200, 500);
+      });
+
+      it('converts tone to upper case', () => {
+        mc.insertDTMF('01abcd*,#', 200, 500);
+        expect(insertDtmfSpy).toBeCalledOnceWith('01ABCD*,#', 200, 500);
+      });
+    });
+  });
+  describe('DTMF tone change event', () => {
+    let fakeDtmfSender: {
+      dtmf: {
+        ontonechange?: (data: AnyEvent) => void;
+      };
+    };
+    let mc: MediaConnection;
+
+    beforeEach(() => {
+      fakeDtmfSender = {
+        dtmf: {},
+      };
+
+      FAKE_PC.addTransceiver.mockImplementation((trackOrKind) => {
+        if (trackOrKind === FAKE_AUDIO_TRACK) {
+          return {sender: fakeDtmfSender};
+        }
+
+        return {};
+      });
+
+      mc = new MediaConnection(DEFAULT_CONFIG, {
+        send: {audio: FAKE_AUDIO_TRACK},
+        receive: {
+          audio: false,
+          video: false,
+          screenShareVideo: false,
+        },
+      });
+    });
+
+    afterEach(() => {
+      FAKE_PC.addTransceiver.mockReset();
+    });
+
+    it('listens for it (outgoing call)', () => {
+      // for outgoing calls, the ontonechange listener is setup when initializeTransceivers() is called
+      mc.initializeTransceivers(false);
+
+      expect(fakeDtmfSender.dtmf.ontonechange).toBeTruthy();
+    });
+
+    it('listens for it (incoming call)', () => {
+      // this call is redundant for this test, but normally is always done
+      // for incoming calls, so we do it here for completeness
+      mc.initializeTransceivers(true);
+
+      // in incoming calls we don't explicitly create transceivers, but instead
+      // get them from RTCPeerConnection after ontrack listener is called
+      // so we setup the mock to return at least the audio transceiver
+      const oldMock = FAKE_PC.getTransceivers;
+
+      FAKE_PC.getTransceivers = jest.fn().mockReturnValue([
+        {
+          sender: fakeDtmfSender,
+        },
+      ]);
+
+      // confirm MediaConnection is listenening for ontrack
+      expect(FAKE_PC.ontrack).toBeTruthy();
+
+      // for incoming calls, the ontonechange listener is setup only when ontrack listener is called
+      if (FAKE_PC.ontrack) {
+        // trigger the ontrack listener in MediaConnection
+        (FAKE_PC.ontrack as (e: RTCTrackEvent) => void)({
+          track: {id: 'fake'},
+        } as unknown as RTCTrackEvent);
+      }
+
+      // confirm that MediaConnection has set up the ontonechange listener
+      expect(fakeDtmfSender.dtmf.ontonechange).toBeTruthy();
+
+      FAKE_PC.getTransceivers = oldMock;
+    });
+
+    it('is forwarded from RTCPeerConnnections dtmf sender', () => {
+      const FAKE_TONE_EVENT = {tone: '2468#'};
+      let toneChangeEventFired = false;
+
+      mc.on(Event.DTMF_TONE_CHANGED, (data) => {
+        expect(data).toEqual(FAKE_TONE_EVENT);
+        toneChangeEventFired = true;
+      });
+      mc.initializeTransceivers(false);
+
+      // verify that we've started listening for tone change notifications
+      expect(fakeDtmfSender.dtmf.ontonechange).toBeTruthy();
+
+      // call the event listener
+      if (fakeDtmfSender.dtmf.ontonechange) {
+        fakeDtmfSender.dtmf.ontonechange(FAKE_TONE_EVENT);
+      }
+
+      expect(toneChangeEventFired).toEqual(true);
+    });
   });
 });

@@ -1,4 +1,12 @@
-import {RoapMessage, Event} from './eventTypes';
+import EventEmitter from 'events';
+import {
+  RoapMessage,
+  Event,
+  AnyEvent,
+  ConnectionState,
+  RemoteTrackType,
+  ErrorType,
+} from './eventTypes';
 import {RoapMediaConnection} from './index';
 import * as roap from './roap';
 import * as mediaConnection from './MediaConnection';
@@ -23,6 +31,7 @@ describe('RoapMediaConnection', () => {
   } as MediaStreamTrack;
 
   const FAKE_MC = {
+    insertDTMF: jest.fn(),
     initializeTransceivers: jest.fn(),
     on: jest.fn(),
     getConfig: jest.fn(),
@@ -198,6 +207,128 @@ describe('RoapMediaConnection', () => {
     });
   });
 
+  describe('insertDTMF()', () => {
+    describe('calls insertDTMF() on the mediaConnection', () => {
+      let mc: RoapMediaConnection;
+
+      beforeEach(() => {
+        // insertDTMF is just a passthrough - it always calls
+        // the mediaConnection without checking anything (it relies
+        // on the MediaConnection to do the checks),
+        // so we can configure RoapMediaConnection even without any audio
+        mc = new RoapMediaConnection(DEFAULT_CONFIG, {
+          send: {},
+          receive: {
+            audio: false,
+            video: false,
+            screenShareVideo: false,
+          },
+        });
+      });
+
+      it('without optional parameters', () => {
+        mc.insertDTMF('ABCD');
+        expect(FAKE_MC.insertDTMF).toBeCalledOnceWith('ABCD', undefined, undefined);
+      });
+
+      it('with only the 1st optional parameter', () => {
+        mc.insertDTMF('2468', 500);
+        expect(FAKE_MC.insertDTMF).toBeCalledOnceWith('2468', 500, undefined);
+      });
+
+      it('with all parameters', () => {
+        mc.insertDTMF('#A123*', 300, 600);
+        expect(FAKE_MC.insertDTMF).toBeCalledOnceWith('#A123*', 300, 600);
+      });
+    });
+  });
+
+  describe('Events', () => {
+    let mc: RoapMediaConnection;
+
+    const setup = () => {
+      mc = new RoapMediaConnection(DEFAULT_CONFIG, {
+        send: {},
+        receive: {
+          audio: false,
+          video: false,
+          screenShareVideo: false,
+        },
+      });
+    };
+
+    it('registers for the correct MediaConnection events', () => {
+      setup();
+      expect(FAKE_MC.on).toBeCalledTimes(3);
+      expect(FAKE_MC.on).toBeCalledWith(Event.REMOTE_TRACK_ADDED, expect.any(Function));
+      expect(FAKE_MC.on).toBeCalledWith(Event.CONNECTION_STATE_CHANGED, expect.any(Function));
+      expect(FAKE_MC.on).toBeCalledWith(Event.DTMF_TONE_CHANGED, expect.any(Function));
+    });
+
+    const testEvent = (target: 'mc' | 'roap', eventType: Event, eventData: AnyEvent) => {
+      const emitter = new EventEmitter();
+
+      if (target === 'mc') {
+        jest
+          .spyOn(mediaConnection, 'MediaConnection')
+          .mockImplementation(() => emitter as unknown as mediaConnection.MediaConnection);
+      } else if (target === 'roap') {
+        jest.spyOn(roap, 'Roap').mockImplementation(() => emitter as unknown as roap.Roap);
+      }
+
+      setup();
+
+      let eventListenerCalled = false;
+
+      // set a test listener on RoapMediaConnection that verifies the event is received
+      // and that the event data is correct
+      mc.on(eventType, (data) => {
+        expect(data).toEqual(eventData);
+        eventListenerCalled = true;
+      });
+
+      // trigger the event listener in RoapMediaConnection
+      emitter.emit(eventType, eventData);
+
+      // verify that the test listener was called
+      expect(eventListenerCalled).toEqual(true);
+    };
+
+    it('forwards the DTMF_TONE_CHANGED event', () => {
+      testEvent('mc', Event.DTMF_TONE_CHANGED, {tone: 'abc123456*#'});
+    });
+
+    it('forwards the REMOTE_TRACK_ADDED event', () => {
+      testEvent('mc', Event.REMOTE_TRACK_ADDED, {
+        track: FAKE_AUDIO_TRACK,
+        type: RemoteTrackType.AUDIO,
+      });
+    });
+
+    it('forwards the CONNECTION_STATE_CHANGED event', () => {
+      testEvent('mc', Event.CONNECTION_STATE_CHANGED, {state: ConnectionState.CONNECTING});
+    });
+
+    it('registers for the correct Roap events', () => {
+      setup();
+      expect(FAKE_ROAP.on).toBeCalledTimes(2);
+      expect(FAKE_ROAP.on).toBeCalledWith(Event.ROAP_MESSAGE_TO_SEND, expect.any(Function));
+      expect(FAKE_ROAP.on).toBeCalledWith(Event.ROAP_FAILURE, expect.any(Function));
+    });
+
+    it('forwards the ROAP_MESSAGE_TO_SEND event', () => {
+      testEvent('roap', Event.ROAP_MESSAGE_TO_SEND, {
+        roapMessage: {messageType: 'OFFER', seq: 100, sdp: 'fake', tieBreaker: 123},
+      });
+      testEvent('roap', Event.ROAP_MESSAGE_TO_SEND, {
+        roapMessage: {messageType: 'ERROR', seq: 100, errorType: ErrorType.FAILED, retryAfter: 10},
+      });
+    });
+
+    it('forwards the ROAP_FAILURE event', () => {
+      testEvent('roap', Event.ROAP_FAILURE, undefined);
+    });
+  });
   describe('reconnect()', () => {
     let mc: RoapMediaConnection;
 
@@ -238,9 +369,10 @@ describe('RoapMediaConnection', () => {
       mc.reconnect();
 
       expect(mediaConnectionCtorSpy).toBeCalledOnceWith(FAKE_CONFIG, FAKE_OPTIONS, DEBUG_ID);
-      expect(FAKE_MC.on).toBeCalledTimes(2);
+      expect(FAKE_MC.on).toBeCalledTimes(3);
       expect(FAKE_MC.on).toBeCalledWith(Event.REMOTE_TRACK_ADDED, expect.any(Function));
       expect(FAKE_MC.on).toBeCalledWith(Event.CONNECTION_STATE_CHANGED, expect.any(Function));
+      expect(FAKE_MC.on).toBeCalledWith(Event.DTMF_TONE_CHANGED, expect.any(Function));
     });
 
     it('creates a new roap session, maintaining the seq from the old one', () => {

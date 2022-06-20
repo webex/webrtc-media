@@ -90,6 +90,7 @@ export class RoapMediaConnection extends EventEmitter {
 
     mediaConnection.on(Event.REMOTE_TRACK_ADDED, this.onRemoteTrack.bind(this));
     mediaConnection.on(Event.CONNECTION_STATE_CHANGED, this.onConnectionStateChanged.bind(this));
+    mediaConnection.on(Event.DTMF_TONE_CHANGED, this.onDtmfToneChanged.bind(this));
 
     return mediaConnection;
   }
@@ -271,7 +272,7 @@ export class RoapMediaConnection extends EventEmitter {
   }
 
   /**
-   * @public Returns information about current connection state
+   * Returns information about current connection state
    *
    * @returns ConnectionState
    */
@@ -283,6 +284,30 @@ export class RoapMediaConnection extends EventEmitter {
    */
   public getStats(): Promise<RTCStatsReport> {
     return this.mediaConnection.getStats();
+  }
+
+  /**
+   * Sends a DTMF signal as RTP payloads according to
+   * https://datatracker.ietf.org/doc/html/rfc4733.
+   *
+   * This is a wrapper over the browser's
+   * RTCDTMFSender.insertDTMF() method, see the documentation
+   * for that method for further details like default argument
+   * values, allowed values, etc.
+   *
+   * @param tones - string of valid DTMF codes to be transmitted,
+   *                according to webrtc specification and rfc7874 these are:
+   *                characters 0 through 9, A through D, '#', and '*'
+   *                also character ',' is allowed and indicates a 2s delay
+   * @param duration - (optional) duration for each character (in milliseconds)
+   * @param interToneGap - (optional) the length of time, in milliseconds, to wait between tones
+   * */
+  public insertDTMF(tones: string, duration?: number, interToneGap?: number): void {
+    this.log(
+      'insertDTMF()',
+      `called with tones="${tones}", duration=${duration}, interToneGap=${interToneGap}`
+    );
+    this.mediaConnection.insertDTMF(tones, duration, interToneGap);
   }
 
   /**
@@ -319,6 +344,10 @@ export class RoapMediaConnection extends EventEmitter {
 
   private onConnectionStateChanged(event: ConnectionStateChangedEvent) {
     this.emit(Event.CONNECTION_STATE_CHANGED, event);
+  }
+
+  private onDtmfToneChanged(event: RTCDTMFToneChangeEvent) {
+    this.emit(Event.DTMF_TONE_CHANGED, event);
   }
 
   private createLocalOffer(): Promise<{sdp: string}> {

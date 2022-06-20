@@ -124,6 +124,8 @@ export class MediaConnection extends EventEmitter {
         });
       }
     });
+
+    this.setupTransceiverListeners();
   }
 
   /**
@@ -289,6 +291,45 @@ export class MediaConnection extends EventEmitter {
     return this.pc.getStats();
   }
 
+  /**
+   * Calls RTCDTMFSender.insertDTMF() on the main audio sender.
+   *
+   * @param tones - string of valid DTMF codes to be transmitted
+   * @param duration - (optional) duration for each character (in milliseconds)
+   * @param interToneGap - (optional) the length of time, in milliseconds, to wait between tones
+   * */
+  public insertDTMF(tones: string, duration?: number, interToneGap?: number): void {
+    if (!this.transceivers.audio) {
+      // most likely, the SDP negotiation hasn't been done yet, or audio is not configured at all
+      throw new Error('audio transceiver missing');
+    }
+
+    if (!this.transceivers.audio.sender) {
+      throw new Error('this.transceivers.audio.sender is null');
+    }
+
+    if (!this.transceivers.audio.sender.dtmf) {
+      // this should never happen as it can be null only for non-audio tracks
+      throw new Error('this.transceivers.audio.sender.dtmf is null');
+    }
+
+    // the webrtc spec only allows upper case letters, but most browsers (except some older
+    // safari like 14.1) work fine also with lower case, so for consistency and ease
+    // of use we make sure that it works on any browser by converrting tone to upper case
+    this.transceivers.audio.sender.dtmf.insertDTMF(tones.toUpperCase(), duration, interToneGap);
+  }
+
+  private setupTransceiverListeners() {
+    if (this.transceivers.audio?.sender?.dtmf) {
+      this.transceivers.audio.sender.dtmf.ontonechange = this.onToneChange.bind(this);
+    }
+  }
+
+  private onToneChange(event: RTCDTMFToneChangeEvent) {
+    this.log('onToneChange()', `emitting Event.DTMF_TONE_CHANGED with tone="${event.tone}"`);
+    this.emit(Event.DTMF_TONE_CHANGED, {tone: event.tone});
+  }
+
   private identifyTransceivers() {
     /* this is needed only in case of an incoming call where the first SDP offer comes from the far end */
     if (
@@ -306,6 +347,8 @@ export class MediaConnection extends EventEmitter {
       // todo: check if transceivers order always matches the m-lines in remote SDP offer in all the browsers
       [this.transceivers.audio, this.transceivers.video, this.transceivers.screenShareVideo] =
         transceivers;
+
+      this.setupTransceiverListeners();
     }
   }
 

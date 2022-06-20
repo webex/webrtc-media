@@ -3,6 +3,7 @@ export enum Event {
   REMOTE_TRACK_ADDED = 'remoteTrack:added', // new remote track has been added, see RemoteTrackAddedEvent
   ROAP_MESSAGE_TO_SEND = 'roap:messageToSend', // a ROAP message needs to be sent to the backend, see RoapMessageEvent
   ROAP_FAILURE = 'roap:failure', // Roap state machine reached an unrecoverable error state
+  DTMF_TONE_CHANGED = 'dtmfTone:changed', // DTMF tone finished playing, see DtmfToneChangedEvent
 }
 
 // Overall connection state (based on the ICE and DTLS connection states)
@@ -60,4 +61,16 @@ export interface RoapMessageEvent {
   roapMessage: RoapMessage; // roap message that needs to be sent to the backend as soon as possible
 }
 
-export type AnyEvent = ConnectionStateChangedEvent | RemoteTrackAddedEvent | RoapMessageEvent;
+/**
+ * Wrapper over RTCDTMFToneChangeEvent
+ */
+export interface DtmfToneChangedEvent {
+  tone: string;
+}
+
+export type AnyEvent =
+  | ConnectionStateChangedEvent
+  | RemoteTrackAddedEvent
+  | RoapMessageEvent
+  | DtmfToneChangedEvent
+  | undefined;
