@@ -522,7 +522,7 @@ describe('MediaConnection', () => {
         // trigger the ontrack listener in MediaConnection
         (FAKE_PC.ontrack as (e: RTCTrackEvent) => void)({
           track: {id: 'fake'},
-        } as unknown as RTCTrackEvent);
+        } as RTCTrackEvent);
       }
 
       // confirm that MediaConnection has set up the ontonechange listener

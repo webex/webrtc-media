@@ -271,9 +271,9 @@ describe('RoapMediaConnection', () => {
       if (target === 'mc') {
         jest
           .spyOn(mediaConnection, 'MediaConnection')
-          .mockImplementation(() => emitter as unknown as mediaConnection.MediaConnection);
+          .mockImplementation(() => emitter as mediaConnection.MediaConnection);
       } else if (target === 'roap') {
-        jest.spyOn(roap, 'Roap').mockImplementation(() => emitter as unknown as roap.Roap);
+        jest.spyOn(roap, 'Roap').mockImplementation(() => emitter as roap.Roap);
       }
 
       setup();
