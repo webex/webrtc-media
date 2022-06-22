@@ -265,14 +265,25 @@ describe('RoapMediaConnection', () => {
       expect(FAKE_MC.on).toBeCalledWith(Event.DTMF_TONE_CHANGED, expect.any(Function));
     });
 
-    const testEvent = (target: 'mc' | 'roap', eventType: Event, eventData: AnyEvent) => {
+    /**
+     * It simulates an event coming from either MediaConnection or Roap and checks
+     * that this event (along with the event data) is forwared by the RoapMediaConnection
+     * to the client.
+     *
+     * @param from - which dependency will the simulated event come from: MediaConnection or Roap
+     * @param eventType - event type to test
+     * @param eventData - event data to be sent with the event during the test
+     */
+    const testEvent = (from: 'mc' | 'roap', eventType: Event, eventData: AnyEvent) => {
       const emitter = new EventEmitter();
 
-      if (target === 'mc') {
+      // setup the mock so that it returns our fake emitter when RoapMediaConnection
+      // creates a MediaConnection or Roap instance
+      if (from === 'mc') {
         jest
           .spyOn(mediaConnection, 'MediaConnection')
           .mockImplementation(() => emitter as mediaConnection.MediaConnection);
-      } else if (target === 'roap') {
+      } else if (from === 'roap') {
         jest.spyOn(roap, 'Roap').mockImplementation(() => emitter as roap.Roap);
       }
 
@@ -287,7 +298,7 @@ describe('RoapMediaConnection', () => {
         eventListenerCalled = true;
       });
 
-      // trigger the event listener in RoapMediaConnection
+      // simulate the event being emitted by MediaConnection or Roap
       emitter.emit(eventType, eventData);
 
       // verify that the test listener was called
