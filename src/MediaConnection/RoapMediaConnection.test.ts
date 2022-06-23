@@ -16,6 +16,7 @@ describe('RoapMediaConnection', () => {
   const DEFAULT_CONFIG = {
     iceServers: [],
     skipInactiveTransceivers: false,
+    requireH264: false,
     sdpMunging: {},
   };
 

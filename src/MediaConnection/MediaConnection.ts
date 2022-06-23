@@ -1,7 +1,14 @@
 import EventEmitter from './EventEmitter';
 
 import {getLogger, getErrorDescription} from './logger';
-import {isSdpInvalid, getLocalTrackInfo, mungeLocalSdp, TrackKind} from './utils';
+import {
+  isSdpInvalid,
+  getLocalTrackInfo,
+  mungeLocalSdp,
+  mungeLocalSdpForBrowser,
+  mungeRemoteSdp,
+  TrackKind,
+} from './utils';
 import {Event, ConnectionState, MediaConnectionEvents, RemoteTrackType} from './eventTypes';
 
 import {MediaConnectionConfig} from './config';
@@ -464,12 +471,19 @@ export class MediaConnection extends EventEmitter<MediaConnectionEvents> {
       .then((description: RTCSessionDescriptionInit) => {
         this.log('createLocalOffer', 'local SDP offer created');
 
-        return this.pc.setLocalDescription(description);
+        const mungedDescription = {
+          type: description.type,
+          sdp: mungeLocalSdpForBrowser(this.config.sdpMunging, description?.sdp || ''),
+        };
+
+        return this.pc.setLocalDescription(mungedDescription);
       })
       .then(() => this.waitForIceCandidates())
       .then(() => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
+        const mungedSdp = mungeLocalSdp(
+          this.config.sdpMunging,
+          this.pc.localDescription?.sdp || ''
+        );
 
         return {sdp: mungedSdp};
       });
@@ -482,21 +496,32 @@ export class MediaConnection extends EventEmitter<MediaConnectionEvents> {
       return Promise.reject(new Error('SDP missing'));
     }
 
+    const mungedRemoteSdp = mungeRemoteSdp(this.config.sdpMunging, sdp);
+
     return this.pc
       .setRemoteDescription(
         new window.RTCSessionDescription({
           type: 'offer',
-          sdp,
+          sdp: mungedRemoteSdp,
         })
       )
       .then(() => this.pc.createAnswer())
-      .then((answer: RTCSessionDescriptionInit) => this.pc.setLocalDescription(answer))
+      .then((answer: RTCSessionDescriptionInit) => {
+        const mungedAnswer = {
+          type: answer.type,
+          sdp: mungeLocalSdpForBrowser(this.config.sdpMunging, answer?.sdp || ''),
+        };
+
+        return this.pc.setLocalDescription(mungedAnswer);
+      })
       .then(() => this.waitForIceCandidates())
       .then(() => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const mungedSdp = mungeLocalSdp(this.config.sdpMunging, this.pc.localDescription!.sdp);
+        const mungedLocalSdp = mungeLocalSdp(
+          this.config.sdpMunging,
+          this.pc.localDescription?.sdp || ''
+        );
 
-        return {sdp: mungedSdp};
+        return {sdp: mungedLocalSdp};
       });
   }
 
@@ -507,10 +532,12 @@ export class MediaConnection extends EventEmitter<MediaConnectionEvents> {
       return Promise.reject(new Error('SDP missing'));
     }
 
+    const mungedRemoteSdp = mungeRemoteSdp(this.config.sdpMunging, sdp);
+
     return this.pc.setRemoteDescription(
       new window.RTCSessionDescription({
         type: 'answer',
-        sdp,
+        sdp: mungedRemoteSdp,
       })
     );
   }
@@ -525,6 +552,7 @@ export class MediaConnection extends EventEmitter<MediaConnectionEvents> {
         !isSdpInvalid(
           {
             allowPort0: !!this.config.sdpMunging.convertPort9to0,
+            requireH264: !!this.config.requireH264,
           },
           this.error.bind(this),
           this.pc.localDescription?.sdp
@@ -562,6 +590,8 @@ export class MediaConnection extends EventEmitter<MediaConnectionEvents> {
           'iceGatheringState is already "complete" and local SDP is valid'
         );
         resolve();
+
+        return;
       }
 
       this.log('waitForIceCandidates()', 'waiting for ICE candidates to be gathered...');

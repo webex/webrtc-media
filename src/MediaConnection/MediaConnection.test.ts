@@ -2,6 +2,7 @@ import {setupTestLogger, teardownTestLogger} from './testUtils';
 import {ConnectionState, MediaConnectionConfig} from './index';
 import {MediaConnection} from './MediaConnection';
 import {AnyEvent, Event} from './eventTypes';
+import * as utils from './utils';
 
 describe('MediaConnection', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -10,6 +11,7 @@ describe('MediaConnection', () => {
   const DEFAULT_CONFIG = {
     iceServers: [],
     skipInactiveTransceivers: false,
+    requireH264: false,
     sdpMunging: {},
   };
 
@@ -29,10 +31,12 @@ describe('MediaConnection', () => {
     addTrack: jest.fn(),
     getTransceivers: jest.fn().mockReturnValue([]),
     addTransceiver: jest.fn(),
-    createOffer: jest.fn().mockResolvedValue({sdp: '', type: 'offer'}),
+    createOffer: jest.fn().mockResolvedValue({sdp: 'fake local offer', type: 'offer'}),
+    createAnswer: jest.fn().mockResolvedValue({sdp: 'fake local answer', type: 'answer'}),
     setLocalDescription: jest.fn().mockResolvedValue({}),
+    setRemoteDescription: jest.fn().mockResolvedValue({}),
     iceGatheringState: 'complete',
-    localDescription: {sdp: 'fake'},
+    localDescription: {sdp: 'fake pc.localDescription.sdp'},
     getStats: jest.fn(),
     close: jest.fn(),
     ontrack: null,
@@ -559,6 +563,82 @@ describe('MediaConnection', () => {
       }
 
       expect(toneChangeEventFired).toEqual(true);
+    });
+  });
+
+  describe('handling of SDPs', () => {
+    let mungeRemoteSdpSpy: jest.SpyInstance;
+    let mungeLocalSdpSpy: jest.SpyInstance;
+    let mungeLocalSdpForBrowserSpy: jest.SpyInstance;
+
+    const sdpMungingConfig = {startBitrate: 2000};
+    let mc: MediaConnection;
+
+    beforeEach(() => {
+      mungeRemoteSdpSpy = jest.spyOn(utils, 'mungeRemoteSdp').mockReturnValue('munged remote sdp');
+      mungeLocalSdpSpy = jest.spyOn(utils, 'mungeLocalSdp').mockReturnValue('munged local sdp');
+      mungeLocalSdpForBrowserSpy = jest
+        .spyOn(utils, 'mungeLocalSdpForBrowser')
+        .mockReturnValue('munged local sdp for browser');
+      jest.spyOn(utils, 'isSdpInvalid').mockReturnValue('');
+
+      mc = new MediaConnection(
+        {
+          iceServers: [],
+          skipInactiveTransceivers: false,
+          requireH264: false,
+          sdpMunging: sdpMungingConfig,
+        },
+        {
+          send: {},
+          receive: {
+            audio: true,
+            video: true,
+            screenShareVideo: true,
+          },
+        }
+      );
+    });
+
+    it('handleRemoteOffer() works as expected', async () => {
+      const answer = await mc.handleRemoteOffer('fake remote sdp');
+
+      expect(mungeRemoteSdpSpy).toBeCalledOnceWith(sdpMungingConfig, 'fake remote sdp');
+      expect(FAKE_PC.setRemoteDescription).toBeCalledOnceWith({
+        type: 'offer',
+        sdp: 'munged remote sdp',
+      });
+      expect(FAKE_PC.createAnswer).toBeCalledOnceWith();
+      expect(mungeLocalSdpForBrowserSpy).toBeCalledOnceWith(sdpMungingConfig, 'fake local answer');
+      expect(FAKE_PC.setLocalDescription).toBeCalledOnceWith({
+        type: 'answer',
+        sdp: 'munged local sdp for browser',
+      });
+      expect(mungeLocalSdpSpy).toBeCalledOnceWith(sdpMungingConfig, 'fake pc.localDescription.sdp');
+      expect(answer).toEqual({sdp: 'munged local sdp'});
+    });
+
+    it('handleRemoteAnswer() works as expected', async () => {
+      await mc.handleRemoteAnswer('fake remote answer');
+
+      expect(mungeRemoteSdpSpy).toBeCalledOnceWith(sdpMungingConfig, 'fake remote answer');
+      expect(FAKE_PC.setRemoteDescription).toBeCalledOnceWith({
+        type: 'answer',
+        sdp: 'munged remote sdp',
+      });
+    });
+
+    it('createLocalOffer() works as expected', async () => {
+      const offer = await mc.createLocalOffer();
+
+      expect(FAKE_PC.createOffer).toBeCalledOnceWith();
+      expect(mungeLocalSdpForBrowserSpy).toBeCalledOnceWith(sdpMungingConfig, 'fake local offer');
+      expect(FAKE_PC.setLocalDescription).toBeCalledOnceWith({
+        type: 'offer',
+        sdp: 'munged local sdp for browser',
+      });
+      expect(mungeLocalSdpSpy).toBeCalledOnceWith(sdpMungingConfig, 'fake pc.localDescription.sdp');
+      expect(offer).toEqual({sdp: 'munged local sdp'});
     });
   });
 });
