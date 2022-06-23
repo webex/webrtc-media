@@ -1,3 +1,10 @@
+# [1.23.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.22.0...v1.23.0) (2022-06-23)
+
+
+### Features
+
+* **MediaConnection:** added support for DTMF ([a167e05](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/a167e0542894b96a0b085444c185123ba3c6aa82))
+
 # [1.22.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.21.0...v1.22.0) (2022-06-20)
 
 
