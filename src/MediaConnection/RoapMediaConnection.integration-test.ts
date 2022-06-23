@@ -329,7 +329,7 @@ describe('2 RoapMediaConnections connected to each other', () => {
     });
   });
 
-  describe('DTMF', () => {
+  describe.skip('DTMF', () => {
     let dtmfToneChangeListeners: Array<EventListener>;
     let newAudioTrack: MediaStreamTrack;
 
