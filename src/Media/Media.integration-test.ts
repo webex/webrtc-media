@@ -1,3 +1,4 @@
+import * as DetectRTC from 'detectrtc';
 import {expect} from 'chai';
 import {isBrowserSupported} from '../index';
 import {getCameras, getMicrophones, getSpeakers} from './index';
@@ -19,8 +20,19 @@ describe('Media Integration Test - use-fake-ui-for-media-stream', () => {
     });
   });
 
-  xdescribe('isBrowserSupported()', () => {
+  describe('isBrowserSupported()', () => {
+    it('should check is Browser not Supported', () => {
+      DetectRTC.browser.isChrome = false;
+      DetectRTC.browser.isFirefox = false;
+      DetectRTC.browser.isEdge = false;
+      DetectRTC.browser.isSafari = false;
+      const isSupported = isBrowserSupported();
+
+      expect(isSupported).to.eq(false);
+    });
+
     it('should check is Browser Supported', () => {
+      DetectRTC.browser.isChrome = true;
       const isSupported = isBrowserSupported();
 
       expect(isSupported).to.eq(true);

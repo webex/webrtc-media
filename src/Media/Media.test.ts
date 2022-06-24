@@ -50,8 +50,9 @@ describe('Media', () => {
     });
   });
 
-  xdescribe('isBrowserSupported()', () => {
+  describe('isBrowserSupported()', () => {
     it('should check if the current Browser Supported', () => {
+      DetectRTC.browser.isChrome = true;
       const isSupported = isBrowserSupported();
 
       expect(isSupported).toEqual(true);
