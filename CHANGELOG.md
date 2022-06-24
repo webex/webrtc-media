@@ -1,3 +1,11 @@
+# [1.24.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.23.0...v1.24.0) (2022-06-24)
+
+
+### Features
+
+* **Effects:** enableBNR API implementation ([466554b](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/466554bcf5cb9524b5d7d8d87de3650328c8043b))
+* **Effects:** util method to check if track is valid ([f1d1b52](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/f1d1b52807ecd51579d1b8d4a675944d715586b2))
+
 # [1.23.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.22.0...v1.23.0) (2022-06-23)
 
 
