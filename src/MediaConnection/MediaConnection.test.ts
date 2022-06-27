@@ -1,3 +1,4 @@
+import {setupTestLogger, teardownTestLogger} from './testUtils';
 import {ConnectionState, MediaConnectionConfig} from './index';
 import {MediaConnection} from './MediaConnection';
 import {AnyEvent, Event} from './eventTypes';
@@ -36,6 +37,14 @@ describe('MediaConnection', () => {
     close: jest.fn(),
     ontrack: null,
   };
+
+  beforeAll(() => {
+    setupTestLogger();
+  });
+
+  afterAll(() => {
+    teardownTestLogger();
+  });
 
   beforeEach(() => {
     previousRTCPeerConnection = window.RTCPeerConnection;

@@ -1,4 +1,5 @@
 import EventEmitter from 'events';
+import {setupTestLogger, teardownTestLogger} from './testUtils';
 import {
   RoapMessage,
   Event,
@@ -53,6 +54,14 @@ describe('RoapMediaConnection', () => {
 
   let mediaConnectionCtorSpy: jest.SpyInstance;
   let roapCtorSpy: jest.SpyInstance;
+
+  beforeAll(() => {
+    setupTestLogger();
+  });
+
+  afterAll(() => {
+    teardownTestLogger();
+  });
 
   beforeEach(() => {
     roapCtorSpy = jest

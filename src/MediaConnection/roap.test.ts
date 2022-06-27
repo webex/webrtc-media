@@ -1,4 +1,3 @@
-import {CustomConsole, LogType, LogMessage} from '@jest/console';
 import {StateValue} from 'xstate';
 import {Roap} from './roap';
 import {Event, ErrorType} from './eventTypes';
@@ -6,12 +5,13 @@ import {
   createControlledPromise,
   IControlledPromise,
   flushPromises,
+  setupTestLogger,
+  teardownTestLogger,
   RoapListener,
 } from './testUtils';
-import logger from '../Logger';
+import {getLogger} from './logger';
 
 describe('Roap', () => {
-  let previousConsole: Console;
   let roap: Roap;
 
   const MUNGED_LOCAL_SDP = 'munged local SDP';
@@ -22,7 +22,7 @@ describe('Roap', () => {
   let handleRemoteAnswer: jest.Mock<Promise<void>, [sdp: string | undefined]>;
 
   const log = (action: string, description: string) =>
-    logger.info({ID: 'Test', mediaType: 'Test', action, description});
+    getLogger().info(`Test: ${action} ${description}`);
 
   const resetCallbackMocks = () => {
     createLocalOffer.mockClear();
@@ -38,17 +38,11 @@ describe('Roap', () => {
   };
 
   beforeAll(() => {
-    previousConsole = global.console;
-    // make the console logs shown by jest more concise (1 line instead of 5 for each console.log call)
-    global.console = new CustomConsole(
-      process.stdout,
-      process.stderr,
-      (_type: LogType, message: LogMessage) => message
-    );
+    setupTestLogger();
   });
 
   afterAll(() => {
-    global.console = previousConsole;
+    teardownTestLogger();
   });
 
   beforeEach(() => {

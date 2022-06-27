@@ -1,7 +1,6 @@
 import EventEmitter from 'events';
 
-import logger from '../Logger';
-import {MEDIA_CONNECTION} from '../constants';
+import {getLogger, getErrorDescription} from './logger';
 import {isSdpInvalid, getLocalTrackInfo, mungeLocalSdp, TrackKind} from './utils';
 import {Event, ConnectionState, RemoteTrackType} from './eventTypes';
 
@@ -82,29 +81,14 @@ export class MediaConnection extends EventEmitter {
     this.pc.ontrack = this.onTrack.bind(this);
     this.pc.oniceconnectionstatechange = this.onIceConnectionStateChange.bind(this);
     this.pc.onconnectionstatechange = this.onConnectionStateChange.bind(this);
-
-    this.log(
-      'constructor()',
-      `config: ${JSON.stringify(mediaConnectionConfig)}, options: ${JSON.stringify(options)}`
-    );
   }
 
   private log(action: string, description: string) {
-    logger.info({
-      ID: this.id,
-      mediaType: MEDIA_CONNECTION,
-      action,
-      description,
-    });
+    getLogger().info(`${this.id}:${action} ${description}`);
   }
 
-  private error(action: string, description: string) {
-    logger.error({
-      ID: this.id,
-      mediaType: MEDIA_CONNECTION,
-      action,
-      description,
-    });
+  private error(action: string, description: string, error?: Error) {
+    getLogger().error(`${this.id}:${action} ${description} ${getErrorDescription(error)}`);
   }
 
   private createTransceivers() {
@@ -550,7 +534,7 @@ export class MediaConnection extends EventEmitter {
         if (!done) {
           const miliseconds = performance.now() - startTime;
 
-          this.log('waitForIceCandidates()', `checking SDP... ${this.pc.localDescription?.sdp}`);
+          this.log('waitForIceCandidates()', `checking SDP...`);
 
           if (!isLocalSdpValid()) {
             this.error('waitForIceCandidates()', 'SDP not valid after waiting.');

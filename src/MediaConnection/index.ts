@@ -10,4 +10,6 @@ export {
   RoapMessageEvent,
 } from './eventTypes';
 
+export * from './logger';
+
 export {MediaConnectionConfig} from './config';

@@ -2,8 +2,7 @@ import 'webrtc-adapter';
 import EventEmitter from 'events';
 import {assign, createMachine, ErrorPlatformEvent, interpret} from 'xstate';
 
-import logger from '../Logger';
-import {ROAP} from '../constants';
+import {getLogger, getErrorDescription} from './logger';
 import {Event, ErrorType, RoapMessage} from './eventTypes';
 
 /*  WARNING:
@@ -110,7 +109,7 @@ export class Roap extends EventEmitter {
   ) {
     super();
 
-    this.id = debugId;
+    this.id = debugId || 'ROAP';
     this.createLocalOfferCallback = createLocalOfferCallback;
     this.handleRemoteOfferCallback = handleRemoteOfferCallback;
     this.handleRemoteAnswerCallback = handleRemoteAnswerCallback;
@@ -430,22 +429,11 @@ export class Roap extends EventEmitter {
   }
 
   private log(action: string, description: string) {
-    logger.info({
-      ID: this.id,
-      mediaType: ROAP,
-      action,
-      description,
-    });
+    getLogger().info(`${this.id}:${action} ${description}`);
   }
 
   private error(action: string, description: string, error?: Error) {
-    logger.error({
-      ID: this.id,
-      mediaType: ROAP,
-      action,
-      description,
-      error,
-    });
+    getLogger().error(`${this.id}:${action} ${description} ${getErrorDescription(error)}`);
   }
 
   private sendRoapOfferMessage(seq: number, sdp: string) {

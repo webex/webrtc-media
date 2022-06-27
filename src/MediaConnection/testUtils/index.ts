@@ -2,7 +2,7 @@ import {setImmediate} from 'timers';
 
 export * from './EventListener';
 export * from './RoapListener';
-
+export * from './logger';
 export interface IControlledPromise<T> extends Promise<T> {
   resolve: (value: T) => void;
   reject: (error: Error) => void;

@@ -1,7 +1,5 @@
 import EventEmitter from 'events';
 
-import logger from '../Logger';
-import {ROAP_MEDIA_CONNECTION} from '../constants';
 import {MediaConnection, LocalTracks, ReceiveOptions} from './MediaConnection';
 import {Roap} from './roap';
 import {
@@ -14,6 +12,7 @@ import {
 } from './eventTypes';
 
 import {MediaConnectionConfig} from './config';
+import {getLogger, getErrorDescription} from './logger';
 
 // eslint-disable-next-line import/prefer-default-export
 export class RoapMediaConnection extends EventEmitter {
@@ -50,32 +49,22 @@ export class RoapMediaConnection extends EventEmitter {
     this.id = debugId || 'RoapMediaConnection';
     this.sdpNegotiationStarted = false;
 
-    this.mediaConnection = this.createMediaConnection(mediaConnectionConfig, options, debugId);
-
-    this.roap = this.createRoap(debugId);
-
     this.log(
       'constructor()',
       `config: ${JSON.stringify(mediaConnectionConfig)}, options: ${JSON.stringify(options)}`
     );
+
+    this.mediaConnection = this.createMediaConnection(mediaConnectionConfig, options, debugId);
+
+    this.roap = this.createRoap(debugId);
   }
 
   private log(action: string, description: string) {
-    logger.info({
-      ID: this.id,
-      mediaType: ROAP_MEDIA_CONNECTION,
-      action,
-      description,
-    });
+    getLogger().info(`${this.id}:${action} ${description}`);
   }
 
-  private error(action: string, description: string) {
-    logger.error({
-      ID: this.id,
-      mediaType: ROAP_MEDIA_CONNECTION,
-      action,
-      description,
-    });
+  private error(action: string, description: string, error?: Error) {
+    getLogger().error(`${this.id}:${action} ${description} ${getErrorDescription(error)}`);
   }
 
   private createMediaConnection(
