@@ -22,7 +22,7 @@ function getTrackSettings(track: MediaStreamTrack): MediaTrackSettings {
       ID: track.id,
       mediaType: MEDIA_STREAM_TRACK,
       action: 'getTrackSettings()',
-      description: `Returning track settings ${settings}`,
+      description: `Returning track settings ${JSON.stringify(settings)}`,
     });
 
     return settings;
