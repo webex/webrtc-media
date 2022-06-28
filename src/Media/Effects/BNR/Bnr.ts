@@ -5,6 +5,7 @@ import {getTrackSettings} from '../../Track/Utils';
 interface BNRProcessor {
   isModuleAdded: boolean;
   audioContext?: AudioContext;
+  workletNode?: AudioWorkletNode;
   workletProcessorUrl: URL;
   sourceNode?: MediaStreamAudioSourceNode;
   destinationStream?: MediaStreamAudioDestinationNode;
@@ -82,6 +83,11 @@ async function loadProcessor(): Promise<AudioContext> {
 
   await audioContext.audioWorklet.addModule(bnrProcessor.workletProcessorUrl);
 
+  bnrProcessor.workletNode = new AudioWorkletNode(
+    audioContext,
+    'noise-reduction-worklet-processor'
+  );
+
   return audioContext;
 }
 
@@ -107,6 +113,7 @@ async function enableBNR(track: MediaStreamTrack): Promise<MediaStreamTrack> {
 
     streamFromTrack.addTrack(track);
     let audioContext: AudioContext;
+    let workletNode: AudioWorkletNode;
 
     logger.info({
       ID: track.id,
@@ -149,10 +156,8 @@ async function enableBNR(track: MediaStreamTrack): Promise<MediaStreamTrack> {
       description: 'Creating worklet node, connecting source and destination streams',
     });
 
-    const workletNode: AudioWorkletNode = new AudioWorkletNode(
-      audioContext,
-      'noise-reduction-worklet-processor'
-    );
+    // eslint-disable-next-line prefer-const
+    workletNode = bnrProcessor.workletNode as AudioWorkletNode;
 
     workletNode.port.postMessage('ENABLE');
 
