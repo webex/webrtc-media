@@ -1,3 +1,10 @@
+## [1.24.2](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.24.1...v1.24.2) (2022-06-29)
+
+
+### Bug Fixes
+
+* **Logger:** ts ternary operator converted to js ([df285e9](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/df285e97e50640c7722dff4b24034ca702a9f271))
+
 ## [1.24.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.24.0...v1.24.1) (2022-06-29)
 
 
