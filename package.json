@@ -1,6 +1,6 @@
 {
   "name": "@webex/webrtc-media",
-  "version": "1.24.0",
+  "version": "1.24.1",
   "files": [
     "dist"
   ],
@@ -111,7 +111,6 @@
     "typedoc": "^0.22.15",
     "typescript": "^4.5.5"
   },
-
   "resolutions": {
     "karma-sauce-launcher/saucelabs": "7.1.3"
   },

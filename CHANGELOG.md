@@ -1,3 +1,10 @@
+## [1.24.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.24.0...v1.24.1) (2022-06-29)
+
+
+### Bug Fixes
+
+* detectRtc module import in esm format with rollup build ([a883d26](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/a883d26cabcf39a538911a81e283245f225a6390))
+
 # [1.24.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.23.0...v1.24.0) (2022-06-24)
 
 
