@@ -30,7 +30,7 @@ const logFormat = (level: string, logDetails: CustomLogFormat) => {
   // eslint-disable-next-line no-nested-ternary
   const errorText = error ? (error.stack ? `${error.message}: ${error.stack}` : `${error}`) : '';
 
-  return `${timestamp} ${level} ${ID ?? ''} ${mediaType} ${action} ${description} ${errorText}`
+  return `${timestamp} ${level} ${ID || ''} ${mediaType} ${action} ${description} ${errorText}`
     .replace(/\s+/g, ' ')
     .trim();
 };
