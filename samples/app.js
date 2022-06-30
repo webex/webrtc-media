@@ -99,7 +99,6 @@ function gotTracks([localVideo, localAudio, localContent]) {
   buildLocalScreenshare(localContent);
   localAudioTrack = localAudio;
 
-
   const devicePromises = [
     mediaMethods.getMicrophones(),
     mediaMethods.getCameras(),
@@ -150,10 +149,11 @@ function setVideoInputDevice() {
   Background Noise Reduction (BNR) methods starts
 */
 
-const listenToAudioBtn = document.getElementById("listenToAudio");
-const enableBnrBtn = document.getElementById("enableBnrBtn");
+const listenToAudioBtn = document.getElementById('listenToAudio');
+const enableBnrBtn = document.getElementById('enableBnrBtn');
+const disableBnrBtn = document.getElementById('disableBnrBtn');
 
-const bnrAudioOutput = document.getElementById("bnr-audio");
+const bnrAudioOutput = document.getElementById('bnr-audio');
 
 let rawAudioStream;
 let isListening = false;
@@ -161,47 +161,66 @@ let isListening = false;
 /**
  * Method to toggle audio listening for BNR effect
  * called as part of clicking #listenToAudio button
-*/
+ */
 const toggleAudioListen = async () => {
-  if(!isListening){
-    listenToAudioBtn.setAttribute("disabled",  true);
+  if (!isListening) {
+    listenToAudioBtn.setAttribute('disabled', true);
 
-    rawAudioStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    rawAudioStream = await navigator.mediaDevices.getUserMedia({audio: true});
     bnrAudioOutput.srcObject = rawAudioStream;
 
-    listenToAudioBtn.innerText = "Stop listening to Audio";
-    listenToAudioBtn.removeAttribute("disabled");
+    listenToAudioBtn.innerText = 'Stop listening to Audio';
+    listenToAudioBtn.removeAttribute('disabled');
 
-    enableBnrBtn.removeAttribute("disabled");
+    enableBnrBtn.removeAttribute('disabled');
 
     isListening = true;
-  }
-  else{
-    listenToAudioBtn.innerText = "Start listening to Audio";
+  } else {
+    listenToAudioBtn.innerText = 'Start listening to Audio';
 
-    enableBnrBtn.setAttribute("disabled", true);
+    enableBnrBtn.setAttribute('disabled', true);
+    disableBnrBtn.setAttribute('disabled', true);
     bnrAudioOutput.srcObject = null;
 
     isListening = false;
   }
-}
+};
 
 /**
  * Method to enableBNR
  * called as part of clicking #enableBnrBtn button
-*/
+ */
 const enableBNR = async () => {
-  let audiotrack = rawAudioStream.getAudioTracks()[0];
+  const audiotrack = rawAudioStream.getAudioTracks()[0];
 
-  let bnrAudioTrack = await mediaMethods.Effects.BNR.enableBNR(audiotrack);
+  const bnrAudioTrack = await mediaMethods.Effects.BNR.enableBNR(audiotrack);
 
-  let bnrAudioStream = new MediaStream();
+  const bnrAudioStream = new MediaStream();
+
   bnrAudioStream.addTrack(bnrAudioTrack);
 
   bnrAudioOutput.srcObject = bnrAudioStream;
 
-  enableBnrBtn.setAttribute("disabled", true);
-}
+  enableBnrBtn.setAttribute('disabled', true);
+  disableBnrBtn.removeAttribute('disabled');
+};
+
+/**
+ * Method to disableBNR
+ * called as part of clicking #disableBnrBtn button
+ */
+const disableBNR = () => {
+  const bnrDisabledAudioTrack = mediaMethods.Effects.BNR.disableBNR();
+
+  const bnrDisabledAudioStream = new MediaStream();
+
+  bnrDisabledAudioStream.addTrack(bnrDisabledAudioTrack);
+
+  bnrAudioOutput.srcObject = bnrDisabledAudioStream;
+
+  disableBnrBtn.setAttribute('disabled', true);
+  enableBnrBtn.removeAttribute('disabled');
+};
 
 /*
   Background Noise Reduction (BNR) methods ends
