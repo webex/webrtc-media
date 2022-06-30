@@ -42,6 +42,11 @@ class FakeAudioContext {
   createMediaStreamSource() {
     return {
       connect: () => undefined,
+      mediaStream: {
+        getAudioTracks() {
+          return [new MediaStreamTrack()];
+        },
+      },
     };
   }
 
