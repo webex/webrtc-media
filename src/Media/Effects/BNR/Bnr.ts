@@ -194,4 +194,78 @@ async function enableBNR(track: MediaStreamTrack): Promise<MediaStreamTrack> {
   }
 }
 
-export {isValidTrack, enableBNR};
+/**
+ * Checks if BNR is already enabled before disabling
+ * Removes BNR to input MediaStreamTrack by ending lifetime of audioWorkletProcessor
+ *
+ * @returns raw MediaStreamTrack
+ */
+function disableBNR(): MediaStreamTrack {
+  logger.debug({
+    mediaType: MEDIA_STREAM_TRACK,
+    action: 'disableBNR()',
+    description: 'Called',
+  });
+
+  try {
+    let workletNode: AudioWorkletNode;
+
+    logger.info({
+      mediaType: MEDIA_STREAM_TRACK,
+      action: 'disableBNR()',
+      description: 'Checking if BNR is enabled before disabling',
+    });
+
+    if (!bnrProcessor.isModuleAdded) {
+      const error = new Error('Can not disable as BNR is not enabled');
+
+      logger.error({
+        mediaType: MEDIA_STREAM_TRACK,
+        action: 'disableBNR()',
+        description: 'Can not disable as BNR is not enabled',
+      });
+
+      throw error;
+    } else {
+      logger.info({
+        mediaType: MEDIA_STREAM_TRACK,
+        action: 'disableBNR()',
+        description: 'Using existing AudioWorkletNode for disabling BNR',
+      });
+
+      workletNode = bnrProcessor.workletNode as AudioWorkletNode;
+    }
+
+    workletNode.port.postMessage('DISPOSE');
+
+    logger.info({
+      mediaType: MEDIA_STREAM_TRACK,
+      action: 'disableBNR()',
+      description: 'Obtaining raw media stream track and removing bnr context',
+    });
+
+    const bnrDisabledStream: MediaStream = (bnrProcessor.sourceNode as MediaStreamAudioSourceNode)
+      .mediaStream;
+
+    const [track] = bnrDisabledStream?.getAudioTracks();
+
+    bnrProcessor.isModuleAdded = false;
+    delete bnrProcessor.workletNode;
+    delete bnrProcessor.audioContext;
+    delete bnrProcessor.sourceNode;
+    delete bnrProcessor.destinationStream;
+
+    return track;
+  } catch (error) {
+    logger.error({
+      mediaType: MEDIA_STREAM_TRACK,
+      action: 'disableBNR()',
+      description: 'Error in disableBNR',
+      error: error as Error,
+    });
+
+    throw error;
+  }
+}
+
+export {isValidTrack, enableBNR, disableBNR};

@@ -43,6 +43,7 @@ export const Media = {
   Effects: {
     BNR: {
       enableBNR: BNR.enableBNR,
+      disableBNR: BNR.disableBNR,
     },
   },
   isBrowserSupported,
