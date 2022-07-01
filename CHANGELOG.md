@@ -1,3 +1,10 @@
+# [1.25.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.24.2...v1.25.0) (2022-07-01)
+
+
+### Features
+
+* **Effects:** disableBNR API implementation ([e2ce2b7](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/e2ce2b701d70f9968e6a31f6a0af773133a636e7))
+
 ## [1.24.2](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.24.1...v1.24.2) (2022-06-29)
 
 
