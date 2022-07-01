@@ -1,3 +1,10 @@
+# [1.26.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.25.0...v1.26.0) (2022-07-01)
+
+
+### Features
+
+* **MediaConnection:** added support for JS-SDK compatible logger ([c035004](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/c0350043bdf9609b647d185bd3ec089914da6c55))
+
 # [1.25.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.24.2...v1.25.0) (2022-07-01)
 
 
