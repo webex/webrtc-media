@@ -80,11 +80,11 @@ module.exports = (config) => {
   };
 
   const sauceLaunchers = {
-    sl_chrome_mac11: {
+    sl_chrome_mac: {
       base: 'SauceLabs',
       browserName: 'chrome',
       browserVersion: 'latest',
-      platformName: 'macOS 11',
+      platformName: 'macOS 12',
       'goog:chromeOptions': chromeOptions,
       'sauce:options': {
         ...sharedSauceOptions,
@@ -102,21 +102,21 @@ module.exports = (config) => {
         tags: ['w3c-chrome'],
       },
     },
-    sl_safari_mac11: {
+    sl_safari_mac: {
       base: 'SauceLabs',
       browserName: 'Safari',
       browserVersion: 'latest',
-      platformName: 'macOS 11',
+      platformName: 'macOS 12',
       'sauce:options': {
         ...sharedSauceOptions,
         tags: ['w3c-safari'],
       },
     },
-    sl_firefox_mac11: {
+    sl_firefox_mac: {
       base: 'SauceLabs',
       browserName: 'firefox',
       browserVersion: 'latest',
-      platformName: 'macOS 11',
+      platformName: 'macOS 12',
       'moz:firefoxOptions': firefoxOptions,
       'sauce:options': {
         ...sharedSauceOptions,
