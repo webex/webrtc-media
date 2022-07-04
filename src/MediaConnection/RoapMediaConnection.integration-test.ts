@@ -330,6 +330,8 @@ describe('2 RoapMediaConnections connected to each other', () => {
     });
   });
 
+  // DTMF tests are sometimes failing on safari because of this safari bug:
+  // https://bugs.webkit.org/show_bug.cgi?id=242187 so for now we don't run them on safari
   if (!DetectRTC.browser.isSafari) {
     describe('DTMF', () => {
       let dtmfToneChangeListeners: Array<EventListener>;
