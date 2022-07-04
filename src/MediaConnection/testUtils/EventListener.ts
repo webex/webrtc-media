@@ -1,6 +1,7 @@
 import {expect as chaiExpect} from 'chai';
+import {EventMap} from 'typed-emitter';
 
-import EventEmitter from 'events';
+import EventEmitter from '../EventEmitter';
 import {Event, AnyEvent} from '../eventTypes';
 
 export type LogFn = (action: string, description: string) => void;
@@ -42,7 +43,12 @@ export class EventListener {
 
   private options: Options;
 
-  constructor(emitter: EventEmitter, eventType: Event, logFn: LogFn, options: Options = {}) {
+  constructor(
+    emitter: EventEmitter<EventMap>,
+    eventType: Event,
+    logFn: LogFn,
+    options: Options = {}
+  ) {
     this.receivedEvents = [];
     this.expectedNextEvent = {};
     this.options = {...DEFAULT_OPTIONS, ...options};

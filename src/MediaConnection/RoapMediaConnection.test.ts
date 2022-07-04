@@ -302,7 +302,7 @@ describe('RoapMediaConnection', () => {
 
       // set a test listener on RoapMediaConnection that verifies the event is received
       // and that the event data is correct
-      mc.on(eventType, (data) => {
+      mc.on(eventType, (data: AnyEvent) => {
         expect(data).toEqual(eventData);
         eventListenerCalled = true;
       });

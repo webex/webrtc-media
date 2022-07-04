@@ -1,6 +1,7 @@
 export * from './RoapMediaConnection';
 
 export {
+  AllEvents,
   Event,
   ConnectionState,
   ConnectionStateChangedEvent,

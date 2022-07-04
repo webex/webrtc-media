@@ -1,6 +1,6 @@
-import EventEmitter from 'events';
+import EventEmitter from '../EventEmitter';
 import {EventListener, LogFn, Options} from './EventListener';
-import {Event, RoapMessage, RoapMessageEvent} from '../eventTypes';
+import {Event, RoapEvents, RoapMessage, RoapMessageEvent} from '../eventTypes';
 
 /** Helper class that allows a test to wait for a specific Roap message
  *  to be emitted with the Event.ROAP_MESSAGE_TO_SEND event
@@ -22,7 +22,7 @@ import {Event, RoapMessage, RoapMessageEvent} from '../eventTypes';
  * ```
  */
 export class RoapListener extends EventListener {
-  constructor(emitter: EventEmitter, logFn: LogFn, options: Options = {}) {
+  constructor(emitter: EventEmitter<RoapEvents>, logFn: LogFn, options: Options = {}) {
     super(emitter, Event.ROAP_MESSAGE_TO_SEND, logFn, options);
   }
 

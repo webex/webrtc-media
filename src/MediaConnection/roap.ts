@@ -1,9 +1,9 @@
 import 'webrtc-adapter';
-import EventEmitter from 'events';
 import {assign, createMachine, ErrorPlatformEvent, interpret} from 'xstate';
+import EventEmitter from './EventEmitter';
 
 import {getLogger, getErrorDescription} from './logger';
-import {Event, ErrorType, RoapMessage} from './eventTypes';
+import {Event, ErrorType, RoapEvents, RoapMessage} from './eventTypes';
 
 /*  WARNING:
  *  this module uses an xstate state machine, which depends on an auto-generated file roap.typegen.ts for
@@ -86,7 +86,7 @@ type HandleRemoteOfferCallback = (sdp?: string) => Promise<{sdp: string}>;
 type HandleRemoteAnswerCallback = (sdp?: string) => Promise<void>;
 
 // eslint-disable-next-line import/prefer-default-export
-export class Roap extends EventEmitter {
+export class Roap extends EventEmitter<RoapEvents> {
   private id?: string; // used just for logging
 
   private createLocalOfferCallback: CreateLocalOfferCallback;

@@ -1,9 +1,15 @@
+import {EventMap} from 'typed-emitter';
+
+/**
+ * All possible event types that can be emitted by RoapMediaConnection,
+ * see AllEvents for details about the event data.
+ */
 export enum Event {
-  CONNECTION_STATE_CHANGED = 'connectionState:changed', // connection state has changed, see ConnectionStateChangedEvent
-  REMOTE_TRACK_ADDED = 'remoteTrack:added', // new remote track has been added, see RemoteTrackAddedEvent
-  ROAP_MESSAGE_TO_SEND = 'roap:messageToSend', // a ROAP message needs to be sent to the backend, see RoapMessageEvent
+  CONNECTION_STATE_CHANGED = 'connectionState:changed', // connection state has changed
+  REMOTE_TRACK_ADDED = 'remoteTrack:added', // new remote track has been added
+  ROAP_MESSAGE_TO_SEND = 'roap:messageToSend', // a ROAP message needs to be sent to the backend
   ROAP_FAILURE = 'roap:failure', // Roap state machine reached an unrecoverable error state
-  DTMF_TONE_CHANGED = 'dtmfTone:changed', // DTMF tone finished playing, see DtmfToneChangedEvent
+  DTMF_TONE_CHANGED = 'dtmfTone:changed', // DTMF tone finished playing
 }
 
 // Overall connection state (based on the ICE and DTLS connection states)
@@ -67,6 +73,19 @@ export interface RoapMessageEvent {
 export interface DtmfToneChangedEvent {
   tone: string;
 }
+
+export interface MediaConnectionEvents extends EventMap {
+  [Event.CONNECTION_STATE_CHANGED]: (event: ConnectionStateChangedEvent) => void;
+  [Event.REMOTE_TRACK_ADDED]: (event: RemoteTrackAddedEvent) => void;
+  [Event.DTMF_TONE_CHANGED]: (event: DtmfToneChangedEvent) => void;
+}
+
+export interface RoapEvents extends EventMap {
+  [Event.ROAP_MESSAGE_TO_SEND]: (event: RoapMessageEvent) => void;
+  [Event.ROAP_FAILURE]: () => void;
+}
+
+export type AllEvents = MediaConnectionEvents | RoapEvents;
 
 export type AnyEvent =
   | ConnectionStateChangedEvent

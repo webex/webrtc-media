@@ -1,21 +1,23 @@
-import EventEmitter from 'events';
+import EventEmitter from './EventEmitter';
 
 import {MediaConnection, LocalTracks, ReceiveOptions} from './MediaConnection';
 import {Roap} from './roap';
 import {
+  AllEvents,
   Event,
   ConnectionState,
   ConnectionStateChangedEvent,
   RemoteTrackAddedEvent,
   RoapMessage,
   RoapMessageEvent,
+  DtmfToneChangedEvent,
 } from './eventTypes';
 
 import {MediaConnectionConfig} from './config';
 import {getLogger, getErrorDescription} from './logger';
 
 // eslint-disable-next-line import/prefer-default-export
-export class RoapMediaConnection extends EventEmitter {
+export class RoapMediaConnection extends EventEmitter<AllEvents> {
   private id: string; // used just for logging
 
   private debugId?: string;
@@ -335,7 +337,7 @@ export class RoapMediaConnection extends EventEmitter {
     this.emit(Event.CONNECTION_STATE_CHANGED, event);
   }
 
-  private onDtmfToneChanged(event: RTCDTMFToneChangeEvent) {
+  private onDtmfToneChanged(event: DtmfToneChangedEvent) {
     this.emit(Event.DTMF_TONE_CHANGED, event);
   }
 

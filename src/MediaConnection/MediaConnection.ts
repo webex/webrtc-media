@@ -1,8 +1,8 @@
-import EventEmitter from 'events';
+import EventEmitter from './EventEmitter';
 
 import {getLogger, getErrorDescription} from './logger';
 import {isSdpInvalid, getLocalTrackInfo, mungeLocalSdp, TrackKind} from './utils';
-import {Event, ConnectionState, RemoteTrackType} from './eventTypes';
+import {Event, ConnectionState, MediaConnectionEvents, RemoteTrackType} from './eventTypes';
 
 import {MediaConnectionConfig} from './config';
 
@@ -30,7 +30,7 @@ const localTrackTypes = [
 ];
 
 // eslint-disable-next-line import/prefer-default-export
-export class MediaConnection extends EventEmitter {
+export class MediaConnection extends EventEmitter<MediaConnectionEvents> {
   private id?: string; // used just for logging
 
   private config: MediaConnectionConfig;
