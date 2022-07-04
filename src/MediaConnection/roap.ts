@@ -337,10 +337,10 @@ export class Roap extends EventEmitter {
           // we always have to win the glare conflict (see WEB_TIEBREAKER_VALUE)
           handleGlare: (_context, event) => {
             if (event.tieBreaker === WEB_TIEBREAKER_VALUE) {
-              this.sendErrorMessage(event.seq, 'DOUBLECONFLICT');
+              this.sendErrorMessage(event.seq, ErrorType.DOUBLECONFLICT);
               // we should also receive DOUBLECONFLICT, so just sit and wait
             } else {
-              this.sendErrorMessage(event.seq, 'CONFLICT');
+              this.sendErrorMessage(event.seq, ErrorType.CONFLICT);
             }
           },
 
@@ -352,13 +352,13 @@ export class Roap extends EventEmitter {
           sendRoapAnswerMessage: (context, event) =>
             this.sendRoapAnswerMessage(context.seq, event.data.sdp),
 
-          sendGenericError: (context) => this.sendErrorMessage(context.seq, 'FAILED'),
+          sendGenericError: (context) => this.sendErrorMessage(context.seq, ErrorType.FAILED),
           sendInvalidStateError: (_context, event) =>
-            this.sendErrorMessage(event.seq, 'INVALID_STATE'),
+            this.sendErrorMessage(event.seq, ErrorType.INVALID_STATE),
           sendOutOfOrderError: (_context, event) =>
-            this.sendErrorMessage(event.seq, 'OUT_OF_ORDER'),
+            this.sendErrorMessage(event.seq, ErrorType.OUT_OF_ORDER),
           sendRetryAfterError: (_context, event) =>
-            this.sendErrorMessage(event.seq, 'FAILED', {
+            this.sendErrorMessage(event.seq, ErrorType.FAILED, {
               retryAfter: Math.floor(Math.random() * 11),
             }),
 
@@ -480,7 +480,7 @@ export class Roap extends EventEmitter {
     });
   }
 
-  private sendErrorMessage(seq: number, errorType: string, options: {retryAfter?: number} = {}) {
+  private sendErrorMessage(seq: number, errorType: ErrorType, options: {retryAfter?: number} = {}) {
     const {retryAfter} = options;
 
     // todo enum for errorTypes
@@ -530,7 +530,7 @@ export class Roap extends EventEmitter {
 
   private validateIncomingRoapMessage(roapMessage: RoapMessage): {
     isValid: boolean;
-    errorToSend?: string;
+    errorToSend?: ErrorType;
   } {
     const {errorType, messageType, seq} = roapMessage;
     let isValid = true;
@@ -541,7 +541,7 @@ export class Roap extends EventEmitter {
 
       // we don't want to send an error response to an error
       if (messageType !== 'ERROR') {
-        errorToSend = 'OUT_OF_ORDER';
+        errorToSend = ErrorType.OUT_OF_ORDER;
 
         this.error(
           'validateIncomingRoapMessage',
