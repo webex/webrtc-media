@@ -1,0 +1,11 @@
+{
+  "name": "webrtc-media",
+  "packageManager": "yarn@4.0.0-rc.11",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "typescript": "^4.7.4"
+  }
+}
