@@ -1,3 +1,11 @@
+## [1.26.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.26.0...v1.26.1) (2022-07-08)
+
+
+### Bug Fixes
+
+* **MediaConnection:** added types for events ([38d4679](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/38d4679500b728c4ea6cfae307086cb6c8724d16))
+* **MediaConnection:** errorType is not used in all places ([ba5c034](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/ba5c034343db125baad6f8cf8cd0e20cf4fd15a9))
+
 # [1.26.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.25.0...v1.26.0) (2022-07-01)
 
 
