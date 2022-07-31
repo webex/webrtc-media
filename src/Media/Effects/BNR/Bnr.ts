@@ -9,6 +9,7 @@ interface BNRProcessor {
   workletProcessorUrl: URL;
   sourceNode?: MediaStreamAudioSourceNode;
   destinationStream?: MediaStreamAudioDestinationNode;
+  destinationTrack?: MediaStreamTrack;
 }
 
 const bnrProcessor: BNRProcessor = {
@@ -138,6 +139,23 @@ async function enableBNR(track: MediaStreamTrack): Promise<MediaStreamTrack> {
         action: 'enableBNR()',
         description: 'BNR module is present already',
       });
+      const oldDestinationTrack: MediaStreamTrack =
+        bnrProcessor.destinationTrack as MediaStreamTrack;
+
+      if (track.id === oldDestinationTrack.id) {
+        const oldTrackErrorMsg = 'BNR is enabled on the track already';
+        const oldTrackError = new Error(oldTrackErrorMsg);
+
+        logger.error({
+          ID: track.id,
+          mediaType: MEDIA_STREAM_TRACK,
+          action: 'enableBNR()',
+          description: oldTrackErrorMsg,
+          error: oldTrackError,
+        });
+
+        throw oldTrackError;
+      }
 
       logger.info({
         ID: track.id,
@@ -177,8 +195,9 @@ async function enableBNR(track: MediaStreamTrack): Promise<MediaStreamTrack> {
     const destinationStream: MediaStream = (
       bnrProcessor.destinationStream as MediaStreamAudioDestinationNode
     ).stream;
-
     const [destinationTrack] = destinationStream.getAudioTracks();
+
+    bnrProcessor.destinationTrack = destinationTrack;
 
     return destinationTrack;
   } catch (error) {
@@ -254,6 +273,7 @@ function disableBNR(): MediaStreamTrack {
     delete bnrProcessor.audioContext;
     delete bnrProcessor.sourceNode;
     delete bnrProcessor.destinationStream;
+    delete bnrProcessor.destinationTrack;
 
     return track;
   } catch (error) {
