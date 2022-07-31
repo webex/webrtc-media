@@ -17,6 +17,18 @@ describe('BNR', () => {
       expect(outputTrack).toBeInstanceOf(MediaStreamTrack);
     });
 
+    it('throws error if its same MediaStreamTrack', async () => {
+      const [inputTrack] = (
+        await navigator.mediaDevices.getUserMedia({audio: true})
+      ).getAudioTracks();
+
+      const outputTrack: MediaStreamTrack = await enableBNR(inputTrack);
+
+      enableBNR(outputTrack).catch((error) => {
+        expect(error.message).toBe('BNR is enabled on the track already');
+      });
+    });
+
     it('throws error for invalid sample rate', async () => {
       const [inputTrack] = (
         await navigator.mediaDevices.getUserMedia({audio: true})

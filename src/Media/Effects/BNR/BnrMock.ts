@@ -76,6 +76,8 @@ class FakeAudioWorkletNode {
 }
 
 class FakeMediaStreamTrack {
+  id: string;
+
   kind: string;
 
   enabled: boolean;
@@ -89,12 +91,22 @@ class FakeMediaStreamTrack {
   readyState: string;
 
   constructor() {
+    this.id = Date.now().toString();
     this.kind = 'audio';
     this.enabled = true;
     this.label = 'Default - MacBook Pro Microphone (Built-in)';
     this.muted = false;
     this.readyState = 'live';
     this.contentHint = '';
+  }
+
+  getSettings() {
+    return {
+      frameRate: 10,
+      width: 320,
+      height: 180,
+      sampleRate: 48000,
+    };
   }
 }
 
