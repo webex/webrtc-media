@@ -1,3 +1,10 @@
+# [1.27.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.26.1...v1.27.0) (2022-08-01)
+
+
+### Features
+
+* **MediaConnection:** ported all SDP munging code from SDK meetings ([6dbf4e6](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/6dbf4e606c16b293b12341d6f259d900b23ef4c6))
+
 ## [1.26.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.26.0...v1.26.1) (2022-07-08)
 
 
