@@ -8,7 +8,9 @@ export enum Event {
   CONNECTION_STATE_CHANGED = 'connectionState:changed', // connection state has changed
   REMOTE_TRACK_ADDED = 'remoteTrack:added', // new remote track has been added
   ROAP_MESSAGE_TO_SEND = 'roap:messageToSend', // a ROAP message needs to be sent to the backend
+  ROAP_STARTED = 'roap:started', // a new SDP exchange has just started
   ROAP_FAILURE = 'roap:failure', // Roap state machine reached an unrecoverable error state
+  ROAP_DONE = 'roap:done', // indicates that a full OFFER-ANSWER-OK ROAP sequence has been completed
   DTMF_TONE_CHANGED = 'dtmfTone:changed', // DTMF tone finished playing
 }
 
@@ -59,6 +61,7 @@ export interface RoapMessage {
   messageType: 'OFFER' | 'OFFER_REQUEST' | 'OFFER_RESPONSE' | 'ANSWER' | 'OK' | 'ERROR';
   sdp?: string;
   tieBreaker?: number;
+  errorCause?: string; // used only if messageType==='ERROR'
   errorType?: ErrorType; // used only if messageType==='ERROR'
   retryAfter?: number; // in seconds, used only with some errors (messageType==='ERROR')
 }
@@ -81,6 +84,7 @@ export interface MediaConnectionEvents extends EventMap {
 }
 
 export interface RoapEvents extends EventMap {
+  [Event.ROAP_DONE]: () => void;
   [Event.ROAP_MESSAGE_TO_SEND]: (event: RoapMessageEvent) => void;
   [Event.ROAP_FAILURE]: () => void;
 }

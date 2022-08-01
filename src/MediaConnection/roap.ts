@@ -169,18 +169,24 @@ export class Roap extends EventEmitter<RoapEvents> {
           idle: {
             always: {
               cond: 'isPendingLocalOffer',
-              actions: 'increaseSeq',
+              actions: ['increaseSeq', 'sendStartedEvent'],
               target: 'creatingLocalOffer',
             },
             on: {
-              INITIATE_OFFER: {actions: 'increaseSeq', target: 'creatingLocalOffer'},
+              INITIATE_OFFER: {
+                actions: ['increaseSeq', 'sendStartedEvent'],
+                target: 'creatingLocalOffer',
+              },
               REMOTE_OFFER_ARRIVED: [
                 {cond: 'isSameSeq', actions: 'sendOutOfOrderError'},
-                {actions: 'updateSeq', target: 'settingRemoteOffer'},
+                {actions: ['updateSeq', 'sendStartedEvent'], target: 'settingRemoteOffer'},
               ],
               REMOTE_OFFER_REQUEST_ARRIVED: [
                 {cond: 'isSameSeq', actions: 'sendOutOfOrderError'},
-                {actions: ['updateSeq', 'setOfferRequestFlag'], target: 'creatingLocalOffer'},
+                {
+                  actions: ['updateSeq', 'setOfferRequestFlag', 'sendStartedEvent'],
+                  target: 'creatingLocalOffer',
+                },
               ],
               // unexpected events:
               REMOTE_ANSWER_ARRIVED: [
@@ -252,7 +258,10 @@ export class Roap extends EventEmitter<RoapEvents> {
           settingRemoteAnswer: {
             invoke: {
               src: 'handleRemoteAnswer',
-              onDone: {actions: ['sendRoapOKMessage', 'resetOfferRequestFlag'], target: 'idle'},
+              onDone: {
+                actions: ['sendRoapOKMessage', 'resetOfferRequestFlag', 'sendDoneEvent'],
+                target: 'idle',
+              },
               onError: {actions: 'sendGenericError', target: 'browserError'},
             },
             on: {
@@ -293,7 +302,7 @@ export class Roap extends EventEmitter<RoapEvents> {
           waitingForOK: {
             on: {
               REMOTE_OK_ARRIVED: [
-                {actions: 'updateSeq', target: 'idle'}, // if we get OK with higher seq, we just update our seq (this is what Edonus seems to be doing in such case)
+                {actions: ['updateSeq', 'sendDoneEvent'], target: 'idle'}, // if we get OK with higher seq, we just update our seq (this is what Edonus seems to be doing in such case)
               ],
               // unexpected events:
               INITIATE_OFFER: {actions: 'enqueueNewOfferCreation'},
@@ -351,6 +360,9 @@ export class Roap extends EventEmitter<RoapEvents> {
           sendRoapOKMessage: (context) => this.sendRoapOkMessage(context.seq),
           sendRoapAnswerMessage: (context, event) =>
             this.sendRoapAnswerMessage(context.seq, event.data.sdp),
+
+          sendStartedEvent: () => this.sendStartedEvent(),
+          sendDoneEvent: () => this.sendDoneEvent(),
 
           sendGenericError: (context) => this.sendErrorMessage(context.seq, ErrorType.FAILED),
           sendInvalidStateError: (_context, event) =>
@@ -480,6 +492,16 @@ export class Roap extends EventEmitter<RoapEvents> {
     });
   }
 
+  private sendDoneEvent() {
+    this.log('sendDoneEvent', 'emitting ROAP DONE');
+    this.emit(Event.ROAP_DONE);
+  }
+
+  private sendStartedEvent() {
+    this.log('sendStartedEvent', 'emitting ROAP STARTED');
+    this.emit(Event.ROAP_STARTED);
+  }
+
   private sendErrorMessage(seq: number, errorType: ErrorType, options: {retryAfter?: number} = {}) {
     const {retryAfter} = options;
 
@@ -564,7 +586,7 @@ export class Roap extends EventEmitter<RoapEvents> {
    * @param roapMessage - ROAP message received
    */
   public roapMessageReceived(roapMessage: RoapMessage): void {
-    const {errorType, messageType, sdp, seq, tieBreaker} = roapMessage;
+    const {errorCause, errorType, messageType, sdp, seq, tieBreaker} = roapMessage;
 
     // do initial validation on the message before we send it to the state machine
     const {isValid, errorToSend} = this.validateIncomingRoapMessage(roapMessage);
@@ -596,7 +618,10 @@ export class Roap extends EventEmitter<RoapEvents> {
         break;
 
       case 'ERROR':
-        this.error('roapMessageReceived', `Error received: seq=${seq} type=${errorType}`);
+        this.error(
+          'roapMessageReceived',
+          `Error received: seq=${seq} type=${errorType} cause=${errorCause}`
+        );
 
         if (errorType === ErrorType.CONFLICT) {
           this.error(

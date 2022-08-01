@@ -30,6 +30,27 @@ interface Transceivers {
   screenShareVideo?: RTCRtpTransceiver;
 }
 
+export interface TransceiverStats {
+  audio: {
+    localTrackLabel?: string;
+    currentDirection?: RTCRtpTransceiverDirection;
+    sender: RTCStatsReport;
+    receiver: RTCStatsReport;
+  };
+  video: {
+    localTrackLabel?: string;
+    currentDirection?: RTCRtpTransceiverDirection;
+    sender: RTCStatsReport;
+    receiver: RTCStatsReport;
+  };
+  screenShareVideo: {
+    localTrackLabel?: string;
+    currentDirection?: RTCRtpTransceiverDirection;
+    sender: RTCStatsReport;
+    receiver: RTCStatsReport;
+  };
+}
+
 const localTrackTypes = [
   {type: 'audio', kind: 'audio'},
   {type: 'video', kind: 'video'},
@@ -280,6 +301,48 @@ export class MediaConnection extends EventEmitter<MediaConnectionEvents> {
    */
   public getStats(): Promise<RTCStatsReport> {
     return this.pc.getStats();
+  }
+
+  /** Returns the WebRTC stats grouped by transceivers.
+   */
+  public async getTransceiverStats(): Promise<TransceiverStats> {
+    // initialize empty result
+    const result = {
+      audio: {
+        sender: new Map(),
+        receiver: new Map(),
+      },
+      video: {
+        sender: new Map(),
+        receiver: new Map(),
+      },
+      screenShareVideo: {
+        sender: new Map(),
+        receiver: new Map(),
+      },
+    };
+
+    // try to populate the result with stats from the transceivers that we have
+    for (const {type} of localTrackTypes) {
+      const transceiver = this.transceivers[type as keyof Transceivers];
+
+      if (transceiver) {
+        result[type].currentDirection = transceiver.currentDirection;
+        result[type].localTrackLabel = transceiver.sender?.track?.label;
+
+        // eslint-disable-next-line no-await-in-loop
+        await transceiver.sender.getStats().then((statsReport) => {
+          result[type].sender = statsReport;
+        });
+
+        // eslint-disable-next-line no-await-in-loop
+        await transceiver.receiver.getStats().then((statsReport) => {
+          result[type].receiver = statsReport;
+        });
+      }
+    }
+
+    return result;
   }
 
   /**

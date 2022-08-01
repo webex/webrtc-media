@@ -42,6 +42,7 @@ describe('RoapMediaConnection', () => {
     getStats: jest.fn(),
     close: jest.fn(),
     removeAllListeners: jest.fn(),
+    getTransceiverStats: jest.fn(),
   };
 
   const FAKE_ROAP = {
@@ -108,6 +109,28 @@ describe('RoapMediaConnection', () => {
     expect(stats).toEqual(FAKE_STATS);
 
     FAKE_MC.getStats.mockReset();
+  });
+
+  it('getTransceiverStats() calls getTransceiverStats() on the media connection', async () => {
+    const FAKE_STATS = {someStats: 'any value'};
+
+    FAKE_MC.getTransceiverStats.mockResolvedValue(FAKE_STATS);
+
+    const mc = new RoapMediaConnection(DEFAULT_CONFIG, {
+      send: {},
+      receive: {
+        audio: true,
+        video: true,
+        screenShareVideo: true,
+      },
+    });
+
+    const stats = await mc.getTransceiverStats();
+
+    expect(FAKE_MC.getTransceiverStats).toBeCalledOnceWith();
+    expect(stats).toEqual(FAKE_STATS);
+
+    FAKE_MC.getTransceiverStats.mockReset();
   });
 
   describe('outgoing call/joining a meeting', () => {
@@ -332,8 +355,10 @@ describe('RoapMediaConnection', () => {
 
     it('registers for the correct Roap events', () => {
       setup();
-      expect(FAKE_ROAP.on).toBeCalledTimes(2);
+      expect(FAKE_ROAP.on).toBeCalledTimes(4);
       expect(FAKE_ROAP.on).toBeCalledWith(Event.ROAP_MESSAGE_TO_SEND, expect.any(Function));
+      expect(FAKE_ROAP.on).toBeCalledWith(Event.ROAP_STARTED, expect.any(Function));
+      expect(FAKE_ROAP.on).toBeCalledWith(Event.ROAP_DONE, expect.any(Function));
       expect(FAKE_ROAP.on).toBeCalledWith(Event.ROAP_FAILURE, expect.any(Function));
     });
 
@@ -413,8 +438,10 @@ describe('RoapMediaConnection', () => {
         DEBUG_ID,
         FAKE_SEQ
       );
-      expect(FAKE_ROAP.on).toBeCalledTimes(2);
+      expect(FAKE_ROAP.on).toBeCalledTimes(4);
       expect(FAKE_ROAP.on).toBeCalledWith(Event.ROAP_MESSAGE_TO_SEND, expect.any(Function));
+      expect(FAKE_ROAP.on).toBeCalledWith(Event.ROAP_STARTED, expect.any(Function));
+      expect(FAKE_ROAP.on).toBeCalledWith(Event.ROAP_DONE, expect.any(Function));
       expect(FAKE_ROAP.on).toBeCalledWith(Event.ROAP_FAILURE, expect.any(Function));
     });
 

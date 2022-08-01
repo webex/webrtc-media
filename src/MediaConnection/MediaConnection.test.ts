@@ -641,4 +641,161 @@ describe('MediaConnection', () => {
       expect(offer).toEqual({sdp: 'munged local sdp'});
     });
   });
+
+  describe('getTransceiverStats', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fakeTransceivers: Array<any> = [];
+
+    beforeEach(() => {
+      fakeTransceivers.length = 0; // this clears the array
+
+      // setup the mocks so that we have mocked transceivers with:
+      // mocked getStats, currentDirection and sender track with a label
+      FAKE_PC.addTransceiver.mockImplementation(() => {
+        const idx = fakeTransceivers.length;
+        const fakeTransceiver = {
+          currentDirection: `fake direction for transceiver index ${idx}`,
+          sender: {
+            getStats: jest.fn().mockResolvedValue({
+              fakeStats: `fake sender stats for transceiver index ${idx}`,
+            }),
+            track: {
+              label: `fake track label for transceiver index ${idx}`,
+            },
+          },
+          receiver: {
+            getStats: jest.fn().mockResolvedValue({
+              fakeStats: `fake receiver stats for transceiver index ${idx}`,
+            }),
+          },
+        };
+
+        fakeTransceivers.push(fakeTransceiver);
+
+        return fakeTransceiver;
+      });
+    });
+
+    afterEach(() => {
+      FAKE_PC.addTransceiver.mockReset();
+    });
+
+    it('returns defaults if transceivers are not created', async () => {
+      // create a media connection and call getTransceiverStats()
+      // without calling initializeTransceivers()
+      const mediaConnection = new MediaConnection(DEFAULT_CONFIG, {
+        send: {},
+        receive: {
+          audio: true,
+          video: true,
+          screenShareVideo: true,
+        },
+      });
+
+      const stats = await mediaConnection.getTransceiverStats();
+
+      expect(stats).toEqual({
+        audio: {
+          sender: new Map(),
+          receiver: new Map(),
+        },
+        video: {
+          sender: new Map(),
+          receiver: new Map(),
+        },
+        screenShareVideo: {
+          sender: new Map(),
+          receiver: new Map(),
+        },
+      });
+    });
+
+    it('calls getStats() on all of the transceivers', async () => {
+      const mediaConnection = new MediaConnection(DEFAULT_CONFIG, {
+        send: {},
+        receive: {
+          audio: true,
+          video: true,
+          screenShareVideo: true,
+        },
+      });
+
+      mediaConnection.initializeTransceivers(false);
+
+      const stats = await mediaConnection.getTransceiverStats();
+
+      expect(fakeTransceivers.length).toBe(3);
+      expect(fakeTransceivers[0].sender.getStats).toBeCalledOnceWith();
+      expect(fakeTransceivers[0].receiver.getStats).toBeCalledOnceWith();
+      expect(fakeTransceivers[1].sender.getStats).toBeCalledOnceWith();
+      expect(fakeTransceivers[1].receiver.getStats).toBeCalledOnceWith();
+      expect(fakeTransceivers[2].sender.getStats).toBeCalledOnceWith();
+      expect(fakeTransceivers[2].receiver.getStats).toBeCalledOnceWith();
+      expect(stats).toEqual({
+        audio: {
+          currentDirection: 'fake direction for transceiver index 0',
+          localTrackLabel: 'fake track label for transceiver index 0',
+          sender: {fakeStats: 'fake sender stats for transceiver index 0'},
+          receiver: {fakeStats: 'fake receiver stats for transceiver index 0'},
+        },
+        video: {
+          currentDirection: 'fake direction for transceiver index 1',
+          localTrackLabel: 'fake track label for transceiver index 1',
+          sender: {fakeStats: 'fake sender stats for transceiver index 1'},
+          receiver: {fakeStats: 'fake receiver stats for transceiver index 1'},
+        },
+        screenShareVideo: {
+          currentDirection: 'fake direction for transceiver index 2',
+          localTrackLabel: 'fake track label for transceiver index 2',
+          sender: {fakeStats: 'fake sender stats for transceiver index 2'},
+          receiver: {fakeStats: 'fake receiver stats for transceiver index 2'},
+        },
+      });
+    });
+
+    it('calls getStats() only on the created transceivers', async () => {
+      // create a media connection without main video and with
+      // skipInactiveTransceivers enabled, so that we won't have
+      // the main video transceiver created
+      const mediaConnection = new MediaConnection(
+        {...DEFAULT_CONFIG, skipInactiveTransceivers: true},
+        {
+          send: {},
+          receive: {
+            audio: true,
+            video: false,
+            screenShareVideo: true,
+          },
+        }
+      );
+
+      mediaConnection.initializeTransceivers(false);
+
+      const stats = await mediaConnection.getTransceiverStats();
+
+      expect(fakeTransceivers.length).toBe(2);
+      expect(fakeTransceivers[0].sender.getStats).toBeCalledOnceWith();
+      expect(fakeTransceivers[0].receiver.getStats).toBeCalledOnceWith();
+      expect(fakeTransceivers[1].sender.getStats).toBeCalledOnceWith();
+      expect(fakeTransceivers[1].receiver.getStats).toBeCalledOnceWith();
+      expect(stats).toEqual({
+        audio: {
+          currentDirection: 'fake direction for transceiver index 0',
+          localTrackLabel: 'fake track label for transceiver index 0',
+          sender: {fakeStats: 'fake sender stats for transceiver index 0'},
+          receiver: {fakeStats: 'fake receiver stats for transceiver index 0'},
+        },
+        video: {
+          sender: new Map(),
+          receiver: new Map(),
+        },
+        screenShareVideo: {
+          currentDirection: 'fake direction for transceiver index 1',
+          localTrackLabel: 'fake track label for transceiver index 1',
+          sender: {fakeStats: 'fake sender stats for transceiver index 1'},
+          receiver: {fakeStats: 'fake receiver stats for transceiver index 1'},
+        },
+      });
+    });
+  });
 });

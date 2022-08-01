@@ -1,6 +1,6 @@
 import EventEmitter from './EventEmitter';
 
-import {MediaConnection, LocalTracks, ReceiveOptions} from './MediaConnection';
+import {MediaConnection, LocalTracks, ReceiveOptions, TransceiverStats} from './MediaConnection';
 import {Roap} from './roap';
 import {
   AllEvents,
@@ -95,8 +95,13 @@ export class RoapMediaConnection extends EventEmitter<AllEvents> {
       seq
     );
 
-    roap.on(Event.ROAP_MESSAGE_TO_SEND, this.onRoapMessageToSend.bind(this));
-    roap.on(Event.ROAP_FAILURE, this.onRoapFailure.bind(this));
+    // forward all ROAP events up to the client
+    roap.on(Event.ROAP_MESSAGE_TO_SEND, (event: RoapMessageEvent) =>
+      this.emit(Event.ROAP_MESSAGE_TO_SEND, event)
+    );
+    roap.on(Event.ROAP_STARTED, () => this.emit(Event.ROAP_STARTED));
+    roap.on(Event.ROAP_DONE, () => this.emit(Event.ROAP_DONE));
+    roap.on(Event.ROAP_FAILURE, () => this.emit(Event.ROAP_FAILURE));
 
     return roap;
   }
@@ -271,10 +276,16 @@ export class RoapMediaConnection extends EventEmitter<AllEvents> {
     return this.mediaConnection.getConnectionState();
   }
 
-  /** Returns the curent value of WebRTC stats of the media connection.
+  /** Returns the current value of WebRTC stats of the media connection.
    */
   public getStats(): Promise<RTCStatsReport> {
     return this.mediaConnection.getStats();
+  }
+
+  /** Returns the current value of WebRTC stats for each transceivers.
+   */
+  public getTransceiverStats(): Promise<TransceiverStats> {
+    return this.mediaConnection.getTransceiverStats();
   }
 
   /**
@@ -319,14 +330,6 @@ export class RoapMediaConnection extends EventEmitter<AllEvents> {
     }
 
     this.roap.roapMessageReceived(roapMessage);
-  }
-
-  private onRoapMessageToSend(event: RoapMessageEvent) {
-    this.emit(Event.ROAP_MESSAGE_TO_SEND, event);
-  }
-
-  private onRoapFailure() {
-    this.emit(Event.ROAP_FAILURE);
   }
 
   private onRemoteTrack(event: RemoteTrackAddedEvent) {
