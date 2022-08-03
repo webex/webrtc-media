@@ -1,3 +1,10 @@
+## [1.27.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.27.0...v1.27.1) (2022-08-03)
+
+
+### Bug Fixes
+
+* **Effects:** enable bnr compares input track with old ([3cd1ef7](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/3cd1ef7d290809a878f3094c234e23fb8af1ad42))
+
 # [1.27.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.26.1...v1.27.0) (2022-08-01)
 
 
