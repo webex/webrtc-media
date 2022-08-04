@@ -1,3 +1,10 @@
+# [1.28.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.27.1...v1.28.0) (2022-08-04)
+
+
+### Features
+
+* **MediaConnection:** added getTransceiverStats() and ROAP_DONE, ROAP_STARTED events ([6aba552](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/6aba5522a23858d35bb0e14981a6467b204af0e0))
+
 ## [1.27.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.27.0...v1.27.1) (2022-08-03)
 
 
