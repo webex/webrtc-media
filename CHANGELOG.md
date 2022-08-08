@@ -1,3 +1,10 @@
+## [1.28.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.28.0...v1.28.1) (2022-08-08)
+
+
+### Bug Fixes
+
+* update the ts sdp to use the public ([0c13770](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/0c137703eefd14415072dc48040b6ebd761a2d24))
+
 # [1.28.0](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.27.1...v1.28.0) (2022-08-04)
 
 
