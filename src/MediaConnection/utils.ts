@@ -8,7 +8,7 @@ import {
   parse,
   Sdp,
   SessionDescription,
-} from '@webex-connect/ts-sdp';
+} from '@webex/ts-sdp';
 
 import {SdpMungingConfig} from './config';
 

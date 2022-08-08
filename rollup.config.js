@@ -1,6 +1,6 @@
+import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
-import commonjs from '@rollup/plugin-commonjs';
 
 // Note: Order of plugins are important here - https://rollupjs.org/guide/en/#build-hooks
 const basePlugins = [

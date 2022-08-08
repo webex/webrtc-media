@@ -39,7 +39,7 @@
     "docs": "rimraf ./docs && typedoc --out docs src"
   },
   "dependencies": {
-    "@webex-connect/ts-sdp": "1.5.1",
+    "@webex/ts-sdp": "^1.0.1",
     "detectrtc": "^1.4.1",
     "events": "^3.3.0",
     "typed-emitter": "^2.1.0",
