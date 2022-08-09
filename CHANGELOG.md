@@ -1,3 +1,10 @@
+## [1.28.2](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.28.1...v1.28.2) (2022-08-09)
+
+
+### Bug Fixes
+
+* build fix for cjs and esm ([25710bf](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/commit/25710bf62b6406aa96e22942818c6193f33874ef))
+
 ## [1.28.1](https://sqbu-github.cisco.com/WebExSquared/webrtc-media-core/compare/v1.28.0...v1.28.1) (2022-08-08)
 
 
