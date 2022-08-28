@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {CustomConsole} from '@jest/console';
-import {fakeDevices, mockMediaStreamTrack} from './src/Media/Device/DeviceMocks';
+import {fakeDevices, mockMediaStreamTrack} from './src/Media/Device/DeviceMocks.ts';
 
 window.RTCSessionDescription = jest.fn().mockImplementation((desc) => ({
   type: desc.type,

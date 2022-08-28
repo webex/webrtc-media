@@ -1,9 +1,12 @@
 module.exports = {
-  testEnvironment: 'jsdom',
   clearMocks: true,
-  rootDir: './src',
+  rootDir: './',
+  testEnvironment: 'jsdom',
   collectCoverage: true,
   coverageReporters: ['lcov', 'cobertura'],
+  transform: {
+    '\\.[jt]sx?$': ['babel-jest', {rootMode: 'upward'}],
+  },
   reporters: [
     'default',
     [
@@ -23,8 +26,8 @@ module.exports = {
       },
     ],
   ],
-  setupFiles: ['<rootDir>/../jest.global.js'],
-  setupFilesAfterEnv: ['<rootDir>/../jest.expectExtensions.js'],
+  setupFiles: ['<rootDir>/jest.global.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.expectExtensions.js'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   testResultsProcessor: 'jest-junit',
 };

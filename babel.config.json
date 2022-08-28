@@ -1,12 +1,9 @@
 {
+  "babelrcRoots": "packages/*",
     "presets": [
       [
         "@babel/preset-env",
-        {
-          "targets": {
-            "esmodules": true
-          }
-        }
+        {"targets": {"node": "current"}}
       ],
       "@babel/preset-typescript"
     ]

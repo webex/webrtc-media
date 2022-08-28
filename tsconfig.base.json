@@ -2,6 +2,7 @@
     "compilerOptions": {
       "moduleResolution": "Node",
       "strict": true,
+      "allowJs": true,
       "alwaysStrict": true /* Parse in strict mode and emit "use strict" for each source file. */,
       "noImplicitAny": true /* Raise error on expressions and declarations with an implied 'any' type. */,
       "noImplicitThis": true /* Raise error on 'this' expressions with an implied 'any' type. */,

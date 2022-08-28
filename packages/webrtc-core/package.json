@@ -8,6 +8,7 @@
   "module": "dist/esm/index.js",
   "types": "dist/types/index.d.ts",
   "license": "MIT",
+  "type": "module",
   "author": "devsupport@webex.com",
   "publishConfig": {
     "public": "true"
@@ -18,7 +19,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "tsc && rollup --config",
-    "test": "jest --config=jest.config.js",
+    "test": "jest",
     "start": "web-dev-server --config web-dev-server.config.js",
     "test:integration": "karma start --integration",
     "test:integration:debug": "karma start --integration --browsers=chrome --single-run=false --debug --auto-watch",
