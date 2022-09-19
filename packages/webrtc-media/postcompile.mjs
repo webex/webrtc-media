@@ -17,8 +17,8 @@ const replace = function(config){
 const replacerConfig = {
     files:[
         {
-            input: 'dist/transpiled/webrtc-media/src/Media/Effects/BNR/Bnr.js',
-            output: 'dist/transpiled/webrtc-media/src/Media/Effects/BNR/Bnr.js',
+            input: 'dist/transpiled/Media/Effects/BNR/Bnr.js',
+            output: 'dist/transpiled/Media/Effects/BNR/Bnr.js',
             values:{
                 'process.env.NOISE_REDUCTION_PROCESSOR_URL': `'${process.env.NOISE_REDUCTION_PROCESSOR_URL}'`
             }
