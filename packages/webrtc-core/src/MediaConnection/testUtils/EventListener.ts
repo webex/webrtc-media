@@ -1,8 +1,9 @@
-import { expect as chaiExpect } from 'chai';
-import { EventMap } from 'typed-emitter';
+/* eslint-disable import/no-extraneous-dependencies */
+import {expect as chaiExpect} from 'chai';
+import {EventMap} from 'typed-emitter';
 
 import EventEmitter from '../EventEmitter';
-import { AnyEvent, Event } from '../eventTypes';
+import {AnyEvent, Event} from '../eventTypes';
 
 export type LogFn = (action: string, description: string) => void;
 
@@ -14,7 +15,7 @@ export const AnyValue = 'ANY VALUE' as any;
 export type Options = {
   useChaiExpect?: boolean; // if false, then jest expect() is used
   strict?: boolean; // when false, the order of events doesn't matter
-  debug?: string; // string displayed in all the logs, useful when you have mutliple EventListeners for multiple emitters
+  debug?: string; // string displayed in all the logs, useful when you have multiple EventListeners for multiple emitters
 };
 /** Helper class that allows a test to wait for a event
  *  to be emitted by a given instance of EventEmitter.

@@ -17,12 +17,14 @@ module.exports = {
     'plugin:@typescript-eslint/eslint-recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
+    'plugin:import/recommended',
   ],
-  ignorePatterns: ['build/**/*.*', 'dist/**/*.*', 'docs/^(?!examples)/*.*', '*.typegen.ts'],
+  ignorePatterns: ['**/build/**/*.*', '**/dist/**/*.*', 'docs/^(?!examples)/*.*', '*.typegen.ts'],
   settings: {
     'import/parsers': {
       '@typescript-eslint/parser': ['.js', '.ts'],
     },
+    'import/core-modules': ['chai', 'sinon'],
     'import/resolver': {
       node: {
         extensions: ['.js', '.ts'],

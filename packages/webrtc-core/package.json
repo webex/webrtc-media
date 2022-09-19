@@ -19,17 +19,11 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "tsc && rollup --config",
-    "test": "jest",
+    "test": "npx jest",
     "start": "web-dev-server --config web-dev-server.config.js",
     "test:integration": "karma start --integration",
     "test:integration:debug": "karma start --integration --browsers=chrome --single-run=false --debug --auto-watch",
     "test:debug": "karma start --browsers=chrome --single-run=false --debug --auto-watch",
-    "lint": "run-s test:lint && run-s test:prettier",
-    "test:lint": "eslint src --ext .ts --max-warnings=0",
-    "test:prettier": "prettier \"src/**/*.ts\" --list-different",
-    "fix": "run-s fix:*",
-    "fix:prettier": "prettier \"src/**/*.ts\" --write",
-    "fix:lint": "eslint src --ext .ts --fix",
     "release": "semantic-release"
   },
   "dependencies": {
@@ -41,15 +35,5 @@
     "uuid": "^8.3.2",
     "webrtc-adapter": "^8.1.1",
     "xstate": "^4.30.6"
-  },
-  "devDependencies": {
-    "@types/chai": "^4.2.21",
-    "@types/jest": "^27.4.1",
-    "@types/mocha": "^9.0.0",
-    "@types/node": "15.14.7",
-    "@types/sinon": "^10.0.9",
-    "@types/uuid": "^8.3.4",
-    "chai": "^4.3.4",
-    "sinon": "^11.1.2"
   }
 }

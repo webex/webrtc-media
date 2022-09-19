@@ -10,7 +10,7 @@ export interface DeviceInterface {
   groupID: string;
   label: string;
   kind: MediaDeviceKind;
-  // pemissions: string;
+  // permissions: string;
 }
 
 /** @public */

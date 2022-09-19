@@ -1,8 +1,8 @@
 import EventEmitter from 'events';
 
-import { DEVICE, MEDIA } from '../../constants';
+import {DEVICE, MEDIA} from '../../constants';
 import logger from '../../Logger';
-import { getTrackSettings } from './Utils';
+import {getTrackSettings} from './Utils';
 
 // eslint-disable-next-line no-shadow
 export enum TrackStatus {
@@ -100,7 +100,7 @@ export class Track extends EventEmitter implements TrackInterface {
           ID: constraints?.deviceId?.toString(),
           mediaType: DEVICE,
           action: 'applyConstraints()',
-          description: `Not suported constraint tracked ${thisConstraint}`,
+          description: `Not supported constraint tracked ${thisConstraint}`,
         });
         notSupportedConstraints.push(thisConstraint);
       }

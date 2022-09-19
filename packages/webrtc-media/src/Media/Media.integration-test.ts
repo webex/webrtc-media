@@ -1,7 +1,7 @@
-import { expect } from 'chai';
+import {expect} from 'chai';
 // import * as DetectRTC from 'detectrtc';
 
-import { getCameras, getMicrophones, getSpeakers } from '.';
+import {getCameras, getMicrophones, getSpeakers} from '.';
 // import { isBrowserSupported } from '../../../webrtc-media/src';
 
 describe('Media Integration Test - use-fake-ui-for-media-stream', () => {
