@@ -1,5 +1,11 @@
 name: pull-request-checks
 on: [pull_request]
+permissions:
+  checks: write
+  contents: write
+  pull-requests: write
+  security-events: write
+  actions: read
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -12,3 +18,10 @@ jobs:
       - run: yarn run g:build
       - run: yarn lint
       - run: yarn g:test
+      - name: Test Report
+        uses: dorny/test-reporter@v1.5.0
+        if: success() || failure()    # run this step even if previous step failed
+        with:
+          name: JEST Tests            # Name of the check run which will be created
+          path: ./packages/**/coverage/junit/coverage-junit.xml    # Path to test results
+          reporter: jest-junit        # Format of test results

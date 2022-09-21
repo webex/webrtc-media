@@ -1,37 +1,37 @@
 const config = () => {
   return {
-    "clearMocks": true,
-    "rootDir": "./",
-    "testEnvironment": "jsdom",
-    "collectCoverage": true,
-    "coverageReporters": ["lcov", "cobertura"],
-    "transform": {
-      "\\.[jt]sx?$": ["babel-jest", {"rootMode": "upward"}]
+    clearMocks: true,
+    rootDir: './',
+    testEnvironment: 'jsdom',
+    collectCoverage: true,
+    coverageReporters: ['lcov', 'cobertura'],
+    transform: {
+      '\\.[jt]sx?$': ['babel-jest', {rootMode: 'upward'}],
     },
-    "reporters": [
-      "default",
+    reporters: [
+      'default',
       [
-        "jest-junit",
+        'jest-junit',
         {
-          "outputDirectory": "./coverage/junit",
-          "outputName": "coverage-junit.xml",
-          "classNameTemplate": "{classname}",
-          "titleTemplate": "{title}"
-        }
+          outputDirectory: './coverage/junit',
+          outputName: 'coverage-junit.xml',
+          classNameTemplate: '{classname}',
+          titleTemplate: '{title}',
+        },
       ],
       [
-        "jest-html-reporters",
+        'jest-html-reporters',
         {
-          "publicPath": "./coverage/html",
-          "filename": "jest-result.html"
-        }
-      ]
+          publicPath: './coverage/html',
+          filename: 'jest-result.html',
+        },
+      ],
     ],
-    "setupFiles": ["<rootDir>/jest.global.js"],
-    "setupFilesAfterEnv": ["<rootDir>/jest.expectExtensions.js"],
-    "testPathIgnorePatterns": ["/node_modules/", "/dist/"],
-    "testResultsProcessor": "jest-junit"
-  }
-}
+    setupFiles: ['<rootDir>/jest.global.js'],
+    setupFilesAfterEnv: ['<rootDir>/jest.expectExtensions.js'],
+    testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+    testResultsProcessor: 'jest-junit',
+  };
+};
 
 export default config;
