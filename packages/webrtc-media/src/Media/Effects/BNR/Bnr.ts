@@ -1,6 +1,6 @@
-import { MEDIA_STREAM_TRACK } from '../../../constants';
+import {MEDIA_STREAM_TRACK} from '../../../constants';
 import logger from '../../../Logger';
-import { getTrackSettings } from '../../Track/Utils';
+import {getTrackSettings} from '../../Track/Utils';
 
 interface BNRProcessor {
   isModuleAdded: boolean;

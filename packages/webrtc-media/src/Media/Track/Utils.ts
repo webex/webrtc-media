@@ -1,4 +1,4 @@
-import { MEDIA_STREAM_TRACK } from '../../constants';
+import {MEDIA_STREAM_TRACK} from '../../constants';
 import logger from '../../Logger';
 
 /**

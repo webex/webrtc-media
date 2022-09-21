@@ -61,7 +61,7 @@ interface FsmContext {
   seq: number;
   pendingLocalOffer: boolean;
   isHandlingOfferRequest: boolean; // true means that we received an OFFER_REQUEST and need to send an OFFER_RESPONSE
-  retryCounter: number; // number of conescutive attempts we've tried to send our offer and got ERROR back
+  retryCounter: number; // number of consecutive attempts we've tried to send our offer and got ERROR back
 }
 
 /**

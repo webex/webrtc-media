@@ -369,7 +369,7 @@ export class MediaConnection extends EventEmitter<MediaConnectionEvents> {
 
     // the webrtc spec only allows upper case letters, but most browsers (except some older
     // safari like 14.1) work fine also with lower case, so for consistency and ease
-    // of use we make sure that it works on any browser by converrting tone to upper case
+    // of use we make sure that it works on any browser by converting tone to upper case
     this.transceivers.audio.sender.dtmf.insertDTMF(tones.toUpperCase(), duration, interToneGap);
   }
 

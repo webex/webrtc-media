@@ -1,0 +1,7 @@
+{
+    "packages/**/*.{js,ts}": [
+        "prettier --write",
+        "eslint --fix",
+        "cspell"
+    ]
+  }

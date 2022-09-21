@@ -1,9 +1,9 @@
 import EventEmitter from 'events';
 
-import { DEVICE, MEDIA } from '../constants';
+import {DEVICE, MEDIA} from '../constants';
 import logger from '../Logger';
-import { Device, DeviceInterface, DeviceKinds } from './Device';
-import { Track, TrackInterface } from './Track';
+import {Device, DeviceInterface, DeviceKinds} from './Device';
+import {Track, TrackInterface} from './Track';
 
 /* eslint no-underscore-dangle: ["error", { "allow": ["_streams"] }] */
 
@@ -467,9 +467,9 @@ async function deviceChangePublisher(): Promise<void> {
 
   if (newDeviceList.length !== deviceList.length) {
     /**
-     * When a phyisical device is removed / added, two MediaDevice gets added
+     * When a physical device is removed / added, two MediaDevice gets added
      * One input & one output device.
-     * `groupid` is the only thing common between these two MediaDevices
+     * `group id` is the only thing common between these two MediaDevices
      * So, the following code is to filter both of those devices based on group ID to pass on to subscribed listeners
      */
     [getGroupIdsFrom, filterDevicesFrom, action] =
@@ -519,7 +519,7 @@ async function on(eventName: string, listener: () => void) {
 }
 
 /**
- * Returns true when unsubscriptions happened successfully, `false` otherwise
+ * Returns true when un subscription happened successfully, `false` otherwise
  * When a `Subscription` object is pass only that subscription will be removed
  * If no subscriptions are given, all current subscription will be unsubscribed
 
@@ -533,7 +533,7 @@ const off = (eventName: string, listener: () => void) => {
     description: `Called ${eventName} with ${listener} listener`,
   });
   eventEmitter.off(eventName, listener);
-  // We dont have to turn on or off the deviceList as SDK we need to keep track of it
+  // We don't have to turn on or off the deviceList as SDK we need to keep track of it
 };
 
 /** Creates peer to peer connection and gets the offer

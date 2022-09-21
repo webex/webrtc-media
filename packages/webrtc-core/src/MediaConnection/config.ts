@@ -32,7 +32,7 @@ export interface MediaConnectionConfig {
                                         },
                                         and calling initiateOffer() will result in an SDP with just a single m-line (just for the audio) when
                                         skipInactiveTransceivers is true.
-                                        When using this option, changing the number of m-lines later on is not allwed, so for example calling
+                                        When using this option, changing the number of m-lines later on is not allowed, so for example calling
                                         mediaConnection.updateReceiveOptions({
                                           audio: true,
                                           video: true,
