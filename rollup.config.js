@@ -11,10 +11,14 @@ const basePlugins = [
   babel({babelHelpers: 'runtime', plugins: ['@babel/plugin-transform-runtime']}),
 ];
 
-export default {
-  input: 'dist/transpiled/index.js',
-  output: [{format: 'esm', dir: 'dist/esm'}],
+const packageNames = ['webrtc-core', 'webrtc-media'];
+
+const rollupConfig = packageNames.map((packageName) => ({
+  input: `./packages/${packageName}/dist/transpiled/index.js`,
+  output: [{format: 'esm', dir: `packages/${packageName}/dist/esm`}],
   external: [/@babel\/runtime/],
   plugins: basePlugins,
-  watch: {include: './src/**'},
-};
+  watch: {include: `./${packageName}/src/**`},
+}));
+
+export default rollupConfig;

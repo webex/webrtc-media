@@ -7,10 +7,9 @@
     "app",
     "docs"
   ],
-  "scripts": {
-    "g:prebuild": "yarn workspaces foreach -p run prebuild",
+  "scripts": {    
     "g:clean": "yarn clean:global-cache",
-    "g:build": "yarn workspaces foreach -p --topological-dev -v run build",
+    "g:build": "yarn workspaces foreach -p --topological-dev -v run compile && rollup --config",
     "g:test": "yarn workspaces foreach -p run test",
     "g:integration": "yarn workspaces foreach -tv run test:integration",
     "g:typecheck": "yarn workspaces foreach -ptv run typecheck",

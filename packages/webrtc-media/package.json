@@ -16,9 +16,9 @@
   "engines": {
     "node": ">=14.x"
   },
-  "scripts": {
-    "prebuild": "rimraf dist",
-    "build": "tsc && node postcompile.mjs && rollup --config",
+  "scripts": {    
+    "precompile": "rimraf dist",
+    "compile": "tsc && node postcompile.mjs",    
     "test": "npx jest",
     "start": "web-dev-server --config web-dev-server.config.js",
     "test:integration": "karma start karma.conf.cjs --integration",
